@@ -693,7 +693,8 @@ function renderDashboard() {
   const d = processData(filtered);
 
   document.getElementById("rowCount").textContent = fmt(filtered.length);
-  document.getElementById("loadTime").textContent = "Loaded " + new Date().toLocaleTimeString();
+  const loadTimeEl = document.getElementById("loadTime");
+  if (loadTimeEl) loadTimeEl.textContent = "Loaded " + new Date().toLocaleTimeString();
 
   const banner = document.getElementById("advertiserBanner");
   if (currentAdvertiser) {
