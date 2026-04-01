@@ -1,52 +1,457 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Expert Insights Tools</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'DM Sans',sans-serif; background:#F4F6F8; min-height:100vh; display:flex; align-items:center; justify-content:center; }
-.container { max-width:600px; width:100%; padding:40px 20px; }
-.logo { text-align:center; margin-bottom:32px; }
-.logo h1 { font-size:24px; color:#0B1D3A; margin-bottom:4px; }
-.logo p { color:#6B7280; font-size:14px; }
-.tools { display:flex; flex-direction:column; gap:12px; }
-.tool-card {
-  display:flex; align-items:center; gap:16px;
-  background:#fff; border:1px solid #E5E7EB; border-radius:12px;
-  padding:20px 24px; text-decoration:none; color:inherit;
-  transition:all 0.15s;
-}
-.tool-card:hover { border-color:#2563EB; box-shadow:0 4px 12px rgba(37,99,235,0.1); transform:translateY(-1px); }
-.tool-icon { font-size:28px; width:48px; height:48px; display:flex; align-items:center; justify-content:center; background:#EFF6FF; border-radius:10px; flex-shrink:0; }
-.tool-info h2 { font-size:16px; font-weight:600; color:#0B1D3A; margin-bottom:2px; }
-.tool-info p { font-size:13px; color:#6B7280; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EI Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0C1222;
+            --ink-soft: #3A4258;
+            --ink-muted: #6B7490;
+            --surface: #F7F8FB;
+            --surface-raised: #FFFFFF;
+            --border: #E2E5EF;
+            --border-hover: #C8CCDA;
+            --accent: #2563EB;
+            --accent-hover: #1D4FD7;
+            --accent-glow: rgba(37, 99, 235, 0.08);
+            --accent-soft: #EEF4FF;
+            --green: #0D9B5C;
+            --green-soft: #EDFCF4;
+            --amber: #D97706;
+            --amber-soft: #FFF9EB;
+            --radius: 14px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 3px rgba(12, 18, 34, 0.04), 0 1px 2px rgba(12, 18, 34, 0.02);
+            --shadow-md: 0 4px 16px rgba(12, 18, 34, 0.06), 0 1px 4px rgba(12, 18, 34, 0.04);
+            --shadow-lg: 0 12px 40px rgba(12, 18, 34, 0.08), 0 4px 12px rgba(12, 18, 34, 0.04);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            background: var(--surface);
+            color: var(--ink);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Top Bar ── */
+        .topbar {
+            background: var(--ink);
+            padding: 0 40px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .topbar-logo {
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+            color: white;
+            letter-spacing: -0.5px;
+        }
+
+        .topbar-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: -0.3px;
+        }
+
+        .topbar-title span {
+            color: var(--ink-muted);
+            font-weight: 500;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .topbar-env {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--green);
+            background: rgba(13, 155, 92, 0.12);
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+        }
+
+        .topbar-user {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            font-weight: 500;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 56px 40px 40px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            color: var(--ink);
+            line-height: 1.15;
+        }
+
+        .hero p {
+            margin-top: 10px;
+            font-size: 16px;
+            color: var(--ink-muted);
+            line-height: 1.5;
+            font-weight: 450;
+        }
+
+        /* ── Tools Grid ── */
+        .tools-section {
+            padding: 0 40px 60px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .tools-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--ink-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 16px;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ── Tool Card ── */
+        .tool-card {
+            background: var(--surface-raised);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            border-color: var(--border-hover);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .tool-card:active {
+            transform: translateY(0);
+        }
+
+        .tool-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .tool-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .tool-card-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .tool-card-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.2px;
+        }
+
+        .status-live {
+            color: var(--green);
+            background: var(--green-soft);
+        }
+
+        .status-planned {
+            color: var(--amber);
+            background: var(--amber-soft);
+        }
+
+        .tool-card-body h3 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            margin-bottom: 6px;
+        }
+
+        .tool-card-body p {
+            font-size: 14px;
+            color: var(--ink-muted);
+            line-height: 1.55;
+            font-weight: 450;
+        }
+
+        .tool-card-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: auto;
+        }
+
+        .tool-card-features span {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--ink-soft);
+            background: var(--surface);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .tool-card-arrow {
+            position: absolute;
+            bottom: 28px;
+            right: 28px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateX(-4px);
+            transition: all 0.2s ease;
+        }
+
+        .tool-card:hover .tool-card-arrow {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .tool-card-arrow svg {
+            width: 16px;
+            height: 16px;
+            color: var(--ink-soft);
+        }
+
+        /* Card colour accents */
+        .card-proposals .tool-card-icon { background: var(--accent-soft); color: var(--accent); }
+        .card-dashboard .tool-card-icon { background: #F0FDF4; color: #16A34A; }
+        .card-reports .tool-card-icon { background: #FFF7ED; color: #EA580C; }
+        .card-pipeline .tool-card-icon { background: #FAF5FF; color: #9333EA; }
+
+        .card-planned {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            padding: 20px 40px;
+            max-width: 1100px;
+            margin: 0 auto;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-left {
+            font-size: 12px;
+            color: var(--ink-muted);
+            font-weight: 450;
+        }
+
+        .footer-right {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--ink-muted);
+        }
+
+        /* ── Entrance animation ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero { animation: fadeUp 0.5s ease both; }
+        .tools-label { animation: fadeUp 0.5s ease 0.1s both; }
+        .tool-card:nth-child(1) { animation: fadeUp 0.45s ease 0.15s both; }
+        .tool-card:nth-child(2) { animation: fadeUp 0.45s ease 0.22s both; }
+        .tool-card:nth-child(3) { animation: fadeUp 0.45s ease 0.29s both; }
+        .tool-card:nth-child(4) { animation: fadeUp 0.45s ease 0.36s both; }
+    </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo">
-    <h1>Expert Insights</h1>
-    <p>Internal Tools</p>
-  </div>
-  <div class="tools">
-    <a href="proposals.html" class="tool-card">
-      <div class="tool-icon">📋</div>
-      <div class="tool-info">
-        <h2>Proposal Manager</h2>
-        <p>Create and manage campaign proposals and insertion orders</p>
-      </div>
-    </a>
-    <a href="dashboard.html" class="tool-card">
-      <div class="tool-icon">📊</div>
-      <div class="tool-info">
-        <h2>Audience Dashboard</h2>
-        <p>Live campaign performance reporting with Bombora data</p>
-      </div>
-    </a>
-  </div>
-</div>
+
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="topbar-logo">EI</div>
+            <div class="topbar-title">Tools <span>/ Hub</span></div>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-env">LIVE</div>
+            <div class="topbar-user">Expert Insights</div>
+        </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+        <h1>Sales & Campaign Tools</h1>
+        <p>Internal tools for proposal management, campaign reporting, and client operations.</p>
+    </div>
+
+    <!-- Tools Grid -->
+    <div class="tools-section">
+        <div class="tools-label">Tools</div>
+        <div class="tools-grid">
+
+            <!-- Proposal Manager -->
+            <a href="proposals.html" class="tool-card card-proposals">
+                <div class="tool-card-header">
+                    <div class="tool-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                        </svg>
+                    </div>
+                    <div class="tool-card-status status-live">Live</div>
+                </div>
+                <div class="tool-card-body">
+                    <h3>Proposal Manager</h3>
+                    <p>Build campaign proposals, generate PDFs and insertion orders, track active deals from the proposals dashboard.</p>
+                </div>
+                <div class="tool-card-features">
+                    <span>Proposals</span>
+                    <span>Insertion Orders</span>
+                    <span>PDF Export</span>
+                    <span>Google Sheets</span>
+                </div>
+                <div class="tool-card-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                </div>
+            </a>
+
+            <!-- Audience Dashboard -->
+            <a href="dashboard.html" class="tool-card card-dashboard">
+                <div class="tool-card-header">
+                    <div class="tool-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                        </svg>
+                    </div>
+                    <div class="tool-card-status status-live">Live</div>
+                </div>
+                <div class="tool-card-body">
+                    <h3>Audience Dashboard</h3>
+                    <p>Live campaign performance reporting with Bombora visitor data, KPI breakdowns, weekly charts, and batch PDF export.</p>
+                </div>
+                <div class="tool-card-features">
+                    <span>Bombora Data</span>
+                    <span>KPI Cards</span>
+                    <span>Charts</span>
+                    <span>PDF Export</span>
+                </div>
+                <div class="tool-card-arrow">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                    </svg>
+                </div>
+            </a>
+
+            <!-- Static Reports (Planned) -->
+            <div class="tool-card card-reports card-planned">
+                <div class="tool-card-header">
+                    <div class="tool-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15a2.25 2.25 0 0 1 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
+                        </svg>
+                    </div>
+                    <div class="tool-card-status status-planned">Planned</div>
+                </div>
+                <div class="tool-card-body">
+                    <h3>Static Reports</h3>
+                    <p>Per-advertiser audience reports with hardcoded data for client-facing distribution.</p>
+                </div>
+                <div class="tool-card-features">
+                    <span>Per-Advertiser</span>
+                    <span>Client-Facing</span>
+                </div>
+            </div>
+
+            <!-- Pipeline Tracker (Planned) -->
+            <div class="tool-card card-pipeline card-planned">
+                <div class="tool-card-header">
+                    <div class="tool-card-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                    <div class="tool-card-status status-planned">Planned</div>
+                </div>
+                <div class="tool-card-body">
+                    <h3>Pipeline Tracker</h3>
+                    <p>Sales pipeline dashboard for tracking deals, stages, and revenue forecasting.</p>
+                </div>
+                <div class="tool-card-features">
+                    <span>Deals</span>
+                    <span>Forecasting</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-left">Expert Insights Tech Ltd</div>
+        <div class="footer-right">ryanei.github.io/ei-tools</div>
+    </div>
+
 </body>
 </html>
