@@ -361,6 +361,14 @@ body {
 </style>
 </head>
 <body>
+<script>
+(function(){
+  var s;try{s=JSON.parse(sessionStorage.getItem("eitools_session"))}catch(e){}
+  if(!s||!s.username){window.location.href="index.html";return;}
+  var EP="https://script.google.com/macros/s/AKfycbxQEH2It-Od480pY905hj6xtThN1sOyDa4s2HTSuBu6V94YpudFhS_FgimJX_plW7EP/exec";
+  fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=proposals&type=pageview",{mode:"no-cors"}).catch(function(){});
+})();
+</script>
 
 <div class="topbar">
   <div class="topbar-brand">
