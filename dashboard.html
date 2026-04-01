@@ -763,12 +763,11 @@ function updateDateRangeDisplay() {
   const tag = document.getElementById("periodTag");
   const footerSpan = document.getElementById("footerPeriod");
   if (label) {
-    tag.textContent = label;
-    tag.style.display = "";
-    footerSpan.textContent = " · " + label;
+    if (tag) { tag.textContent = label; tag.style.display = ""; }
+    if (footerSpan) footerSpan.textContent = " · " + label;
   } else {
-    tag.style.display = "none";
-    footerSpan.textContent = "";
+    if (tag) tag.style.display = "none";
+    if (footerSpan) footerSpan.textContent = "";
   }
 }
 
