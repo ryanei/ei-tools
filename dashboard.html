@@ -142,6 +142,7 @@
   /* Print / PDF */
   @media print {
     @page { size: portrait; margin: 8mm; }
+    .header > a[href='index.html'] { display:none !important; }
     body { background:white !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; font-size:10px; }
     .filters-bar { display:none !important; }
     .header { padding:10px 20px !important; }
@@ -154,7 +155,7 @@
     .kpi-value { font-size:28px; }
     .grid-3 { grid-template-columns:1fr 1fr 1fr !important; gap:12px; }
     .grid-2 { grid-template-columns:1fr 1fr !important; gap:12px; }
-    .kpi-row { grid-template-columns:inherit !important; gap:12px; margin-bottom:16px; }
+    .kpi-row { grid-template-columns:repeat(4,1fr) !important; gap:12px; margin-bottom:16px; }
     .region-cards { grid-template-columns:repeat(4,1fr) !important; }
     .fade-in { animation:none !important; opacity:1 !important; }
     .bar:hover { transform:none !important; }
@@ -845,7 +846,8 @@ async function generatePDFBlob() {
       opacity: 1 !important;
     }
     .fade-in { opacity: 1 !important; }
-    .kpi-row { grid-template-columns: inherit !important; }
+    .header > a[href='index.html'] { display:none !important; }
+    .kpi-row { grid-template-columns: repeat(4,1fr) !important; }
     .grid-2 { grid-template-columns: 1fr 1fr !important; }
     .grid-3 { grid-template-columns: 1fr 1fr 1fr !important; }
     .region-cards { grid-template-columns: repeat(4,1fr) !important; }
