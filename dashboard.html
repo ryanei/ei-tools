@@ -515,6 +515,17 @@ function getFilteredRows() {
       return allowed.some(ap => rp === ap || rp.startsWith(ap + "/"));
     });
   }
+  const fromVal = document.getElementById("dateFrom").value;
+  const toVal = document.getElementById("dateTo").value;
+  if (fromVal || toVal) {
+    rows = rows.filter(r => {
+      const dk = getDayKey(r["Import Date"]||"");
+      if (!dk) return false;
+      if (fromVal && dk < fromVal) return false;
+      if (toVal && dk > toVal) return false;
+      return true;
+    });
+  }
   return rows;
 }
 
@@ -529,21 +540,36 @@ function applyDatePreset(val) {
   }
   customWrap.style.display = "none";
   
-  // Re-fetch Bombora data with server-side date filtering
-  loadData(true);
+  if (val === "all") {
+    const allDates = allBomboraRows.map(r => getDayKey(r["Import Date"]||"")).filter(Boolean).sort();
+    fromEl.value = allDates.length ? allDates[0] : "";
+    toEl.value = allDates.length ? allDates[allDates.length - 1] : "";
+  } else if (val === "lastmonth") {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const to = new Date(now.getFullYear(), now.getMonth(), 0);
+    fromEl.value = from.toISOString().slice(0, 10);
+    toEl.value = to.toISOString().slice(0, 10);
+  } else {
+    const days = parseInt(val);
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    fromEl.value = from.toISOString().slice(0, 10);
+    toEl.value = to.toISOString().slice(0, 10);
+  }
+  
+  updateDateRangeDisplay();
+  renderDashboard();
 }
 
 function onDatePresetChange() {
   applyDatePreset(document.getElementById("datePreset").value);
 }
 
-let dateChangeTimer = null;
 function onDateChange() {
-  // Debounce custom date changes to avoid hammering the API
-  clearTimeout(dateChangeTimer);
-  dateChangeTimer = setTimeout(() => {
-    loadData(true);
-  }, 500);
+  updateDateRangeDisplay();
+  renderDashboard();
 }
 
 // ─── Render ──────────────────────────────────────────────
@@ -731,6 +757,7 @@ function renderDashboard() {
 
   const showClicks = currentAdvertiser && isFullCalendarMonth();
   const month = getSelectedMonth();
+  console.log("Click debug:", { currentAdvertiser, isFullMonth: isFullCalendarMonth(), month, showClicks, clickDataKeys: Object.keys(clickData) });
 
   // Compute click totals for urlTable rows
   let totalClicks = 0;
@@ -743,10 +770,10 @@ function renderDashboard() {
 
   document.getElementById("dashboard").innerHTML = `
     <div class="kpi-row" style="grid-template-columns:repeat(${showClicks ? 4 : 3},1fr);">
-      ${renderKPI("Page Views", d.pageViews, "#001323")}
+      ${renderKPI("Page Views", d.pageViews, "#006BC1")}
       ${renderKPI("Unique Visitors", d.uniqueVisitors, "#012747")}
       ${showClicks ? renderKPI("CTA Clicks", totalClicks, "#BF0A61") : ""}
-      ${renderKPI("Business Domains", d.businessDomains, "#006BC1")}
+      ${renderKPI("Business Domains", d.businessDomains, "#E0B51A")}
     </div>
     ${document.getElementById("hideWeekly").checked ? "" : section("Weekly Visits", "Traffic trend by week", renderDailyChart(d.weeks))}
 
@@ -1013,11 +1040,10 @@ async function downloadAllPDFs() {
 }
 
 // ─── JSONP loader ────────────────────────────────────────
-function loadSheetJSONP(sheetId, sheetName, tq) {
+function loadSheetJSONP(sheetId, sheetName) {
   return new Promise((resolve, reject) => {
     const cb = "gviz_" + Math.random().toString(36).slice(2);
-    let url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&headers=1`;
-    if (tq) url += "&tq=" + encodeURIComponent(tq);
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&headers=1`;
     const tm = setTimeout(() => { delete window[cb]; if(sc.parentNode) sc.parentNode.removeChild(sc); reject(new Error("Timeout loading sheet")); }, 30000);
 
     window[cb] = function(resp) {
@@ -1151,91 +1177,30 @@ function populateDropdown() {
   sel.disabled = false;
 }
 
-// ─── Compute date bounds from preset (without touching DOM) ──
-function getDateBoundsForPreset(val) {
-  if (val === "all") return { from: null, to: null };
-  if (val === "lastmonth") {
-    const now = new Date();
-    const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const to = new Date(now.getFullYear(), now.getMonth(), 0);
-    return { from: from.toISOString().slice(0,10), to: to.toISOString().slice(0,10) };
-  }
-  if (val === "custom") {
-    return {
-      from: document.getElementById("dateFrom").value || null,
-      to: document.getElementById("dateTo").value || null,
-    };
-  }
-  const days = parseInt(val);
-  const to = new Date();
-  const from = new Date();
-  from.setDate(from.getDate() - days);
-  return { from: from.toISOString().slice(0,10), to: to.toISOString().slice(0,10) };
-}
-
-function buildBomboraTQ(fromDate, toDate) {
-  // Import Date is column A in the Bombora sheet
-  const clauses = [];
-  if (fromDate) clauses.push(`A >= date '${fromDate}'`);
-  if (toDate) clauses.push(`A <= date '${toDate}'`);
-  return clauses.length ? "SELECT * WHERE " + clauses.join(" AND ") : null;
-}
-
 // ─── Load ────────────────────────────────────────────────
-let advDataLoaded = false;
-
-async function loadData(skipAdvSheets) {
+async function loadData() {
   const loading=document.getElementById("loadingScreen"), error=document.getElementById("errorScreen"), dash=document.getElementById("dashboard");
   loading.style.display="flex"; error.style.display="none"; dash.style.display="none";
-
   try {
-    // Compute date range for tq filtering
-    const preset = document.getElementById("datePreset").value;
-    const bounds = getDateBoundsForPreset(preset);
-    const tq = buildBomboraTQ(bounds.from, bounds.to);
-
-    // Always fetch Bombora with date filter; only fetch advertiser sheets on first load
-    const fetches = [loadSheetJSONP(BOMBORA_SHEET_ID, "Sheet1", tq)];
-    if (!skipAdvSheets) {
-      fetches.push(loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet1"));
-      fetches.push(loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet2"));
-      fetches.push(loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet3"));
-    }
-
-    const results = await Promise.all(fetches);
-    const bomboraRows = results[0];
-
-    if (!skipAdvSheets) {
-      advertiserMap = parseAdvertiserSheet(results[1]);
-      limitDomainsMap = parseAdvertiserSettings(results[2]);
-      clickData = parseClickSheet(results[3]);
-      populateDropdown();
-      advDataLoaded = true;
-    }
-
-    if (!bomboraRows.length) throw new Error("Bombora sheet returned no data for this date range");
+    const [bomboraRows, advRows, settingsRows, clickRows] = await Promise.all([
+      loadSheetJSONP(BOMBORA_SHEET_ID, "Sheet1"),
+      loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet1"),
+      loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet2"),
+      loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet3"),
+    ]);
+    if (!bomboraRows.length) throw new Error("Bombora sheet returned no data");
     allBomboraRows = bomboraRows;
-
+    advertiserMap = parseAdvertiserSheet(advRows);
+    limitDomainsMap = parseAdvertiserSettings(settingsRows);
+    console.log("Sheet3 raw rows:", clickRows.length, clickRows.length ? JSON.stringify(clickRows[0]) : "empty");
+    clickData = parseClickSheet(clickRows);
+    populateDropdown();
     if (currentAdvertiser && advertiserMap[currentAdvertiser]) {
       document.getElementById("advertiserSelect").value = currentAdvertiser;
     } else { currentAdvertiser = ""; }
-
     loading.style.display = "none";
-
-    // Set date inputs to match the bounds (for client-side filtering consistency)
-    if (bounds.from) document.getElementById("dateFrom").value = bounds.from;
-    if (bounds.to) document.getElementById("dateTo").value = bounds.to;
-    if (preset === "all" && bomboraRows.length) {
-      // For "all", extract actual date range from returned data
-      const allDates = bomboraRows.map(r => getDayKey(r["Import Date"]||"")).filter(Boolean).sort();
-      if (allDates.length) {
-        document.getElementById("dateFrom").value = allDates[0];
-        document.getElementById("dateTo").value = allDates[allDates.length - 1];
-      }
-    }
-
-    updateDateRangeDisplay();
-    renderDashboard();
+    // Default to Last month
+    applyDatePreset("lastmonth");
   } catch(err) {
     loading.style.display="none"; error.style.display="flex";
     document.getElementById("errorMsg").textContent = err.message;
