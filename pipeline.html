@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert Insights - Sales Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{--ink:#0C1222;--ink-soft:#3A4258;--ink-muted:#6B7490;--surface:#F7F8FB;--surface-raised:#FFF;--border:#E2E5EF;--border-hover:#C8CCDA;--accent:#2563EB;--accent-hover:#1D4FD7;--accent-soft:#EEF4FF;--green:#0D9B5C;--green-soft:#EDFCF4;--amber:#D97706;--amber-soft:#FFF9EB;--red:#DC2626;--red-soft:#FEF2F2;--purple:#7C3AED;--purple-soft:#F3F0FF;--radius:14px;--radius-sm:8px;--shadow-md:0 4px 16px rgba(12,18,34,0.06),0 1px 4px rgba(12,18,34,0.04);--shadow-lg:0 8px 32px rgba(12,18,34,0.08),0 2px 8px rgba(12,18,34,0.04);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* Topbar */
+.topbar{background:linear-gradient(135deg,#0C1222 0%,#162040 50%,#1a2d5a 100%);padding:0 40px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}
+.topbar-logo img{height:22px;}
+.topbar-title{font-size:15px;font-weight:700;color:white;letter-spacing:-0.3px;}
+.topbar-title span{color:rgba(255,255,255,0.4);font-weight:500;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.topbar-env{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:#34d399;background:rgba(52,211,153,0.1);padding:4px 10px;border-radius:20px;}
+.back-link{color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px;font-weight:500;transition:color 0.15s;}
+.back-link:hover{color:white;}
+
+/* Sub-nav */
+.subnav{background:var(--surface-raised);border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;gap:0;}
+.subnav-tab{padding:14px 20px;font-size:13px;font-weight:600;color:var(--ink-muted);cursor:pointer;border:none;background:none;font-family:inherit;position:relative;transition:color 0.15s;}
+.subnav-tab:hover{color:var(--ink);}
+.subnav-tab.active{color:var(--accent);}
+.subnav-tab.active::after{content:'';position:absolute;bottom:0;left:20px;right:20px;height:2px;background:var(--accent);border-radius:2px 2px 0 0;}
+
+/* Main */
+.main{max-width:1200px;margin:0 auto;padding:32px 40px;}
+
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:32px;}
+.kpi-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;}
+.kpi-label{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.kpi-value{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.kpi-sub{font-size:12px;color:var(--ink-muted);margin-top:4px;}
+.kpi-card.accent{border-left:3px solid var(--accent);}
+.kpi-card.green{border-left:3px solid var(--green);}
+.kpi-card.amber{border-left:3px solid var(--amber);}
+.kpi-card.red{border-left:3px solid var(--red);}
+.kpi-card.purple{border-left:3px solid var(--purple);}
+
+/* Pipeline Table */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:18px;font-weight:800;letter-spacing:-0.3px;}
+.section-actions{display:flex;gap:10px;}
+
+.btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface-raised);color:var(--ink);transition:all 0.15s;}
+.btn:hover{border-color:var(--border-hover);box-shadow:var(--shadow-md);}
+.btn-primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.3);}
+.btn-danger:hover{background:var(--red-soft);}
+
+/* Filters */
+.filters{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-select{padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;}
+.filter-search{padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;width:220px;}
+.filter-search:focus,.filter-select:focus{border-color:var(--accent);}
+
+/* Table */
+.table-wrap{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;}
+tbody td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:top;}
+tbody tr:hover{background:var(--accent-soft);}
+tbody tr:last-child td{border-bottom:none;}
+
+/* Status badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-lead{background:var(--accent-soft);color:var(--accent);}
+.badge-proposal{background:var(--amber-soft);color:var(--amber);}
+.badge-negotiating{background:var(--purple-soft);color:var(--purple);}
+.badge-won{background:var(--green-soft);color:var(--green);}
+.badge-lost{background:var(--red-soft);color:var(--red);}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface-raised);border-radius:var(--radius);width:600px;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:32px;}
+.modal-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:24px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+.form-input,.form-select,.form-textarea{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;transition:border-color 0.15s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-textarea{resize:vertical;min-height:80px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+
+/* Charts */
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;}
+.chart-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:24px;}
+.chart-card-title{font-size:14px;font-weight:700;margin-bottom:16px;}
+.chart-card.full{grid-column:1/-1;}
+
+/* Bar chart */
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:180px;padding-top:20px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.bar{width:100%;border-radius:6px 6px 0 0;min-height:4px;transition:height 0.5s ease;}
+.bar-label{font-size:10px;color:var(--ink-muted);font-weight:600;text-align:center;}
+.bar-value{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+/* Forecast table */
+.forecast-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
+.forecast-table th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;border-bottom:2px solid var(--border);}
+.forecast-table td{padding:10px 12px;border-bottom:1px solid var(--border);}
+
+/* Loading */
+.loading{text-align:center;padding:60px 20px;color:var(--ink-muted);font-size:14px;}
+.error-msg{text-align:center;padding:40px;color:var(--red);}
+
+/* Footer */
+.footer{max-width:1200px;margin:0 auto;padding:20px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.footer-left{font-size:12px;color:var(--ink-muted);}
+.footer-right{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.kpi-row{animation:fadeUp 0.4s ease both;}
+.table-wrap{animation:fadeUp 0.5s ease 0.1s both;}
+.chart-row{animation:fadeUp 0.5s ease 0.15s both;}
+
+/* Print/PDF */
+@media print{.topbar,.subnav,.filters,.section-actions,.modal-overlay,.footer{display:none!important;}}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var s;try{s=JSON.parse(sessionStorage.getItem("eitools_session"))}catch(e){}
+  if(!s||!s.username){window.location.href="index.html";return;}
+  var EP="https://script.google.com/macros/s/AKfycbxQEH2It-Od480pY905hj6xtThN1sOyDa4s2HTSuBu6V94YpudFhS_FgimJX_plW7EP/exec";
+  fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=pipeline&type=pageview",{mode:"no-cors"}).catch(function(){});
+})();
+</script>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo"><img src="data:image/png;base64,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" alt="EI" style="height:22px;width:auto;"></div>
+    <div class="topbar-title"><a href="index.html" style="color:white;text-decoration:none;">Tools</a> <span>/ Sales Pipeline</span></div>
+  </div>
+  <div class="topbar-right">
+    <a href="index.html" class="back-link">&#8592; All Tools</a>
+    <div class="topbar-env">LIVE</div>
+  </div>
+</div>
+
+<div class="subnav">
+  <button class="subnav-tab active" onclick="switchView('pipeline')">Pipeline</button>
+  <button class="subnav-tab" onclick="switchView('forecast')">Forecast & Reports</button>
+</div>
+
+<!-- PIPELINE VIEW -->
+<div id="pipelineView" class="main">
+  <div id="pipelineKpis"></div>
+
+  <div class="section-header">
+    <div class="section-title">Deals</div>
+    <div class="section-actions">
+      <button class="btn btn-primary" onclick="openDealModal()">+ New Deal</button>
+      <button class="btn" onclick="exportPipelinePDF()">Export PDF</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <select class="filter-select" id="filterStage" onchange="renderPipeline()">
+      <option value="">All Stages</option>
+      <option value="Lead">Lead</option>
+      <option value="Proposal Sent">Proposal Sent</option>
+      <option value="Negotiating">Negotiating</option>
+      <option value="Won">Won</option>
+      <option value="Lost">Lost</option>
+    </select>
+    <select class="filter-select" id="filterOwner" onchange="renderPipeline()">
+      <option value="">All Owners</option>
+    </select>
+    <select class="filter-select" id="filterType" onchange="renderPipeline()">
+      <option value="">All Types</option>
+      <option value="New Business">New Business</option>
+      <option value="Renewal">Renewal</option>
+    </select>
+    <input type="text" class="filter-search" id="filterSearch" placeholder="Search deals..." oninput="renderPipeline()">
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Deal</th>
+          <th>Advertiser</th>
+          <th>Value</th>
+          <th>Stage</th>
+          <th>Owner</th>
+          <th>Type</th>
+          <th>Expected Close</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="dealsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FORECAST VIEW -->
+<div id="forecastView" class="main" style="display:none;">
+  <div id="forecastKpis"></div>
+  <div id="forecastCharts"></div>
+  <div class="section-header">
+    <div class="section-title">Revenue Forecast by Month</div>
+    <div class="section-actions">
+      <button class="btn" onclick="exportForecastPDF()">Export Forecast PDF</button>
+    </div>
+  </div>
+  <div class="table-wrap" id="forecastTableWrap"></div>
+
+  <div style="margin-top:32px;">
+    <div class="section-header">
+      <div class="section-title">Deals Closing Soon / Overdue</div>
+    </div>
+    <div class="table-wrap" id="urgentDealsWrap"></div>
+  </div>
+</div>
+
+<!-- DEAL MODAL -->
+<div class="modal-overlay" id="dealModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">New Deal</div>
+    <input type="hidden" id="dealId">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Deal Name *</label><input class="form-input" id="fDealName" placeholder="e.g. Acronis Q2 Campaign"></div>
+      <div class="form-group"><label class="form-label">Advertiser *</label><input class="form-input" id="fAdvertiser" placeholder="e.g. Acronis"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Deal Value (USD) *</label><input class="form-input" id="fValue" type="number" step="0.01" placeholder="e.g. 15000"></div>
+      <div class="form-group"><label class="form-label">Stage *</label>
+        <select class="form-select" id="fStage">
+          <option value="Lead">Lead</option>
+          <option value="Proposal Sent">Proposal Sent</option>
+          <option value="Negotiating">Negotiating</option>
+          <option value="Won">Won</option>
+          <option value="Lost">Lost</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Owner *</label>
+        <select class="form-select" id="fOwner">
+          <option value="Ryan">Ryan</option>
+          <option value="Josh">Josh</option>
+          <option value="Craig">Craig</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Revenue Type</label>
+        <select class="form-select" id="fType">
+          <option value="New Business">New Business</option>
+          <option value="Renewal">Renewal</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Expected Close Date</label><input class="form-input" id="fExpClose" type="date"></div>
+      <div class="form-group"><label class="form-label">Actual Close Date</label><input class="form-input" id="fActClose" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group full"><label class="form-label">Products / Articles</label><input class="form-input" id="fProducts" placeholder="e.g. Top 10 Email Security, Top 8 Endpoint Protection"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-textarea" id="fNotes" placeholder="Activity notes, next steps..."></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeDealModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveDealBtn" onclick="saveDeal()">Save Deal</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="footer-left">Expert Insights &middot; Sales Pipeline</div>
+  <div class="footer-right">v1.0.0</div>
+</div>
+
+<script>
+// ── Config ──
+const PIPELINE_SHEET_ID = "PLACEHOLDER_SHEET_ID";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQEH2It-Od480pY905hj6xtThN1sOyDa4s2HTSuBu6V94YpudFhS_FgimJX_plW7EP/exec";
+
+// Stage probabilities for weighted forecast
+const STAGE_PROB = {
+  "Lead": 0.10,
+  "Proposal Sent": 0.30,
+  "Negotiating": 0.60,
+  "Won": 1.0,
+  "Lost": 0
+};
+
+const STAGE_ORDER = ["Lead", "Proposal Sent", "Negotiating", "Won", "Lost"];
+
+let allDeals = [];
+let currentView = "pipeline";
+
+// ── Data Loading ──
+function loadDeals() {
+  const url = `https://docs.google.com/spreadsheets/d/${PIPELINE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=Deals`;
+  const cb = "_pipelineCb_" + Date.now();
+  return new Promise((resolve, reject) => {
+    window[cb] = function(data) {
+      try {
+        const jsonStr = data.responseText || data;
+        const match = typeof jsonStr === "string" ? jsonStr.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/) : null;
+        const parsed = match ? JSON.parse(match[1]) : (typeof data === "object" ? data : JSON.parse(data));
+        const cols = parsed.table.cols.map(c => c.label);
+        const rows = parsed.table.rows.map(r => {
+          const obj = {};
+          r.c.forEach((cell, i) => { obj[cols[i]] = cell ? (cell.v != null ? cell.v : "") : ""; });
+          return obj;
+        });
+        resolve(rows);
+      } catch(e) { reject(e); }
+      delete window[cb];
+      document.getElementById("_sc_" + cb)?.remove();
+    };
+    // Use JSONP approach
+    const script = document.createElement("script");
+    script.id = "_sc_" + cb;
+    script.src = url + "&tq=&responseHandler=" + cb;
+    script.onerror = () => reject(new Error("Failed to load sheet"));
+    document.body.appendChild(script);
+  });
+}
+
+async function init() {
+  try {
+    allDeals = await loadDeals();
+    renderPipeline();
+    renderForecast();
+    populateOwnerFilter();
+  } catch(e) {
+    document.getElementById("dealsBody").innerHTML = `<tr><td colspan="8" class="error-msg">Failed to load deals: ${e.message}. Make sure the Google Sheet exists and is shared.</td></tr>`;
+  }
+}
+
+function populateOwnerFilter() {
+  const owners = [...new Set(allDeals.map(d => d.Owner).filter(Boolean))];
+  const sel = document.getElementById("filterOwner");
+  sel.innerHTML = '<option value="">All Owners</option>';
+  owners.forEach(o => { sel.innerHTML += `<option value="${o}">${o}</option>`; });
+}
+
+// ── Pipeline View ──
+function renderPipeline() {
+  const stage = document.getElementById("filterStage").value;
+  const owner = document.getElementById("filterOwner").value;
+  const type = document.getElementById("filterType").value;
+  const search = document.getElementById("filterSearch").value.toLowerCase();
+
+  let filtered = allDeals.filter(d => {
+    if (stage && d.Stage !== stage) return false;
+    if (owner && d.Owner !== owner) return false;
+    if (type && d["Revenue Type"] !== type) return false;
+    if (search && !(d["Deal Name"]||"").toLowerCase().includes(search) && !(d.Advertiser||"").toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Sort: active deals first (by stage order), then Won, then Lost
+  filtered.sort((a, b) => {
+    const ai = STAGE_ORDER.indexOf(a.Stage);
+    const bi = STAGE_ORDER.indexOf(b.Stage);
+    if (ai !== bi) return ai - bi;
+    return (parseFloat(b.Value) || 0) - (parseFloat(a.Value) || 0);
+  });
+
+  renderPipelineKpis(filtered);
+  renderDealsTable(filtered);
+}
+
+function renderPipelineKpis(deals) {
+  const active = deals.filter(d => d.Stage !== "Won" && d.Stage !== "Lost");
+  const won = deals.filter(d => d.Stage === "Won");
+  const lost = deals.filter(d => d.Stage === "Lost");
+  const totalPipeline = active.reduce((s, d) => s + (parseFloat(d.Value) || 0), 0);
+  const totalWon = won.reduce((s, d) => s + (parseFloat(d.Value) || 0), 0);
+  const winRate = (won.length + lost.length) > 0 ? Math.round(won.length / (won.length + lost.length) * 100) : 0;
+
+  document.getElementById("pipelineKpis").innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi-card accent"><div class="kpi-label">Active Pipeline</div><div class="kpi-value">$${fmt(totalPipeline)}</div><div class="kpi-sub">${active.length} deal${active.length!==1?'s':''}</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Won Revenue</div><div class="kpi-value">$${fmt(totalWon)}</div><div class="kpi-sub">${won.length} deal${won.length!==1?'s':''}</div></div>
+      <div class="kpi-card purple"><div class="kpi-label">Win Rate</div><div class="kpi-value">${winRate}%</div><div class="kpi-sub">${won.length}W / ${lost.length}L</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Avg Deal Size</div><div class="kpi-value">$${fmt(active.length ? Math.round(totalPipeline / active.length) : 0)}</div><div class="kpi-sub">active deals</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Weighted Forecast</div><div class="kpi-value">$${fmt(Math.round(active.reduce((s,d) => s + (parseFloat(d.Value)||0) * (STAGE_PROB[d.Stage]||0), 0)))}</div><div class="kpi-sub">probability-adjusted</div></div>
+    </div>`;
+}
+
+function renderDealsTable(deals) {
+  const tbody = document.getElementById("dealsBody");
+  if (!deals.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--ink-muted);">No deals found. Click "+ New Deal" to add one.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = deals.map((d, i) => `
+    <tr>
+      <td><strong>${esc(d["Deal Name"]||"")}</strong>${d.Products ? `<div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">${esc(d.Products)}</div>` : ""}</td>
+      <td>${esc(d.Advertiser||"")}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">$${fmt(parseFloat(d.Value)||0)}</td>
+      <td>${stageBadge(d.Stage)}</td>
+      <td>${esc(d.Owner||"")}</td>
+      <td><span style="font-size:12px;color:var(--ink-muted);">${esc(d["Revenue Type"]||"")}</span></td>
+      <td style="font-size:12px;">${d["Expected Close"] ? formatDate(d["Expected Close"]) : "-"}</td>
+      <td><button class="btn btn-sm" onclick="editDeal(${i})">Edit</button></td>
+    </tr>`).join("");
+}
+
+function stageBadge(stage) {
+  const cls = {"Lead":"badge-lead","Proposal Sent":"badge-proposal","Negotiating":"badge-negotiating","Won":"badge-won","Lost":"badge-lost"};
+  return `<span class="badge ${cls[stage]||''}">${esc(stage||"")}</span>`;
+}
+
+// ── Forecast View ──
+function renderForecast() {
+  renderForecastKpis();
+  renderForecastCharts();
+  renderForecastTable();
+  renderUrgentDeals();
+}
+
+function renderForecastKpis() {
+  const active = allDeals.filter(d => d.Stage !== "Won" && d.Stage !== "Lost");
+  const won = allDeals.filter(d => d.Stage === "Won");
+  const lost = allDeals.filter(d => d.Stage === "Lost");
+  const newBiz = allDeals.filter(d => d["Revenue Type"] === "New Business" && d.Stage === "Won");
+  const renewals = allDeals.filter(d => d["Revenue Type"] === "Renewal" && d.Stage === "Won");
+  const totalWon = won.reduce((s,d) => s + (parseFloat(d.Value)||0), 0);
+  const newBizVal = newBiz.reduce((s,d) => s + (parseFloat(d.Value)||0), 0);
+  const renewalVal = renewals.reduce((s,d) => s + (parseFloat(d.Value)||0), 0);
+  const weighted = Math.round(active.reduce((s,d) => s + (parseFloat(d.Value)||0) * (STAGE_PROB[d.Stage]||0), 0));
+  const winRate = (won.length + lost.length) > 0 ? Math.round(won.length / (won.length + lost.length) * 100) : 0;
+
+  document.getElementById("forecastKpis").innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi-card green"><div class="kpi-label">Total Won</div><div class="kpi-value">$${fmt(totalWon)}</div><div class="kpi-sub">${won.length} deals closed</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">Weighted Forecast</div><div class="kpi-value">$${fmt(weighted)}</div><div class="kpi-sub">${active.length} active deals</div></div>
+      <div class="kpi-card purple"><div class="kpi-label">Win Rate</div><div class="kpi-value">${winRate}%</div><div class="kpi-sub">${won.length}W / ${lost.length}L</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">New Business Won</div><div class="kpi-value">$${fmt(newBizVal)}</div><div class="kpi-sub">${newBiz.length} deals</div></div>
+      <div class="kpi-card red"><div class="kpi-label">Renewal Won</div><div class="kpi-value">$${fmt(renewalVal)}</div><div class="kpi-sub">${renewals.length} deals</div></div>
+    </div>`;
+}
+
+function renderForecastCharts() {
+  // Pipeline by stage bar chart
+  const stageCounts = {};
+  const stageValues = {};
+  STAGE_ORDER.forEach(s => { stageCounts[s] = 0; stageValues[s] = 0; });
+  allDeals.forEach(d => {
+    if (d.Stage) { stageCounts[d.Stage] = (stageCounts[d.Stage]||0) + 1; stageValues[d.Stage] = (stageValues[d.Stage]||0) + (parseFloat(d.Value)||0); }
+  });
+  const maxVal = Math.max(...Object.values(stageValues), 1);
+  const stageColors = {"Lead":"var(--accent)","Proposal Sent":"var(--amber)","Negotiating":"var(--purple)","Won":"var(--green)","Lost":"var(--red)"};
+
+  // Owner performance
+  const owners = {};
+  allDeals.filter(d => d.Stage === "Won").forEach(d => {
+    if (!owners[d.Owner]) owners[d.Owner] = {won:0, value:0};
+    owners[d.Owner].won++;
+    owners[d.Owner].value += parseFloat(d.Value) || 0;
+  });
+  const maxOwnerVal = Math.max(...Object.values(owners).map(o => o.value), 1);
+
+  document.getElementById("forecastCharts").innerHTML = `
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card-title">Pipeline Value by Stage</div>
+        <div class="bar-chart">
+          ${STAGE_ORDER.map(s => `
+            <div class="bar-col">
+              <div class="bar-value">$${fmtK(stageValues[s]||0)}</div>
+              <div class="bar" style="height:${Math.max((stageValues[s]||0)/maxVal*140, 4)}px;background:${stageColors[s]};"></div>
+              <div class="bar-label">${s}<br><span style="font-weight:400;">${stageCounts[s]} deal${stageCounts[s]!==1?'s':''}</span></div>
+            </div>`).join("")}
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Won Revenue by Owner</div>
+        <div class="bar-chart">
+          ${Object.entries(owners).map(([name, data]) => `
+            <div class="bar-col">
+              <div class="bar-value">$${fmtK(data.value)}</div>
+              <div class="bar" style="height:${Math.max(data.value/maxOwnerVal*140, 4)}px;background:var(--green);"></div>
+              <div class="bar-label">${esc(name)}<br><span style="font-weight:400;">${data.won} deal${data.won!==1?'s':''}</span></div>
+            </div>`).join("") || '<div style="padding:40px;color:var(--ink-muted);text-align:center;width:100%;">No won deals yet</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderForecastTable() {
+  // Group active deals by expected close month
+  const active = allDeals.filter(d => d.Stage !== "Won" && d.Stage !== "Lost");
+  const months = {};
+  active.forEach(d => {
+    const date = d["Expected Close"];
+    const key = date ? date.substring(0, 7) : "No Date";
+    if (!months[key]) months[key] = {deals: [], total: 0, weighted: 0};
+    const val = parseFloat(d.Value) || 0;
+    months[key].deals.push(d);
+    months[key].total += val;
+    months[key].weighted += val * (STAGE_PROB[d.Stage] || 0);
+  });
+
+  const sorted = Object.entries(months).sort((a, b) => a[0].localeCompare(b[0]));
+
+  document.getElementById("forecastTableWrap").innerHTML = `
+    <table class="forecast-table">
+      <thead><tr><th>Month</th><th>Deals</th><th>Total Value</th><th>Weighted Forecast</th></tr></thead>
+      <tbody>
+        ${sorted.map(([month, data]) => `
+          <tr>
+            <td style="font-weight:600;">${month === "No Date" ? "No Date Set" : formatMonth(month)}</td>
+            <td>${data.deals.length}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">$${fmt(Math.round(data.total))}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">$${fmt(Math.round(data.weighted))}</td>
+          </tr>`).join("") || '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--ink-muted);">No active deals</td></tr>'}
+        ${sorted.length ? `<tr style="font-weight:700;border-top:2px solid var(--border);">
+          <td>Total</td>
+          <td>${active.length}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">$${fmt(Math.round(sorted.reduce((s,[,d]) => s+d.total, 0)))}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">$${fmt(Math.round(sorted.reduce((s,[,d]) => s+d.weighted, 0)))}</td>
+        </tr>` : ""}
+      </tbody>
+    </table>`;
+}
+
+function renderUrgentDeals() {
+  const now = new Date();
+  const soon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14 days
+  const active = allDeals.filter(d => d.Stage !== "Won" && d.Stage !== "Lost" && d["Expected Close"]);
+  const urgent = active.filter(d => {
+    const close = new Date(d["Expected Close"]);
+    return close <= soon;
+  }).sort((a, b) => new Date(a["Expected Close"]) - new Date(b["Expected Close"]));
+
+  document.getElementById("urgentDealsWrap").innerHTML = `
+    <table>
+      <thead><tr><th>Deal</th><th>Advertiser</th><th>Value</th><th>Stage</th><th>Expected Close</th><th>Status</th></tr></thead>
+      <tbody>
+        ${urgent.map(d => {
+          const close = new Date(d["Expected Close"]);
+          const overdue = close < now;
+          const daysLeft = Math.ceil((close - now) / (1000*60*60*24));
+          return `<tr>
+            <td><strong>${esc(d["Deal Name"]||"")}</strong></td>
+            <td>${esc(d.Advertiser||"")}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">$${fmt(parseFloat(d.Value)||0)}</td>
+            <td>${stageBadge(d.Stage)}</td>
+            <td style="font-size:12px;">${formatDate(d["Expected Close"])}</td>
+            <td><span class="badge ${overdue ? 'badge-lost' : 'badge-proposal'}">${overdue ? Math.abs(daysLeft) + 'd overdue' : daysLeft + 'd left'}</span></td>
+          </tr>`;
+        }).join("") || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink-muted);">No urgent deals</td></tr>'}
+      </tbody>
+    </table>`;
+}
+
+// ── Deal Modal ──
+function openDealModal(deal) {
+  document.getElementById("modalTitle").textContent = deal ? "Edit Deal" : "New Deal";
+  document.getElementById("dealId").value = deal ? deal._rowIndex : "";
+  document.getElementById("fDealName").value = deal ? deal["Deal Name"] || "" : "";
+  document.getElementById("fAdvertiser").value = deal ? deal.Advertiser || "" : "";
+  document.getElementById("fValue").value = deal ? deal.Value || "" : "";
+  document.getElementById("fStage").value = deal ? deal.Stage || "Lead" : "Lead";
+  document.getElementById("fOwner").value = deal ? deal.Owner || "Ryan" : "Ryan";
+  document.getElementById("fType").value = deal ? deal["Revenue Type"] || "New Business" : "New Business";
+  document.getElementById("fExpClose").value = deal ? deal["Expected Close"] || "" : "";
+  document.getElementById("fActClose").value = deal ? deal["Actual Close"] || "" : "";
+  document.getElementById("fProducts").value = deal ? deal.Products || "" : "";
+  document.getElementById("fNotes").value = deal ? deal.Notes || "" : "";
+  document.getElementById("dealModal").classList.add("active");
+}
+
+function closeDealModal() {
+  document.getElementById("dealModal").classList.remove("active");
+}
+
+function editDeal(index) {
+  const deal = {...allDeals[index], _rowIndex: index};
+  openDealModal(deal);
+}
+
+async function saveDeal() {
+  const btn = document.getElementById("saveDealBtn");
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+
+  const deal = {
+    "Deal Name": document.getElementById("fDealName").value.trim(),
+    "Advertiser": document.getElementById("fAdvertiser").value.trim(),
+    "Value": document.getElementById("fValue").value,
+    "Stage": document.getElementById("fStage").value,
+    "Owner": document.getElementById("fOwner").value,
+    "Revenue Type": document.getElementById("fType").value,
+    "Expected Close": document.getElementById("fExpClose").value,
+    "Actual Close": document.getElementById("fActClose").value,
+    "Products": document.getElementById("fProducts").value.trim(),
+    "Notes": document.getElementById("fNotes").value.trim()
+  };
+
+  if (!deal["Deal Name"] || !deal.Advertiser || !deal.Value) {
+    alert("Please fill in Deal Name, Advertiser, and Value.");
+    btn.disabled = false;
+    btn.textContent = "Save Deal";
+    return;
+  }
+
+  const rowIndex = document.getElementById("dealId").value;
+  const isEdit = rowIndex !== "";
+
+  try {
+    const params = new URLSearchParams({
+      action: "saveDeal",
+      sheetId: PIPELINE_SHEET_ID,
+      row: isEdit ? (parseInt(rowIndex) + 2) : "", // +2 for header row + 0-index
+      ...deal
+    });
+
+    await fetch(APPS_SCRIPT_URL + "?" + params.toString(), {mode: "no-cors"});
+
+    // Reload data
+    allDeals = await loadDeals();
+    renderPipeline();
+    renderForecast();
+    populateOwnerFilter();
+    closeDealModal();
+  } catch(e) {
+    alert("Error saving deal: " + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Save Deal";
+}
+
+// ── PDF Export ──
+async function exportPipelinePDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("l", "mm", "a4"); // landscape
+  const pageW = 297, pageH = 210, margin = 15;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.setTextColor(12, 18, 34);
+  pdf.text("Sales Pipeline Report", margin, 20);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.setTextColor(107, 116, 144);
+  pdf.text("Generated: " + new Date().toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"}), margin, 27);
+
+  // KPI summary
+  const active = allDeals.filter(d => d.Stage !== "Won" && d.Stage !== "Lost");
+  const won = allDeals.filter(d => d.Stage === "Won");
+  const lost = allDeals.filter(d => d.Stage === "Lost");
+  const totalPipeline = active.reduce((s, d) => s + (parseFloat(d.Value) || 0), 0);
+  const totalWon = won.reduce((s, d) => s + (parseFloat(d.Value) || 0), 0);
+  const winRate = (won.length + lost.length) > 0 ? Math.round(won.length / (won.length + lost.length) * 100) : 0;
+
+  let y = 36;
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(9);
+  pdf.setTextColor(107, 116, 144);
+  pdf.text(`Active Pipeline: $${fmt(totalPipeline)} (${active.length} deals)  |  Won: $${fmt(totalWon)} (${won.length})  |  Win Rate: ${winRate}%`, margin, y);
+
+  // Table
+  y += 10;
+  const headers = ["Deal", "Advertiser", "Value", "Stage", "Owner", "Type", "Expected Close"];
+  const colW = [65, 40, 30, 30, 25, 30, 35];
+
+  pdf.setFillColor(247, 248, 251);
+  pdf.rect(margin, y - 4, pageW - margin * 2, 8, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(107, 116, 144);
+  let x = margin;
+  headers.forEach((h, i) => { pdf.text(h.toUpperCase(), x + 2, y); x += colW[i]; });
+
+  y += 8;
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8);
+  pdf.setTextColor(12, 18, 34);
+
+  allDeals.filter(d => d.Stage !== "Lost").forEach(d => {
+    if (y > pageH - 20) { pdf.addPage(); y = 20; }
+    x = margin;
+    const row = [
+      (d["Deal Name"]||"").substring(0, 35),
+      (d.Advertiser||"").substring(0, 20),
+      "$" + fmt(parseFloat(d.Value)||0),
+      d.Stage || "",
+      d.Owner || "",
+      d["Revenue Type"] || "",
+      d["Expected Close"] ? formatDate(d["Expected Close"]) : "-"
+    ];
+    row.forEach((cell, i) => { pdf.text(String(cell), x + 2, y); x += colW[i]; });
+    y += 6;
+  });
+
+  pdf.save("Sales_Pipeline_" + new Date().toISOString().split("T")[0] + ".pdf");
+}
+
+async function exportForecastPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("p", "mm", "a4");
+  const pageW = 210, margin = 15;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.setTextColor(12, 18, 34);
+  pdf.text("Revenue Forecast Report", margin, 20);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.setTextColor(107, 116, 144);
+  pdf.text("Generated: " + new Date().toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"}), margin, 27);
+
+  let y = 40;
+  const active = allDeals.filter(d => d.Stage !== "Won" && d.Stage !== "Lost");
+  const won = allDeals.filter(d => d.Stage === "Won");
+  const totalWon = won.reduce((s,d) => s + (parseFloat(d.Value)||0), 0);
+  const weighted = Math.round(active.reduce((s,d) => s + (parseFloat(d.Value)||0) * (STAGE_PROB[d.Stage]||0), 0));
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(11);
+  pdf.setTextColor(12, 18, 34);
+  pdf.text(`Total Won: $${fmt(totalWon)}  |  Weighted Forecast: $${fmt(weighted)}  |  Active Deals: ${active.length}`, margin, y);
+
+  // Monthly forecast table
+  y += 15;
+  const months = {};
+  active.forEach(d => {
+    const date = d["Expected Close"];
+    const key = date ? date.substring(0, 7) : "No Date";
+    if (!months[key]) months[key] = {count: 0, total: 0, weighted: 0};
+    const val = parseFloat(d.Value) || 0;
+    months[key].count++;
+    months[key].total += val;
+    months[key].weighted += val * (STAGE_PROB[d.Stage] || 0);
+  });
+
+  const sorted = Object.entries(months).sort((a, b) => a[0].localeCompare(b[0]));
+
+  const fHeaders = ["Month", "Deals", "Total Value", "Weighted Forecast"];
+  const fColW = [50, 25, 45, 50];
+
+  pdf.setFillColor(247, 248, 251);
+  pdf.rect(margin, y - 4, pageW - margin * 2, 8, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(8);
+  pdf.setTextColor(107, 116, 144);
+  let fx = margin;
+  fHeaders.forEach((h, i) => { pdf.text(h.toUpperCase(), fx + 2, y); fx += fColW[i]; });
+
+  y += 8;
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(9);
+  pdf.setTextColor(12, 18, 34);
+
+  sorted.forEach(([month, data]) => {
+    fx = margin;
+    const row = [
+      month === "No Date" ? "No Date Set" : formatMonth(month),
+      String(data.count),
+      "$" + fmt(Math.round(data.total)),
+      "$" + fmt(Math.round(data.weighted))
+    ];
+    row.forEach((cell, i) => { pdf.text(cell, fx + 2, y); fx += fColW[i]; });
+    y += 7;
+  });
+
+  pdf.save("Revenue_Forecast_" + new Date().toISOString().split("T")[0] + ".pdf");
+}
+
+// ── View Switching ──
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll(".subnav-tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".subnav-tab").forEach(t => {
+    if ((view === "pipeline" && t.textContent === "Pipeline") ||
+        (view === "forecast" && t.textContent.includes("Forecast"))) {
+      t.classList.add("active");
+    }
+  });
+  document.getElementById("pipelineView").style.display = view === "pipeline" ? "" : "none";
+  document.getElementById("forecastView").style.display = view === "forecast" ? "" : "none";
+}
+
+// ── Helpers ──
+function fmt(n) { return Number(n).toLocaleString("en-US", {maximumFractionDigits: 0}); }
+function fmtK(n) { return n >= 1000 ? (n/1000).toFixed(n >= 10000 ? 0 : 1) + "k" : fmt(n); }
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function formatDate(d) {
+  try { return new Date(d + "T00:00:00").toLocaleDateString("en-US", {month:"short", day:"numeric", year:"numeric"}); }
+  catch(e) { return d; }
+}
+function formatMonth(m) {
+  try { return new Date(m + "-01T00:00:00").toLocaleDateString("en-US", {month:"long", year:"numeric"}); }
+  catch(e) { return m; }
+}
+
+// Close modal on overlay click
+document.getElementById("dealModal").addEventListener("click", function(e) {
+  if (e.target === this) closeDealModal();
+});
+
+// Init
+init();
+</script>
+</body>
+</html>
