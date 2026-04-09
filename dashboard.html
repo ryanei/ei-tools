@@ -337,6 +337,54 @@ const REGION_MAP = {
   "Timor-Leste":"APAC","Myanmar":"APAC","Cambodia":"APAC","Papua New Guinea":"APAC",
 };
 
+// Advertiser/vendor domains filtered from Top Business Domains when viewing advertiser reports
+const ADVERTISER_DOMAINS = new Set([
+  // EI advertiser domains
+  "abnormalsecurity.com","acronis.com","arcticwolf.com","axonius.com","barracuda.com",
+  "bitdefender.com","blackpoint.io","blumira.com","cato.io","catonetworks.com",
+  "checkpoint.com","cisco.com","cloudflare.com","cobalt.io","code42.com",
+  "connectwise.com","crowdstrike.com","cybereason.com","cylance.com","cynet.com",
+  "darktrace.com","dattobackup.com","deepinstinct.com","deepwatch.com","dnsfilter.com",
+  "druva.com","duo.com","egress.com","elastic.co","eset.com",
+  "exabeam.com","expel.io","f5.com","forcepoint.com","fortinet.com",
+  "guardicore.com","gurucul.com","halcyon.ai","hornetsecurity.com","huntress.io",
+  "huntress.com","ibm.com","idagent.com","immersive.com","immersivelab.com",
+  "imperva.com","inky.com","ironscales.com","juniper.net","kandji.io",
+  "kaseya.com","keepersecurity.com","knowbe4.com","lastpass.com","libraesva.com",
+  "logrhythm.com","malwarebytes.com","manageengine.com","material.security","mimecast.com",
+  "mosyle.com","n-able.com","netsurion.com","ninjarmm.com","ninjaone.com",
+  "nordlayer.com","okta.com","onepassword.com","1password.com","orca.security",
+  "paloaltonetworks.com","panther.com","perception-point.io","perimeter81.com","permiso.io",
+  "proofpoint.com","qualys.com","rapidfire.tools","rapid7.com","redstor.com",
+  "sailpoint.com","safetica.com","secureworks.com","securityscorecard.com","sentinelone.com",
+  "sonatype.com","sophos.com","spinbackup.com","stellar.com","sugarshot.io",
+  "superops.ai","sweetsecurity.com","symantec.com","tanium.com","tenable.com",
+  "threatdown.com","todyl.com","trellix.com","trend.com","trendmicro.com",
+  "trustifi.com","usecure.io","vade.com","vanta.com","varonis.com",
+  "veeam.com","vmware.com","webroot.com","wiz.io","zscaler.com",
+  // Major cybersecurity vendors (non-advertisers)
+  "akamai.com","carbonblack.com","cyberark.com","fireeye.com","mandiant.com",
+  "mcafee.com","nortonlifelock.com","snyk.io","splunk.com","veracode.com",
+  "withsecure.com","absolute.com","addigy.com","automox.com","bitglass.com",
+  "cybriant.com","datto.com","hexnode.com","hoxhunt.com","infoseccompliance.com",
+  "jamf.com","jumpcloud.com","netskope.com","nordvpn.com","opentext.com",
+  "securden.com","silverfort.com","skyhighsecurity.com","thalesgroup.com",
+  "torqio.com","vulcan.io","zeronetworks.com",
+  // Additional commonly seen vendor/advertiser domains
+  "abnormalsecurity.com","appomni.com","armorcode.com","atmosecurity.com","authomize.com",
+  "axonius.com","bionic.ai","bridgecrew.io","chainguard.dev","cloudquery.io",
+  "contrast.security","corrata.com","cycode.com","dashlane.com","delinea.com",
+  "ermetic.com","fleetdm.com","flexxon.com","gravitee.io","grip.security",
+  "halo.security","hunters.ai","ionix.io","island.io","lacework.com",
+  "lightspin.io","lumu.io","mitratech.com","noname.security","noq.dev",
+  "nucleussec.com","obsidiansecurity.com","oleria.com","orca.security","oxsecurity.io",
+  "pentera.io","phished.io","piiano.com","plextrac.com","polymer.ai",
+  "rezonate.io","rippling.com","safebase.io","salt.security","savvy.security",
+  "scrut.io","secureframe.com","seemplicity.io","silk.security","simbian.ai",
+  "snyk.io","spera.security","stackhawk.com","strata.io","talon-sec.com",
+  "traceable.ai","tuskira.com","valence.security","veriti.ai","wiz.io",
+]);
+
 function processData(rows) {
   const uv=new Set(), doms=new Set(); let pv=0;
   const daily={}, urlStats={}, industryC={}, sizeC={}, revC={}, profC={}, funcC={}, senC={}, countryC={};
@@ -421,7 +469,7 @@ function processData(rows) {
   });
   const urlTableAll=Object.entries(urlStats).map(([p,s])=>({path:p,pv:s.pv,visitors:s.vis.size,domains:s.dom.size})).sort((a,b)=>b.visitors-a.visitors);
   const urlTable=currentAdvertiser ? urlTableAll : urlTableAll.slice(0,15);
-  const domainTable=Object.keys(domVis).map(d=>{
+  const domainTableRaw=Object.keys(domVis).map(d=>{
     const pages = domPages[d] ? Object.entries(domPages[d]) : [];
     // Extract distinct categories (first path segment)
     const cats = new Set();
@@ -434,7 +482,12 @@ function processData(rows) {
       return title;
     }).join(", ");
     return {domain:d, visitors:domVis[d].size, pv:domPV[d]||0, pages:pagesHtml};
-  }).sort((a,b)=>b.visitors-a.visitors).slice(0,15);
+  }).sort((a,b)=>b.visitors-a.visitors);
+  // Filter advertiser/vendor domains from Top Business Domains when viewing an advertiser
+  const domainFiltered = currentAdvertiser
+    ? domainTableRaw.filter(d => !ADVERTISER_DOMAINS.has(d.domain.toLowerCase()))
+    : domainTableRaw;
+  const domainTable = currentAdvertiser ? domainFiltered : domainFiltered.slice(0,15);
   const regionC={};
   const unmappedCountries={};
   Object.entries(countryC).forEach(([c,n])=>{ 
@@ -728,7 +781,7 @@ function renderDashboard() {
       const rows = limited ? d.domainTable.slice(0, 3) : d.domainTable;
       const cta = limited ? '<div style="margin-top:16px;padding:16px 20px;background:#F4F6F8;border-radius:8px;border-left:3px solid #006BC1;font-size:13px;color:#4F606E;line-height:1.5;"><strong style="color:#001323;">Want to see the full picture?</strong> Unlock complete intent data for your campaign — including all identified business domains and detailed visitor insights. Contact your account manager to learn more.</div>' : '';
       return section("Top Business Domains", "Identified companies by visitor count", renderTable(
-        [{key:"domain",label:"Domain"},{key:"visitors",label:"Visitors",align:"right"},{key:"pv",label:"Page Views",align:"right"},{key:"pages",label:"Categories"}], rows
+        [{key:"domain",label:"Domain"},{key:"pv",label:"Page Views",align:"right"},{key:"visitors",label:"Visitors",align:"right"},{key:"pages",label:"Categories"}], rows
       ) + cta);
     })()}
   `;
