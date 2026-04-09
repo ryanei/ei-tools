@@ -1000,7 +1000,8 @@ function generatePDF() {
     doc.line(mx+colW*2, sy+3, mx+colW*2, sy+bH-3);
 
     const labels = ['Contract Term','Articles','Monthly Cost'];
-    const vals = [term, selectedArticles.length.toString(), `$${total.toLocaleString()}`];
+    const articleCount = selectedArticles.length + (window.parEnabled ? 1 : 0);
+    const vals = [term, articleCount.toString(), `$${total.toLocaleString()}`];
     const blue = [false,false,true];
     
     labels.forEach((l,i) => {
@@ -1243,7 +1244,8 @@ function generatePDF() {
     d.line(mx+colW*2, sy+3, mx+colW*2, sy+bH-3);
     ['Contract Term','Articles','Monthly Cost'].forEach((l,i) => {
       const cx = mx+colW*i+colW/2, bl = [false,false,true][i];
-      const v = [term, n.toString(), `$${total.toLocaleString()}`][i];
+      const nDisplay = n + (window.parEnabled ? 1 : 0);
+      const v = [term, nDisplay.toString(), `$${total.toLocaleString()}`][i];
       d.setFont('helvetica','normal'); d.setFontSize(8); d.setTextColor(107,114,128);
       d.text(l, cx, sy+8, {align:'center'});
       d.setFont('helvetica','bold'); d.setFontSize(bl?14:13);
@@ -1544,7 +1546,7 @@ function renderDashTable() {
     var va, vb;
     if (dashSort.col === 'vendor') { va = (a.vendor||'').toLowerCase(); vb = (b.vendor||'').toLowerCase(); }
     else if (dashSort.col === 'date') { va = a.dateCreated||''; vb = b.dateCreated||''; }
-    else if (dashSort.col === 'articles') { var pa = parseProposalData(a.articlesJson); var pb = parseProposalData(b.articlesJson); va = pa.articles.length; vb = pb.articles.length; }
+    else if (dashSort.col === 'articles') { var pa = parseProposalData(a.articlesJson); var pb = parseProposalData(b.articlesJson); va = pa.articles.length + ((pa.par&&pa.par.enabled)?1:0); vb = pb.articles.length + ((pb.par&&pb.par.enabled)?1:0); }
     else if (dashSort.col === 'total') { va = a.monthlyTotal||0; vb = b.monthlyTotal||0; }
     else if (dashSort.col === 'status') { va = a.status||''; vb = b.status||''; }
     else { va = ''; vb = ''; }
@@ -1571,11 +1573,14 @@ function renderDashTable() {
     const statusClass = (p.status || 'Draft').toLowerCase();
     const dateStr = p.dateCreated ? new Date(p.dateCreated).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : '';
 
+    const parCount = (pData.par && pData.par.enabled) ? 1 : 0;
+    const artCount = articles.length + parCount;
+
     return `<tr>
       <td><strong>${p.vendor || 'Unnamed'}</strong>${p.customerName ? '<br><span style="font-size:11px;color:#6B7280;font-weight:normal">' + p.customerName + '</span>' : ''}</td>
       <td>${dateStr}</td>
       <td>${p.accountManager || ''}</td>
-      <td>${articles.length} article${articles.length !== 1 ? 's' : ''}</td>
+      <td>${artCount} article${artCount !== 1 ? 's' : ''}</td>
       <td>${displayTotal}/mo</td>
       <td>
         <select class="status-select" onchange="updateStatus('${p.id}', this.value)" style="background:${statusClass==='draft'?'#F3F4F6':statusClass==='sent'?'#DBEAFE':statusClass==='accepted'?'#D1FAE5':'#FEE2E2'}">
