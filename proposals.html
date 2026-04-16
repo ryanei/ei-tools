@@ -431,19 +431,12 @@ body {
     </div>
 
     <div id="parSection" class="par-section" style="display:none;">
-      <label class="par-toggle">
-        <input type="checkbox" id="parEnabled" onchange="togglePAR()">
-        <span class="par-slider"></span>
-        <span class="par-label">Include Product Analysis Report (PAR)</span>
-      </label>
-      <div id="parDetails" class="par-details" style="display:none;">
-        <div class="par-desc">In-depth product analysis report hosted on Expert Insights for the duration of the contract term. <a href="https://expertinsights.com/data-management/files-mft-par" target="_blank">View example here.</a></div>
-        <div class="par-price-row">
-          <label>PAR Price ($/month):</label>
-          <input type="number" id="parPrice" value="0" min="0" step="50" onchange="updatePARPrice()">
-          <span class="par-foc" id="parFocBadge">FOC</span>
-        </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span class="par-label">Product Analysis Reports (PARs)</span>
+        <button class="addon-add-btn" onclick="addPAR()">+ Add PAR</button>
       </div>
+      <div class="par-desc" style="margin-bottom:10px;">In-depth product analysis report hosted on Expert Insights for the duration of the contract term. <a href="https://expertinsights.com/data-management/files-mft-par" target="_blank">View example here.</a></div>
+      <div id="parsListContainer"><div style="font-size:12px;color:#9CA3AF;padding:4px 0;">No PARs added yet.</div></div>
 
       <div class="addons-divider"></div>
       <div class="addons-header">
@@ -500,7 +493,7 @@ body {
               <th onclick="sortDash('vendor')" style="cursor:pointer">Vendor <span style="opacity:0.4;font-size:10px">⇅</span></th>
               <th onclick="sortDash('date')" style="cursor:pointer">Date <span style="opacity:0.4;font-size:10px">⇅</span></th>
               <th>Account Manager</th>
-              <th onclick="sortDash('articles')" style="cursor:pointer">Articles <span style="opacity:0.4;font-size:10px">⇅</span></th>
+              <th onclick="sortDash('articles')" style="cursor:pointer">Items <span style="opacity:0.4;font-size:10px">⇅</span></th>
               <th onclick="sortDash('total')" style="cursor:pointer">Monthly <span style="opacity:0.4;font-size:10px">⇅</span></th>
               <th onclick="sortDash('status')" style="cursor:pointer">Status <span style="opacity:0.4;font-size:10px">⇅</span></th>
               <th>Actions</th>
@@ -815,24 +808,53 @@ function renderSelected() {
     </tbody></table>`;
 }
 
-// ═══ PAR (Product Analysis Report) ═══
-window.parEnabled = false;
-window.parPrice = 0;
+// ═══ PARs (Product Analysis Reports) ═══
+window.pars = []; // Array of { name: string, price: number }
 
-function togglePAR() {
-  window.parEnabled = document.getElementById('parEnabled').checked;
-  document.getElementById('parDetails').style.display = window.parEnabled ? 'block' : 'none';
+function addPAR() {
+  window.pars.push({ name: 'Product Analysis Report (PAR)', price: 0 });
+  renderPARs();
   renderSelected();
 }
 
-function updatePARPrice() {
-  window.parPrice = parseFloat(document.getElementById('parPrice').value) || 0;
-  document.getElementById('parFocBadge').style.display = window.parPrice > 0 ? 'none' : 'inline';
+function removePAR(idx) {
+  window.pars.splice(idx, 1);
+  renderPARs();
   renderSelected();
+}
+
+function updatePARName(idx, val) {
+  window.pars[idx].name = val;
+}
+
+function updatePARPriceVal(idx, val) {
+  window.pars[idx].price = parseFloat(val) || 0;
+  renderPARs();
+  renderSelected();
+}
+
+function renderPARs() {
+  const container = document.getElementById('parsListContainer');
+  if (!container) return;
+  if (window.pars.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:#9CA3AF;padding:4px 0;">No PARs added yet.</div>';
+    return;
+  }
+  container.innerHTML = window.pars.map((p, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${i > 0 ? 'border-top:1px solid #F3F4F6;' : ''}">
+      <input type="text" value="${p.name.replace(/"/g, '&quot;')}" onchange="updatePARName(${i}, this.value)"
+        style="flex:1;padding:5px 8px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;font-family:inherit;">
+      <label style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;">$/mo:</label>
+      <input type="number" value="${p.price}" min="0" step="50" onchange="updatePARPriceVal(${i}, this.value)"
+        style="width:80px;padding:5px 8px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;font-family:inherit;">
+      ${p.price === 0 ? '<span class="par-foc">FOC</span>' : ''}
+      <button onclick="removePAR(${i})" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:16px;padding:2px 6px;" title="Remove">✕</button>
+    </div>
+  `).join('');
 }
 
 function getPARMonthly() {
-  return window.parEnabled ? (window.parPrice || 0) : 0;
+  return window.pars.reduce((s, p) => s + (p.price || 0), 0);
 }
 
 // ═══ CUSTOM ADD-ON LINE ITEMS ═══
@@ -942,7 +964,7 @@ function generatePDF() {
   m += 7; // title to table header
   m += 8; // table header
   m += n * tableRowH; // table rows
-  if (window.parEnabled) m += 16; // PAR row (taller than standard)
+  if (window.pars.length > 0) m += window.pars.length * 16; // PAR rows (taller than standard)
   if (window.customAddons) m += window.customAddons.filter(a => a.name).length * tableRowH; // custom add-on rows
   m += 12; // gap before "What's Included"
   m += 7; // title
@@ -999,9 +1021,9 @@ function generatePDF() {
     doc.line(mx+colW, sy+3, mx+colW, sy+bH-3);
     doc.line(mx+colW*2, sy+3, mx+colW*2, sy+bH-3);
 
-    const labels = ['Contract Term','Articles','Monthly Cost'];
-    const articleCount = selectedArticles.length + (window.parEnabled ? 1 : 0);
-    const vals = [term, articleCount.toString(), `$${total.toLocaleString()}`];
+    const labels = ['Contract Term','Items','Monthly Cost'];
+    const itemCount = selectedArticles.length + window.pars.length + (window.customAddons ? window.customAddons.filter(a => a.name).length : 0);
+    const vals = [term, itemCount.toString(), `$${total.toLocaleString()}`];
     const blue = [false,false,true];
     
     labels.forEach((l,i) => {
@@ -1059,31 +1081,33 @@ function generatePDF() {
       ty += tableRowH;
     });
 
-    // PAR row
-    if (window.parEnabled) {
-      const parRowH = 16;
-      const parRowIdx = selectedArticles.length;
-      if (parRowIdx % 2 === 1) { doc.setFillColor(243,244,246); doc.rect(mx, ty, cw, parRowH, 'F'); }
-      doc.setDrawColor(209,213,219); doc.setLineWidth(0.15); doc.line(mx, ty+parRowH, mx+cw, ty+parRowH);
-      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
-      doc.text('Product Analysis Report (PAR)', mx+6, ty+5);
-      doc.setFontSize(7); doc.setTextColor(107,114,128);
-      doc.text('In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', mx+6, ty+9.5);
-      doc.setTextColor(37,99,235);
-      doc.textWithLink('View example here.', mx+6, ty+13, {url: 'https://expertinsights.com/data-management/files-mft-par'});
-      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
-      const parPriceLabel = window.parPrice > 0 ? '$' + window.parPrice + '/mo' : 'FOC';
-      const parPosLabel = showPricing ? parPriceLabel : (window.parPrice > 0 ? 'Included' : 'FOC');
-      doc.text(parPosLabel, mx+artColW+posColW/2, ty+9, {align:'center'});
-      if (showPricing) doc.text(parPriceLabel, mx+artColW+posColW+priceColW/2, ty+9, {align:'center'});
-      ty += parRowH;
+    // PAR rows
+    if (window.pars.length > 0) {
+      window.pars.forEach(function(par, pi) {
+        const parRowH = 16;
+        const parRowIdx = selectedArticles.length + pi;
+        if (parRowIdx % 2 === 1) { doc.setFillColor(243,244,246); doc.rect(mx, ty, cw, parRowH, 'F'); }
+        doc.setDrawColor(209,213,219); doc.setLineWidth(0.15); doc.line(mx, ty+parRowH, mx+cw, ty+parRowH);
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
+        doc.text(par.name || 'Product Analysis Report (PAR)', mx+6, ty+5);
+        doc.setFontSize(7); doc.setTextColor(107,114,128);
+        doc.text('In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', mx+6, ty+9.5);
+        doc.setTextColor(37,99,235);
+        doc.textWithLink('View example here.', mx+6, ty+13, {url: 'https://expertinsights.com/data-management/files-mft-par'});
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
+        const parPriceLabel = par.price > 0 ? '$' + par.price + '/mo' : 'FOC';
+        const parPosLabel = showPricing ? parPriceLabel : (par.price > 0 ? 'Included' : 'FOC');
+        doc.text(parPosLabel, mx+artColW+posColW/2, ty+9, {align:'center'});
+        if (showPricing) doc.text(parPriceLabel, mx+artColW+posColW+priceColW/2, ty+9, {align:'center'});
+        ty += parRowH;
+      });
     }
 
     // Custom add-on rows
     if (window.customAddons && window.customAddons.length > 0) {
       window.customAddons.forEach(function(addon, ai) {
         if (!addon.name) return;
-        const addonIdx = selectedArticles.length + (window.parEnabled ? 1 : 0) + ai;
+        const addonIdx = selectedArticles.length + window.pars.length + ai;
         if (addonIdx%2===1) { doc.setFillColor(243,244,246); doc.rect(mx, ty, cw, tableRowH, 'F'); }
         doc.setDrawColor(209,213,219); doc.setLineWidth(0.15); doc.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
         doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
@@ -1242,10 +1266,10 @@ function generatePDF() {
     d.setDrawColor(209,213,219); d.setLineWidth(0.15);
     d.line(mx+colW, sy+3, mx+colW, sy+bH-3);
     d.line(mx+colW*2, sy+3, mx+colW*2, sy+bH-3);
-    ['Contract Term','Articles','Monthly Cost'].forEach((l,i) => {
+    ['Contract Term','Items','Monthly Cost'].forEach((l,i) => {
       const cx = mx+colW*i+colW/2, bl = [false,false,true][i];
-      const nDisplay = n + (window.parEnabled ? 1 : 0);
-      const v = [term, nDisplay.toString(), `$${total.toLocaleString()}`][i];
+      const itemCount = n + window.pars.length + (window.customAddons ? window.customAddons.filter(a => a.name).length : 0);
+      const v = [term, itemCount.toString(), `$${total.toLocaleString()}`][i];
       d.setFont('helvetica','normal'); d.setFontSize(8); d.setTextColor(107,114,128);
       d.text(l, cx, sy+8, {align:'center'});
       d.setFont('helvetica','bold'); d.setFontSize(bl?14:13);
@@ -1296,30 +1320,32 @@ function generatePDF() {
       }
       ty += tableRowH;
     });
-    // PAR row in buildContent
-    if (window.parEnabled) {
-      const parIdx = selectedArticles.length;
-      const parRowH = 16;
-      if (parIdx%2===1) { d.setFillColor(243,244,246); d.rect(mx, ty, cw, parRowH, 'F'); }
-      d.setDrawColor(209,213,219); d.setLineWidth(0.15); d.line(mx, ty+parRowH, mx+cw, ty+parRowH);
-      d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
-      d.text('Product Analysis Report (PAR)', mx+6, ty+5);
-      d.setFontSize(7); d.setTextColor(107,114,128);
-      d.text('In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', mx+6, ty+9.5);
-      d.setTextColor(37,99,235);
-      d.textWithLink('View example here.', mx+6, ty+13, {url:'https://expertinsights.com/data-management/files-mft-par'});
-      d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
-      const parPL = window.parPrice > 0 ? '$'+window.parPrice+'/mo' : 'FOC';
-      const parPosL = showPricing2 ? parPL : (window.parPrice > 0 ? 'Included' : 'FOC');
-      d.text(parPosL, mx+artColW+posColW/2, ty+9, {align:'center'});
-      if (showPricing2) d.text(parPL, mx+artColW+posColW+priceColW2/2, ty+9, {align:'center'});
-      ty += parRowH;
+    // PAR rows in buildContent
+    if (window.pars.length > 0) {
+      window.pars.forEach(function(par, pi) {
+        const parIdx = selectedArticles.length + pi;
+        const parRowH = 16;
+        if (parIdx%2===1) { d.setFillColor(243,244,246); d.rect(mx, ty, cw, parRowH, 'F'); }
+        d.setDrawColor(209,213,219); d.setLineWidth(0.15); d.line(mx, ty+parRowH, mx+cw, ty+parRowH);
+        d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
+        d.text(par.name || 'Product Analysis Report (PAR)', mx+6, ty+5);
+        d.setFontSize(7); d.setTextColor(107,114,128);
+        d.text('In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', mx+6, ty+9.5);
+        d.setTextColor(37,99,235);
+        d.textWithLink('View example here.', mx+6, ty+13, {url:'https://expertinsights.com/data-management/files-mft-par'});
+        d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
+        const parPL = par.price > 0 ? '$'+par.price+'/mo' : 'FOC';
+        const parPosL = showPricing2 ? parPL : (par.price > 0 ? 'Included' : 'FOC');
+        d.text(parPosL, mx+artColW+posColW/2, ty+9, {align:'center'});
+        if (showPricing2) d.text(parPL, mx+artColW+posColW+priceColW2/2, ty+9, {align:'center'});
+        ty += parRowH;
+      });
     }
     // Custom add-on rows in buildContent
     if (window.customAddons && window.customAddons.length > 0) {
       window.customAddons.forEach(function(addon, ai) {
         if (!addon.name) return;
-        const addonIdx = selectedArticles.length + (window.parEnabled ? 1 : 0) + ai;
+        const addonIdx = selectedArticles.length + window.pars.length + ai;
         if (addonIdx%2===1) { d.setFillColor(243,244,246); d.rect(mx, ty, cw, tableRowH, 'F'); }
         d.setDrawColor(209,213,219); d.setLineWidth(0.15); d.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
         d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
@@ -1427,16 +1453,23 @@ function generatePDF() {
   doc.save(fn);
 }
 
-// ═══ PARSE PROPOSAL DATA (handles old array format and new {articles,par} format) ═══
+// ═══ PARSE PROPOSAL DATA (handles old formats and new {articles,pars} format) ═══
 function parseProposalData(jsonStr) {
-  var result = { articles: [], par: { enabled: false, price: 0 }, addons: [], showPricing: false };
+  var result = { articles: [], pars: [], addons: [], showPricing: false };
   try {
     var parsed = JSON.parse(jsonStr || '[]');
     if (Array.isArray(parsed)) {
       result.articles = parsed;
     } else if (parsed.articles) {
       result.articles = parsed.articles || [];
-      result.par = parsed.par || { enabled: false, price: 0 };
+      // Handle new pars array format
+      if (parsed.pars && Array.isArray(parsed.pars)) {
+        result.pars = parsed.pars;
+      }
+      // Backwards compat: convert old single par to pars array
+      else if (parsed.par && parsed.par.enabled) {
+        result.pars = [{ name: 'Product Analysis Report (PAR)', price: parsed.par.price || 0 }];
+      }
       result.addons = parsed.addons || [];
       result.showPricing = parsed.showPricing || false;
     }
@@ -1546,7 +1579,7 @@ function renderDashTable() {
     var va, vb;
     if (dashSort.col === 'vendor') { va = (a.vendor||'').toLowerCase(); vb = (b.vendor||'').toLowerCase(); }
     else if (dashSort.col === 'date') { va = a.dateCreated||''; vb = b.dateCreated||''; }
-    else if (dashSort.col === 'articles') { var pa = parseProposalData(a.articlesJson); var pb = parseProposalData(b.articlesJson); va = pa.articles.length + ((pa.par&&pa.par.enabled)?1:0); vb = pb.articles.length + ((pb.par&&pb.par.enabled)?1:0); }
+    else if (dashSort.col === 'articles') { var pa = parseProposalData(a.articlesJson); var pb = parseProposalData(b.articlesJson); va = pa.articles.length + (pa.pars?pa.pars.length:0) + (pa.addons?pa.addons.filter(function(x){return x.name;}).length:0); vb = pb.articles.length + (pb.pars?pb.pars.length:0) + (pb.addons?pb.addons.filter(function(x){return x.name;}).length:0); }
     else if (dashSort.col === 'total') { va = a.monthlyTotal||0; vb = b.monthlyTotal||0; }
     else if (dashSort.col === 'status') { va = a.status||''; vb = b.status||''; }
     else { va = ''; vb = ''; }
@@ -1573,14 +1606,15 @@ function renderDashTable() {
     const statusClass = (p.status || 'Draft').toLowerCase();
     const dateStr = p.dateCreated ? new Date(p.dateCreated).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : '';
 
-    const parCount = (pData.par && pData.par.enabled) ? 1 : 0;
-    const artCount = articles.length + parCount;
+    const parsCount = (pData.pars && pData.pars.length) || 0;
+    const addonsCount = (pData.addons ? pData.addons.filter(a => a.name).length : 0);
+    const itemCount = articles.length + parsCount + addonsCount;
 
     return `<tr>
       <td><strong>${p.vendor || 'Unnamed'}</strong>${p.customerName ? '<br><span style="font-size:11px;color:#6B7280;font-weight:normal">' + p.customerName + '</span>' : ''}</td>
       <td>${dateStr}</td>
       <td>${p.accountManager || ''}</td>
-      <td>${artCount} article${artCount !== 1 ? 's' : ''}</td>
+      <td>${itemCount} item${itemCount !== 1 ? 's' : ''}</td>
       <td>${displayTotal}/mo</td>
       <td>
         <select class="status-select" onchange="updateStatus('${p.id}', this.value)" style="background:${statusClass==='draft'?'#F3F4F6':statusClass==='sent'?'#DBEAFE':statusClass==='accepted'?'#D1FAE5':'#FEE2E2'}">
@@ -1639,7 +1673,7 @@ function saveProposal(thenGeneratePDF) {
     contactEmail: document.getElementById('contactEmail').value || '',
     contractTerm: getContractTerm(),
     startDate: document.getElementById('startDate').value || '',
-    articlesJson: JSON.stringify({ articles: selectedArticles, par: { enabled: window.parEnabled, price: window.parPrice }, addons: window.customAddons || [], showPricing: document.getElementById('showPricingOnPdf') ? document.getElementById('showPricingOnPdf').checked : false }),
+    articlesJson: JSON.stringify({ articles: selectedArticles, pars: window.pars || [], addons: window.customAddons || [], showPricing: document.getElementById('showPricingOnPdf') ? document.getElementById('showPricingOnPdf').checked : false }),
     monthlyTotal: getTotal(),
     discount: window.globalDiscount || 0,
     status: editingProposalId ? undefined : 'Draft',
@@ -1655,9 +1689,19 @@ function saveProposal(thenGeneratePDF) {
   if (editingProposalId) {
     proposal.id = editingProposalId;
     const existing = allProposals.find(p => p.id === editingProposalId);
-    if (existing) proposal.status = existing.status;
+    if (existing) {
+      proposal.status = existing.status;
+      // Preserve customerName from dashboard edits
+      if (existing.customerName) proposal.customerName = existing.customerName;
+    }
     apiPost({ action: 'update', proposal: proposal }).then(() => {
       showSaveMsg('Saved & updated', 'success');
+      // Refresh allProposals so dashboard and IO generation use fresh data
+      apiGet('list').then(data => {
+        allProposals = data.proposals || [];
+        document.getElementById('proposalCount').textContent = allProposals.length;
+        renderDashTable();
+      });
       onDone();
     }).catch(() => {
       showSaveMsg('Save failed — PDF still generated', 'error');
@@ -1669,6 +1713,7 @@ function saveProposal(thenGeneratePDF) {
       apiGet('list').then(data => {
         allProposals = data.proposals || [];
         document.getElementById('proposalCount').textContent = allProposals.length;
+        renderDashTable();
       });
       onDone();
     }).catch(() => {
@@ -1737,17 +1782,13 @@ function editProposal(id) {
   // Restore notes
   document.getElementById('proposalNotes').value = p.notes || '';
 
-  // Load articles and PAR
+  // Load articles and PARs
   const pData = parseProposalData(p.articlesJson);
   selectedArticles = pData.articles;
 
-  // Set PAR state
-  window.parEnabled = pData.par.enabled || false;
-  window.parPrice = pData.par.price || 0;
-  document.getElementById('parEnabled').checked = window.parEnabled;
-  document.getElementById('parDetails').style.display = window.parEnabled ? 'block' : 'none';
-  document.getElementById('parPrice').value = window.parPrice;
-  document.getElementById('parFocBadge').style.display = window.parPrice > 0 ? 'none' : 'inline';
+  // Set PARs state
+  window.pars = pData.pars || [];
+  renderPARs();
 
   // Set custom addons
   window.customAddons = pData.addons || [];
@@ -1786,13 +1827,9 @@ function clearEditing() {
   document.getElementById('customTerm').style.display = 'none';
   document.getElementById('contactSelect').value = '';
   selectedArticles = [];
-  // Reset PAR
-  window.parEnabled = false;
-  window.parPrice = 0;
-  document.getElementById('parEnabled').checked = false;
-  document.getElementById('parDetails').style.display = 'none';
-  document.getElementById('parPrice').value = 0;
-  document.getElementById('parFocBadge').style.display = 'inline';
+  // Reset PARs
+  window.pars = [];
+  renderPARs();
   window.globalDiscount = 0;
   document.getElementById('proposalNotes').value = '';
   document.getElementById('contactEmailVisible').value = '';
@@ -1814,15 +1851,24 @@ function setCustomerName(id) {
   var current = p.customerName || '';
   var name = prompt('Enter customer legal entity name:', current);
   if (name === null) return;
-  p.customerName = name.trim();
-  // Save to sheet via Apps Script
-  var formData = new FormData();
-  formData.append('action', 'updateCustomerName');
-  formData.append('id', id);
-  formData.append('customerName', p.customerName);
-  fetch(APPS_SCRIPT_URL, {method:'POST', body: formData}).catch(function(){});
-  renderDashTable();
-  alert('Customer name set to: ' + p.customerName);
+  name = name.trim();
+  if (name === current) return;
+  p.customerName = name;
+  // Save via the standard update action
+  var updateData = {};
+  for (var k in p) { if (p.hasOwnProperty(k)) updateData[k] = p[k]; }
+  apiPost({ action: 'update', proposal: updateData }).then(function() {
+    renderDashTable();
+    alert('Customer name saved: ' + name);
+    // Refresh allProposals from Sheet
+    apiGet('list').then(function(data) {
+      allProposals = data.proposals || [];
+      renderDashTable();
+    });
+  }).catch(function() {
+    renderDashTable();
+    alert('Customer name set locally but save may have failed.');
+  });
 }
 
 function generateIO(id, customerName) {
@@ -1838,13 +1884,14 @@ function generateIO(id, customerName) {
       contactPhone: document.getElementById('contactPhone').value || '',
       contractTerm: getContractTerm(),
       startDate: document.getElementById('startDate').value || '',
-      articlesJson: JSON.stringify({articles: selectedArticles, addons: (window.customAddons||[]), showPricing: document.getElementById('showPricingOnPdf')?.checked||false}),
+      articlesJson: JSON.stringify({articles: selectedArticles, pars: window.pars || [], addons: (window.customAddons||[]), showPricing: document.getElementById('showPricingOnPdf')?.checked||false}),
       monthlyTotal: selectedArticles.reduce(function(s,a){return s+(parseFloat(a.price)||0);},0)
     };
   }
 
   var parsed = parseProposalData(p.articlesJson);
   var articles = parsed.articles;
+  var pars = parsed.pars || [];
   var addons = parsed.addons || [];
   var showPricing = parsed.showPricing || false;
 
@@ -2202,14 +2249,16 @@ function generateIO(id, customerName) {
     svcRows.push(row);
   });
 
-  // PAR row
-  if (parsed.par && parsed.par.enabled) {
-    var parRow = [{bold:false, text:'Product Analysis Report (PAR)'}, 'Included'];
-    if (showPricing) {
-      var parPrice = parseFloat(parsed.par.price) || 0;
-      parRow.push(parPrice > 0 ? fmt$(parPrice) : 'FOC');
-    }
-    svcRows.push(parRow);
+  // PAR rows
+  if (pars && pars.length > 0) {
+    pars.forEach(function(par) {
+      var parRow = [{bold:false, text: par.name || 'Product Analysis Report (PAR)'}, 'Included'];
+      if (showPricing) {
+        var parPrice = parseFloat(par.price) || 0;
+        parRow.push(parPrice > 0 ? fmt$(parPrice) : 'FOC');
+      }
+      svcRows.push(parRow);
+    });
   }
 
   // Custom add-ons
