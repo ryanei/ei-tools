@@ -153,6 +153,7 @@ body {
 
 .slot-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; }
 .slot-open { background: #D1FAE5; color: #065F46; }
+.slot-proposed { background: #FEF3C7; color: #92400E; }
 .slot-taken { background: #FEE2E2; color: #991B1B; text-decoration: line-through; }
 
 .add-btn {
@@ -625,12 +626,20 @@ function renderCategoryFilters() {
 
 function filterCategory(cat) { activeCategory = cat; renderCategoryFilters(); renderArticleList(); }
 
+function isProposed(vendorStr) {
+  return vendorStr && String(vendorStr).indexOf(' - Proposed') !== -1;
+}
+
+function isSold(vendorStr) {
+  return vendorStr && !isProposed(vendorStr);
+}
+
 function getAvailablePositions(article) {
   return [
     { value:'Inclusion', label:'Inclusion', price:article.inc, available:true },
-    { value:'Position #1', label:article.v[0]?`Position #1 (Sold: ${article.v[0]})`:'Position #1', price:article.p1, available:!article.v[0] },
-    { value:'Position #2', label:article.v[1]?`Position #2 (Sold: ${article.v[1]})`:'Position #2', price:article.p2, available:!article.v[1] },
-    { value:'Position #3', label:article.v[2]?`Position #3 (Sold: ${article.v[2]})`:'Position #3', price:article.p3, available:!article.v[2] },
+    { value:'Position #1', label:isSold(article.v[0])?`Position #1 (Sold: ${article.v[0]})`:isProposed(article.v[0])?`Position #1 (Proposed: ${article.v[0].replace(' - Proposed','')})`:'Position #1', price:article.p1, available:!isSold(article.v[0]) },
+    { value:'Position #2', label:isSold(article.v[1])?`Position #2 (Sold: ${article.v[1]})`:isProposed(article.v[1])?`Position #2 (Proposed: ${article.v[1].replace(' - Proposed','')})`:'Position #2', price:article.p2, available:!isSold(article.v[1]) },
+    { value:'Position #3', label:isSold(article.v[2])?`Position #3 (Sold: ${article.v[2]})`:isProposed(article.v[2])?`Position #3 (Proposed: ${article.v[2].replace(' - Proposed','')})`:'Position #3', price:article.p3, available:!isSold(article.v[2]) },
   ];
 }
 
@@ -654,9 +663,9 @@ function renderArticleList() {
       <div class="title">${a.t}</div>
       <div class="cat">${a.c}</div>
       <div class="slots">
-        <span class="slot-badge ${a.v[0]?'slot-taken':'slot-open'}">#1</span>
-        <span class="slot-badge ${a.v[1]?'slot-taken':'slot-open'}">#2</span>
-        <span class="slot-badge ${a.v[2]?'slot-taken':'slot-open'}">#3</span>
+        <span class="slot-badge ${isSold(a.v[0])?'slot-taken':isProposed(a.v[0])?'slot-proposed':'slot-open'}">#1</span>
+        <span class="slot-badge ${isSold(a.v[1])?'slot-taken':isProposed(a.v[1])?'slot-proposed':'slot-open'}">#2</span>
+        <span class="slot-badge ${isSold(a.v[2])?'slot-taken':isProposed(a.v[2])?'slot-proposed':'slot-open'}">#3</span>
       </div>
       <button class="add-btn" onclick="addArticle('${a.s}')">+ Add</button>
     </div>`).join('');
@@ -926,6 +935,20 @@ document.getElementById('articleSearch').addEventListener('input', renderArticle
   document.getElementById('startDate').value = sd.toISOString().slice(0,10);
 })();
 
+// ═══ PDF TEXT TRUNCATION HELPER ═══
+function truncateText(doc, text, maxWidth) {
+  if (!text) return '';
+  var w = doc.getTextWidth(text);
+  if (w <= maxWidth) return text;
+  var ellipsis = '...';
+  var eW = doc.getTextWidth(ellipsis);
+  var t = text;
+  while (doc.getTextWidth(t) + eW > maxWidth && t.length > 0) {
+    t = t.slice(0, -1);
+  }
+  return t + ellipsis;
+}
+
 // ═══ PDF GENERATION - ADAPTIVE SINGLE/MULTI PAGE ═══
 function generatePDF() {
   const vendor = document.getElementById('vendorName').value.trim();
@@ -1057,14 +1080,15 @@ function generatePDF() {
     ty += 8;
 
     // Rows
+    const textMaxW = artColW - 8; // 6px left pad + 2px right margin
     selectedArticles.forEach((a, i) => {
       if (i % 2 === 1) { doc.setFillColor(243,244,246); doc.rect(mx, ty, cw, tableRowH, 'F'); }
       doc.setDrawColor(209,213,219); doc.setLineWidth(0.15); doc.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
-      doc.text(a.t, mx+6, ty+5);
+      doc.text(truncateText(doc, a.t, textMaxW), mx+6, ty+5);
       const shortUrl = a.url.replace('https://', '');
       doc.setFontSize(7); doc.setTextColor(37,99,235);
-      doc.textWithLink(shortUrl, mx+6, ty+9.5, {url: a.url});
+      doc.textWithLink(truncateText(doc, shortUrl, textMaxW), mx+6, ty+9.5, {url: a.url});
       doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
       const posLabel = a.position==='Custom'?(a.customPosition||'Custom'):a.position==='Upgrade'?('Upgrade to '+(a.upgradeTarget||'#1')):a.position;
       doc.text(posLabel, mx+artColW+posColW/2, ty+7, {align:'center'});
@@ -1089,9 +1113,9 @@ function generatePDF() {
         if (parRowIdx % 2 === 1) { doc.setFillColor(243,244,246); doc.rect(mx, ty, cw, parRowH, 'F'); }
         doc.setDrawColor(209,213,219); doc.setLineWidth(0.15); doc.line(mx, ty+parRowH, mx+cw, ty+parRowH);
         doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
-        doc.text(par.name || 'Product Analysis Report (PAR)', mx+6, ty+5);
+        doc.text(truncateText(doc, par.name || 'Product Analysis Report (PAR)', textMaxW), mx+6, ty+5);
         doc.setFontSize(7); doc.setTextColor(107,114,128);
-        doc.text('In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', mx+6, ty+9.5);
+        doc.text(truncateText(doc, 'In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', textMaxW), mx+6, ty+9.5);
         doc.setTextColor(37,99,235);
         doc.textWithLink('View example here.', mx+6, ty+13, {url: 'https://expertinsights.com/data-management/files-mft-par'});
         doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
@@ -1111,7 +1135,7 @@ function generatePDF() {
         if (addonIdx%2===1) { doc.setFillColor(243,244,246); doc.rect(mx, ty, cw, tableRowH, 'F'); }
         doc.setDrawColor(209,213,219); doc.setLineWidth(0.15); doc.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
         doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
-        doc.text(addon.name, mx+6, ty+7);
+        doc.text(truncateText(doc, addon.name, textMaxW), mx+6, ty+7);
         const addonPL = addon.price > 0 ? '$'+addon.price.toLocaleString()+'/mo' : 'FOC';
         doc.text(addonPL, mx+artColW+posColW/2, ty+7, {align:'center'});
         if (showPricing) doc.text(addonPL, mx+artColW+posColW+priceColW/2, ty+7, {align:'center'});
@@ -1298,13 +1322,14 @@ function generatePDF() {
     if (showPricing2) d.text('Price', mx+artColW+posColW+priceColW2/2, ty+5.5, {align:'center'});
     d.setDrawColor(37,99,235); d.setLineWidth(0.4); d.line(mx, ty+8, mx+cw, ty+8);
     ty += 8;
+    const textMaxW2 = artColW - 8;
     selectedArticles.forEach((a, i) => {
       if (i%2===1) { d.setFillColor(243,244,246); d.rect(mx, ty, cw, tableRowH, 'F'); }
       d.setDrawColor(209,213,219); d.setLineWidth(0.15); d.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
       d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
-      d.text(a.t, mx+6, ty+5);
+      d.text(truncateText(d, a.t, textMaxW2), mx+6, ty+5);
       d.setFontSize(7); d.setTextColor(37,99,235);
-      d.textWithLink(a.url.replace('https://',''), mx+6, ty+9.5, {url:a.url});
+      d.textWithLink(truncateText(d, a.url.replace('https://',''), textMaxW2), mx+6, ty+9.5, {url:a.url});
       d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
       const posLabel2 = a.position==='Custom'?(a.customPosition||'Custom'):a.position==='Upgrade'?('Upgrade to '+(a.upgradeTarget||'#1')):a.position;
       d.text(posLabel2, mx+artColW+posColW/2, ty+7, {align:'center'});
@@ -1328,9 +1353,9 @@ function generatePDF() {
         if (parIdx%2===1) { d.setFillColor(243,244,246); d.rect(mx, ty, cw, parRowH, 'F'); }
         d.setDrawColor(209,213,219); d.setLineWidth(0.15); d.line(mx, ty+parRowH, mx+cw, ty+parRowH);
         d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
-        d.text(par.name || 'Product Analysis Report (PAR)', mx+6, ty+5);
+        d.text(truncateText(d, par.name || 'Product Analysis Report (PAR)', textMaxW2), mx+6, ty+5);
         d.setFontSize(7); d.setTextColor(107,114,128);
-        d.text('In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', mx+6, ty+9.5);
+        d.text(truncateText(d, 'In-depth product analysis report hosted on Expert Insights for a period of '+term+'.', textMaxW2), mx+6, ty+9.5);
         d.setTextColor(37,99,235);
         d.textWithLink('View example here.', mx+6, ty+13, {url:'https://expertinsights.com/data-management/files-mft-par'});
         d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
@@ -1349,7 +1374,7 @@ function generatePDF() {
         if (addonIdx%2===1) { d.setFillColor(243,244,246); d.rect(mx, ty, cw, tableRowH, 'F'); }
         d.setDrawColor(209,213,219); d.setLineWidth(0.15); d.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
         d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
-        d.text(addon.name, mx+6, ty+7);
+        d.text(truncateText(d, addon.name, textMaxW2), mx+6, ty+7);
         const addonPL = addon.price > 0 ? '$'+addon.price.toLocaleString()+'/mo' : 'FOC';
         d.text(addonPL, mx+artColW+posColW/2, ty+7, {align:'center'});
         if (showPricing2) d.text(addonPL, mx+artColW+posColW+priceColW2/2, ty+7, {align:'center'});
@@ -1478,7 +1503,7 @@ function parseProposalData(jsonStr) {
 }
 
 // ═══ APPS SCRIPT BACKEND ═══
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcDuBms_w9WlvYWPlS4pOTbejd3lF6t1rjA-ZSjHUoHZjUdgyclFbB9SdKBiDwAF9o/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiFJs_8HhhOAL7EZxrSczdp2XQ8CwCFJs_9TiNQ5lr5UXO15JAbhEjYrmNgXRGbLgrKA/exec';
 let allProposals = [];
 let dashFilter = 'all';
 let dashSort = { col: 'date', dir: 'desc' };
@@ -1708,12 +1733,24 @@ function saveProposal(thenGeneratePDF) {
       onDone();
     });
   } else {
-    apiPost({ action: 'create', proposal: proposal }).then(() => {
+    apiPost({ action: 'create', proposal: proposal }).then((resp) => {
       showSaveMsg('Saved to dashboard', 'success');
       apiGet('list').then(data => {
         allProposals = data.proposals || [];
         document.getElementById('proposalCount').textContent = allProposals.length;
         renderDashTable();
+        // Set editing state so subsequent saves update rather than create new
+        // Find the most recently created proposal matching this vendor
+        var newId = (resp && resp.id) ? resp.id : null;
+        if (!newId) {
+          var matching = allProposals.filter(p => p.vendor === vendor).sort((a,b) => (b.id||'').localeCompare(a.id||''));
+          if (matching.length > 0) newId = matching[0].id;
+        }
+        if (newId) {
+          editingProposalId = newId;
+          document.getElementById('editingIndicator').style.display = 'flex';
+          document.getElementById('editingId').textContent = vendor + ' (' + newId + ')';
+        }
       });
       onDone();
     }).catch(() => {
