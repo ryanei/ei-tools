@@ -1670,6 +1670,8 @@ function updateStatus(id, status) {
     if (p) p.status = status;
     updateDashStats();
     renderDashTable();
+    // Refresh pricing data so position availability is up to date
+    loadArticlesFromSheet();
   });
 }
 
@@ -1679,6 +1681,8 @@ function deleteProposal(id) {
   if (!confirm('Delete proposal for "' + (p ? p.vendor : id) + '"? This cannot be undone.')) return;
   apiPost({ action: 'delete', id: id }).then(() => {
     loadProposals();
+    // Refresh pricing data so position availability is up to date
+    loadArticlesFromSheet();
   });
 }
 
