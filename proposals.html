@@ -2330,50 +2330,51 @@ function generateIO(id, customerName) {
   doc.setFontSize(9);
   var halfW = cW / 2;
   var provCustH = 34;
-  // Header row
+  // Header row — Customer first (left), Provider second (right)
   doc.setFillColor(navy);
   doc.rect(mL, y, cW, 8, 'F');
   doc.setFont('Helvetica','bold');
   doc.setTextColor('#FFFFFF');
-  doc.text('PROVIDER', mL + 3, y + 5.5);
-  doc.text('CUSTOMER', mL + halfW + 3, y + 5.5);
+  doc.text('CUSTOMER', mL + 3, y + 5.5);
+  doc.text('PROVIDER', mL + halfW + 3, y + 5.5);
   doc.setTextColor(0,0,0);
   y += 8;
 
-  // Provider details
-  doc.setFont('Helvetica','bold');
-  doc.text('Expert Insights Tech Ltd', mL + 3, y + 5);
-  doc.setFont('Helvetica','normal');
-  doc.setFontSize(8);
-  doc.text('Higher Mill, Buckfast Abbey', mL + 3, y + 9);
-  doc.text('Buckfastleigh, Devon, TQ11 0EE', mL + 3, y + 13);
-  doc.text('United Kingdom', mL + 3, y + 17);
-
-  // Customer side
+  // Customer details (LEFT column)
   doc.setFontSize(9);
   doc.setFont('Helvetica','bold');
   doc.setTextColor(0,0,0);
-  doc.text(customerName || '[Customer Legal Entity Name]', mL + halfW + 3, y + 5);
+  doc.text(customerName || '[Customer Legal Entity Name]', mL + 3, y + 5);
   doc.setFont('Helvetica','normal');
   doc.setFontSize(8);
   doc.setTextColor(100,100,100);
-  doc.text('Customer Address:', mL + halfW + 3, y + 10);
+  doc.text('Customer Address:', mL + 3, y + 10);
   doc.setTextColor(0,0,0);
   // Blank address lines for customer to fill in
   doc.setDrawColor('#94A3B8');
   doc.setLineWidth(0.3);
-  var addrLineX = mL + halfW + 3;
-  var addrLineEnd = mL + cW - 5;
+  var addrLineX = mL + 3;
+  var addrLineEnd = mL + halfW - 3;
   doc.line(addrLineX, y + 15, addrLineEnd, y + 15);
   doc.line(addrLineX, y + 21, addrLineEnd, y + 21);
   doc.line(addrLineX, y + 27, addrLineEnd, y + 27);
   doc.setLineWidth(0.2);
 
   // DocuSign tags for customer details
-  dsTag('\\cname\\', mL + halfW + 3, y + 5);
+  dsTag('\\cname\\', mL + 3, y + 5);
   dsTag('\\caddr1\\', addrLineX, y + 14);
   dsTag('\\caddr2\\', addrLineX, y + 20);
   dsTag('\\caddr3\\', addrLineX, y + 26);
+
+  // Provider details (RIGHT column)
+  doc.setFontSize(9);
+  doc.setFont('Helvetica','bold');
+  doc.text('Expert Insights Tech Ltd', mL + halfW + 3, y + 5);
+  doc.setFont('Helvetica','normal');
+  doc.setFontSize(8);
+  doc.text('Higher Mill, Buckfast Abbey', mL + halfW + 3, y + 9);
+  doc.text('Buckfastleigh, Devon, TQ11 0EE', mL + halfW + 3, y + 13);
+  doc.text('United Kingdom', mL + halfW + 3, y + 17);
 
   // Divider and border
   doc.setDrawColor('#CBD5E1');
@@ -2485,16 +2486,6 @@ function generateIO(id, customerName) {
   y = drawTbl(svcHeaders, svcRows, svcColWidths, y);
   doc.setFontSize(9);
   doc.setFont('Helvetica','normal');
-
-  // Combined fee if not showing per-article pricing
-  if (!showPricing) {
-    y += 3;
-    doc.setFontSize(10);
-    doc.setFont('Helvetica','bold');
-    doc.text('Total Monthly Fee: ' + fmt$(effM), mL + cW, y, {align:'right'});
-    doc.setFont('Helvetica','normal');
-    y += 3;
-  }
 
   y += 8;
 
@@ -2882,19 +2873,10 @@ function generateIOWord(id, customerName) {
     rows: [
       new TableRow({
         tableHeader: true,
-        children: [ headerCell('PROVIDER', 50), headerCell('CUSTOMER', 50) ]
+        children: [ headerCell('CUSTOMER', 50), headerCell('PROVIDER', 50) ]
       }),
       new TableRow({
         children: [
-          cell({
-            width: 50, padT: 200, padB: 200, padL: 240, padR: 240, vAlign: VerticalAlign.TOP,
-            children: [
-              para([ run('Expert Insights Tech Ltd', { bold: true, size: 22 }) ], { after: 80 }),
-              para([ run('Higher Mill, Buckfast Abbey', { size: 18, color: GREY_700 }) ], { after: 40 }),
-              para([ run('Buckfastleigh, Devon, TQ11 0EE', { size: 18, color: GREY_700 }) ], { after: 40 }),
-              para([ run('United Kingdom', { size: 18, color: GREY_700 }) ])
-            ]
-          }),
           cell({
             width: 50, padT: 200, padB: 200, padL: 240, padR: 240, vAlign: VerticalAlign.TOP,
             children: [
@@ -2932,6 +2914,15 @@ function generateIOWord(id, customerName) {
                   });
                 })
               })
+            ]
+          }),
+          cell({
+            width: 50, padT: 200, padB: 200, padL: 240, padR: 240, vAlign: VerticalAlign.TOP,
+            children: [
+              para([ run('Expert Insights Tech Ltd', { bold: true, size: 22 }) ], { after: 80 }),
+              para([ run('Higher Mill, Buckfast Abbey', { size: 18, color: GREY_700 }) ], { after: 40 }),
+              para([ run('Buckfastleigh, Devon, TQ11 0EE', { size: 18, color: GREY_700 }) ], { after: 40 }),
+              para([ run('United Kingdom', { size: 18, color: GREY_700 }) ])
             ]
           })
         ]
@@ -3041,12 +3032,8 @@ function generateIOWord(id, customerName) {
     borders: outerTblBorders(),
     rows: svcRows
   }));
-
-  if (!showPricing) {
-    body.push(para([ run('Total Monthly Fee: ' + fmt$(effM), { size: 22, bold: true, color: NAVY }) ], {
-      align: AlignmentType.RIGHT, before: 120, after: 240
-    }));
-  }
+  // Total Monthly Fee already appears in the Subscription Term table above,
+  // so no duplicate line is needed below the services table.
 
   // ── 4. TERMS ──
   body.push(sectionHeading('3. Terms'));
