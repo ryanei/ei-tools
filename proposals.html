@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Expert Insights - Proposal Manager</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap');
 
@@ -294,10 +296,42 @@ body {
 .status-badge.accepted { background:#D1FAE5; color:#059669; }
 .status-badge.rejected { background:#FEE2E2; color:#DC2626; }
 
-.dash-actions { display:flex; gap:4px; }
-.dash-action-btn { padding:5px 10px; border-radius:6px; border:1px solid #E5E7EB; background:#fff; cursor:pointer; font-size:12px; color:#374151; font-family:inherit; transition:all 0.15s; }
-.dash-action-btn:hover { border-color:#2563EB; color:#2563EB; }
-.dash-action-btn.danger:hover { border-color:#EF4444; color:#EF4444; }
+.dash-actions { display:flex; gap:4px; align-items:center; position:relative; }
+.dash-icon-btn {
+  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+  padding:0; border-radius:6px; border:1px solid #E5E7EB; background:#fff; cursor:pointer;
+  font-size:13px; color:#4B5563; font-family:inherit; transition:all 0.15s; line-height:1;
+}
+.dash-icon-btn:hover { border-color:#2563EB; color:#2563EB; background:#F8FAFF; }
+.dash-icon-btn.danger:hover { border-color:#EF4444; color:#EF4444; background:#FEF2F2; }
+.dash-icon-btn svg { width:14px; height:14px; }
+
+/* Primary Actions dropdown */
+.dash-menu-btn {
+  display:inline-flex; align-items:center; gap:6px; padding:5px 10px 5px 12px;
+  border-radius:6px; border:1px solid #0B1D3A; background:#0B1D3A; color:#fff;
+  cursor:pointer; font-size:12px; font-weight:600; font-family:inherit; transition:all 0.15s;
+}
+.dash-menu-btn:hover { background:#162b52; border-color:#162b52; }
+.dash-menu-btn svg { width:10px; height:10px; transition:transform 0.15s; }
+.dash-menu-btn.open svg { transform:rotate(180deg); }
+
+.dash-menu {
+  position:absolute; right:0; top:calc(100% + 4px); z-index:100;
+  min-width:190px; background:#fff; border:1px solid #E5E7EB; border-radius:8px;
+  box-shadow:0 8px 24px rgba(11,29,58,0.12); padding:4px; display:none;
+}
+.dash-menu.open { display:block; }
+.dash-menu-item {
+  width:100%; display:flex; align-items:center; gap:10px; padding:8px 12px;
+  border:none; background:transparent; cursor:pointer; font-size:13px; color:#374151;
+  font-family:inherit; border-radius:6px; text-align:left; transition:background 0.12s;
+}
+.dash-menu-item:hover { background:#F3F4F6; color:#0B1D3A; }
+.dash-menu-item.danger { color:#DC2626; }
+.dash-menu-item.danger:hover { background:#FEF2F2; }
+.dash-menu-item svg { width:14px; height:14px; flex-shrink:0; }
+.dash-menu-divider { height:1px; background:#F3F4F6; margin:4px 2px; }
 
 .dash-empty { padding:60px 20px; text-align:center; color:#9CA3AF; }
 .dash-empty p { margin:8px 0; }
@@ -313,10 +347,6 @@ body {
 .save-msg { font-size:13px; margin-left:12px; }
 .save-msg.success { color:#10B981; }
 .save-msg.error { color:#EF4444; }
-
-/* IO button */
-.io-btn { padding:5px 10px; border-radius:6px; border:1px solid #10B981; background:#ECFDF5; cursor:pointer; font-size:12px; color:#059669; font-family:inherit; font-weight:600; transition:all 0.15s; }
-.io-btn:hover { background:#10B981; color:#fff; }
 
 /* Edit proposal indicator */
 .editing-indicator { background:#FEF3C7; border:1px solid #F59E0B; border-radius:8px; padding:10px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; font-size:14px; color:#92400E; }
@@ -450,8 +480,9 @@ body {
     <div class="generate-section">
       <span class="error-msg" id="errorMsg"></span>
       <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <button class="generate-btn" id="generateBtn" onclick="generateAndSave()">Generate Proposal</button>
-        <button class="save-btn" onclick="saveProposal(false)">Save Only</button>
+        <button class="generate-btn" id="generateBtn" onclick="generateAndSave()">Generate PDF</button>
+        <button class="save-btn" onclick="generateAndSaveWord()" style="background:#0B1D3A;">Generate Word</button>
+        <button class="save-btn" onclick="saveProposal(false)" style="background:#fff;color:#0B1D3A;border:1px solid #D1D5DB;">Save Only</button>
         <span class="save-msg" id="saveMsg"></span>
       </div>
     </div>
@@ -1651,11 +1682,45 @@ function renderDashTable() {
       </td>
       <td>
         <div class="dash-actions">
-          <button class="dash-action-btn" onclick="editProposal('${p.id}')" title="Edit">&#9998;</button>
-          <button class="dash-action-btn" onclick="duplicateProposal('${p.id}')" title="Duplicate">&#x2398;</button>
-          <button class="dash-action-btn" onclick="setCustomerName('${p.id}')" title="Set Customer Name">&#x270D;</button>
-          <button class="io-btn" onclick="generateIO('${p.id}')" title="Generate IO">IO</button>
-          <button class="dash-action-btn danger" onclick="deleteProposal('${p.id}')" title="Delete">&#x1f5d1;</button>
+          <button class="dash-icon-btn" onclick="editProposal('${p.id}')" title="Edit proposal">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM2 17a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z"/></svg>
+          </button>
+          <button class="dash-menu-btn" onclick="toggleActionMenu(event, '${p.id}')" id="menubtn-${p.id}">
+            Actions
+            <svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="dash-menu" id="menu-${p.id}">
+            <button class="dash-menu-item" onclick="editProposal('${p.id}');closeActionMenus();">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM2 17a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z"/></svg>
+              Edit proposal
+            </button>
+            <button class="dash-menu-item" onclick="duplicateProposal('${p.id}');closeActionMenus();">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 011-1h9a1 1 0 011 1v12a1 1 0 01-1 1H8a1 1 0 01-1-1V3zm-3 4a1 1 0 011-1h1v10a2 2 0 002 2h7v1a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z"/></svg>
+              Duplicate
+            </button>
+            <button class="dash-menu-item" onclick="setCustomerName('${p.id}');closeActionMenus();">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
+              Set customer name
+            </button>
+            <div class="dash-menu-divider"></div>
+            <button class="dash-menu-item" onclick="exportProposalPDF('${p.id}');closeActionMenus();">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm5 4a1 1 0 112 0v3.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 10.586V7z"/></svg>
+              Export as PDF
+            </button>
+            <button class="dash-menu-item" onclick="exportProposalWord('${p.id}');closeActionMenus();">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm5 4a1 1 0 112 0v3.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 10.586V7z"/></svg>
+              Export as Word
+            </button>
+            <button class="dash-menu-item" onclick="generateIO('${p.id}');closeActionMenus();">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 3a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h3a1 1 0 100-2H7z"/></svg>
+              Generate IO
+            </button>
+            <div class="dash-menu-divider"></div>
+            <button class="dash-menu-item danger" onclick="deleteProposal('${p.id}');closeActionMenus();">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/></svg>
+              Delete
+            </button>
+          </div>
         </div>
       </td>
     </tr>`;
@@ -1711,8 +1776,9 @@ function saveProposal(thenGeneratePDF) {
 
   const onDone = function() {
     btn.disabled = false;
-    btn.textContent = 'Generate Proposal';
-    if (thenGeneratePDF) generatePDF();
+    btn.textContent = 'Generate PDF';
+    if (thenGeneratePDF === 'word') generateWord();
+    else if (thenGeneratePDF) generatePDF();
   };
 
   if (editingProposalId) {
@@ -1733,7 +1799,7 @@ function saveProposal(thenGeneratePDF) {
       });
       onDone();
     }).catch(() => {
-      showSaveMsg('Save failed — PDF still generated', 'error');
+      showSaveMsg('Save failed — document still generated', 'error');
       onDone();
     });
   } else {
@@ -1758,7 +1824,7 @@ function saveProposal(thenGeneratePDF) {
       });
       onDone();
     }).catch(() => {
-      showSaveMsg('Save failed — PDF still generated', 'error');
+      showSaveMsg('Save failed — document still generated', 'error');
       onDone();
     });
   }
@@ -1766,6 +1832,10 @@ function saveProposal(thenGeneratePDF) {
 
 function generateAndSave() {
   saveProposal(true);
+}
+
+function generateAndSaveWord() {
+  saveProposal('word');
 }
 
 function showSaveMsg(msg, type) {
@@ -1883,6 +1953,446 @@ function clearEditing() {
   renderCustomAddons();
   renderSelected();
   renderArticleList();
+}
+
+// ═══ ACTION MENU TOGGLE ═══
+function toggleActionMenu(ev, id) {
+  ev.stopPropagation();
+  var menu = document.getElementById('menu-' + id);
+  var btn = document.getElementById('menubtn-' + id);
+  var isOpen = menu.classList.contains('open');
+  closeActionMenus();
+  if (!isOpen) {
+    menu.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+function closeActionMenus() {
+  document.querySelectorAll('.dash-menu.open').forEach(function(m){ m.classList.remove('open'); });
+  document.querySelectorAll('.dash-menu-btn.open').forEach(function(b){ b.classList.remove('open'); });
+}
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.dash-actions')) closeActionMenus();
+});
+
+// ═══ HYDRATE BUILDER STATE FROM A PROPOSAL (for row-level exports) ═══
+function hydrateFromProposal(p) {
+  document.getElementById('vendorName').value = p.vendor || '';
+  if (p.startDate) document.getElementById('startDate').value = p.startDate;
+
+  var termSelect = document.getElementById('contractTerm');
+  var customTerm = document.getElementById('customTerm');
+  var stdTerms = ['Monthly Rolling', '6 Months', '12 Months'];
+  if (stdTerms.indexOf(p.contractTerm) > -1) {
+    termSelect.value = p.contractTerm;
+    customTerm.style.display = 'none';
+  } else {
+    termSelect.value = 'Custom';
+    customTerm.value = p.contractTerm || '';
+    customTerm.style.display = 'block';
+  }
+
+  var contactSelect = document.getElementById('contactSelect');
+  if (p.accountManager && p.accountManager.indexOf('Ryan') > -1) contactSelect.value = 'ryan';
+  else if (p.accountManager && p.accountManager.indexOf('Josh') > -1) contactSelect.value = 'josh';
+  else contactSelect.value = '';
+  prefillContact();
+  if (p.contactEmail) {
+    document.getElementById('contactEmailVisible').value = p.contactEmail;
+    document.getElementById('contactEmail').value = p.contactEmail;
+  }
+
+  var pData = parseProposalData(p.articlesJson);
+  selectedArticles = pData.articles;
+  window.pars = pData.pars || [];
+  window.customAddons = pData.addons || [];
+  window.globalDiscount = p.discount || 0;
+  var spCb = document.getElementById('showPricingOnPdf');
+  if (spCb) spCb.checked = pData.showPricing || false;
+}
+
+// ═══ ROW-LEVEL PDF EXPORT ═══
+function exportProposalPDF(id) {
+  var p = allProposals.find(function(x){return x.id===id;});
+  if (!p) return;
+  hydrateFromProposal(p);
+  // Defer so any DOM-dependent reads settle
+  setTimeout(function(){ generatePDF(); }, 30);
+}
+
+// ═══ ROW-LEVEL WORD EXPORT ═══
+function exportProposalWord(id) {
+  var p = allProposals.find(function(x){return x.id===id;});
+  if (!p) return;
+  hydrateFromProposal(p);
+  setTimeout(function(){ generateWord(); }, 30);
+}
+
+// ═══ WORD DOCUMENT GENERATION ═══
+function generateWord() {
+  var vendor = document.getElementById('vendorName').value.trim();
+  var term = getContractTerm();
+  var cName = document.getElementById('contactName').value.trim();
+  var cTitle = document.getElementById('contactTitle').value.trim();
+  var cEmail = document.getElementById('contactEmail').value.trim();
+  var errorEl = document.getElementById('errorMsg');
+
+  if (!vendor) { if(errorEl) errorEl.textContent = 'Please enter a vendor name'; return; }
+  if (!cName || !cEmail) { if(errorEl) errorEl.textContent = 'Please select an account manager'; return; }
+  if (selectedArticles.length === 0) { if(errorEl) errorEl.textContent = 'Please add at least one article'; return; }
+  if (errorEl) errorEl.textContent = '';
+
+  if (!window.docx) {
+    alert('Word export library not loaded. Please refresh the page and try again.');
+    return;
+  }
+
+  var D = window.docx;
+  var Document = D.Document, Packer = D.Packer, Paragraph = D.Paragraph, TextRun = D.TextRun,
+      Table = D.Table, TableRow = D.TableRow, TableCell = D.TableCell, WidthType = D.WidthType,
+      AlignmentType = D.AlignmentType, BorderStyle = D.BorderStyle, HeadingLevel = D.HeadingLevel,
+      ShadingType = D.ShadingType, PageOrientation = D.PageOrientation, convertInchesToTwip = D.convertInchesToTwip,
+      ExternalHyperlink = D.ExternalHyperlink;
+
+  var today = new Date();
+  var dateStr = today.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  var validDate = new Date(today); validDate.setDate(validDate.getDate() + 30);
+  var validStr = validDate.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  var showPricing = (document.getElementById('showPricingOnPdf') || {}).checked || false;
+  var discount = window.globalDiscount || 0;
+  var total = getDiscountedTotal();
+  var addonsTotal = (window.customAddons || []).reduce(function(s,a){ return s + (parseFloat(a.price)||0); }, 0);
+  var displayTotal = '$' + Number(total + addonsTotal).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  // ── Style helpers ──
+  var NAVY = '0B1D3A', BLUE = '2563EB', GREY_900 = '111827', GREY_700 = '374151',
+      GREY_500 = '6B7280', GREY_200 = 'E5E7EB', GREY_50 = 'F9FAFB', WHITE = 'FFFFFF';
+  var FONT = 'Calibri';
+
+  function run(text, opts) {
+    opts = opts || {};
+    return new TextRun({
+      text: text,
+      font: FONT,
+      size: opts.size || 20, // half-points; 20 = 10pt
+      bold: !!opts.bold,
+      italics: !!opts.italic,
+      color: opts.color || GREY_900
+    });
+  }
+  function para(children, opts) {
+    opts = opts || {};
+    return new Paragraph({
+      children: children,
+      alignment: opts.align || AlignmentType.LEFT,
+      spacing: { before: opts.before || 0, after: opts.after == null ? 80 : opts.after },
+      heading: opts.heading
+    });
+  }
+  function noBorder() {
+    return {
+      top: { style: BorderStyle.NONE, size: 0, color: WHITE },
+      bottom: { style: BorderStyle.NONE, size: 0, color: WHITE },
+      left: { style: BorderStyle.NONE, size: 0, color: WHITE },
+      right: { style: BorderStyle.NONE, size: 0, color: WHITE }
+    };
+  }
+  function thinBorders(c) {
+    c = c || GREY_200;
+    return {
+      top: { style: BorderStyle.SINGLE, size: 4, color: c },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: c },
+      left: { style: BorderStyle.SINGLE, size: 4, color: c },
+      right: { style: BorderStyle.SINGLE, size: 4, color: c }
+    };
+  }
+  function cell(children, opts) {
+    opts = opts || {};
+    return new TableCell({
+      children: Array.isArray(children) ? children : [children],
+      width: opts.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
+      shading: opts.fill ? { type: ShadingType.CLEAR, color: 'auto', fill: opts.fill } : undefined,
+      borders: opts.noBorder ? noBorder() : thinBorders(opts.borderColor),
+      margins: { top: 120, bottom: 120, left: 140, right: 140 },
+      verticalAlign: opts.vAlign || 'center'
+    });
+  }
+
+  var body = [];
+
+  // ── HEADER BAND (navy block via a 1-row, 1-col table with navy fill) ──
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorder(),
+    rows: [ new TableRow({ children: [
+      new TableCell({
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: NAVY },
+        borders: noBorder(),
+        margins: { top: 340, bottom: 340, left: 340, right: 340 },
+        children: [
+          new Paragraph({ children: [ new TextRun({ text: 'EXPERT INSIGHTS', font: FONT, size: 18, bold: true, color: 'A5B4D8' }) ], spacing: { after: 120 } }),
+          new Paragraph({ children: [ new TextRun({ text: 'Campaign Proposal', font: FONT, size: 44, bold: true, color: WHITE }) ], spacing: { after: 120 } }),
+          new Paragraph({ children: [ new TextRun({ text: 'Prepared for ' + vendor, font: FONT, size: 28, color: WHITE }) ], spacing: { after: 60 } }),
+          new Paragraph({ children: [ new TextRun({ text: 'Issued ' + dateStr + '  ·  Valid until ' + validStr, font: FONT, size: 18, color: 'CBD5E1' }) ], spacing: { after: 0 } })
+        ]
+      })
+    ] }) ]
+  }));
+
+  body.push(para([ run('') ], { after: 180 }));
+
+  // ── SUMMARY STRIP (3 columns: Term | Articles | Total) ──
+  function summaryCol(label, value) {
+    return cell([
+      new Paragraph({ children: [ new TextRun({ text: label.toUpperCase(), font: FONT, size: 14, bold: true, color: GREY_500 }) ], spacing: { after: 60 } }),
+      new Paragraph({ children: [ new TextRun({ text: value, font: FONT, size: 24, bold: true, color: NAVY }) ], spacing: { after: 0 } })
+    ], { fill: GREY_50, width: 3333, borderColor: GREY_200 });
+  }
+  var articleCount = selectedArticles.length + (window.pars || []).length + (window.customAddons || []).filter(function(a){return a.name;}).length;
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [ new TableRow({ children: [
+      summaryCol('Contract Term', term),
+      summaryCol('Items Included', articleCount + (articleCount === 1 ? ' item' : ' items')),
+      summaryCol(showPricing ? 'Monthly Total' : 'Campaign Value', showPricing ? displayTotal + '/mo' : 'On request')
+    ] }) ]
+  }));
+
+  body.push(para([ run('') ], { after: 200 }));
+
+  // ── SPONSORED ARTICLES HEADING ──
+  body.push(para([ run('Sponsored Articles & Add-ons', { size: 26, bold: true, color: NAVY }) ], { after: 160 }));
+
+  // ── ARTICLES TABLE ──
+  var tableRows = [];
+  var headerCells = [
+    cell(new Paragraph({ children: [ new TextRun({ text: 'Article', font: FONT, size: 18, bold: true, color: WHITE }) ] }), { fill: NAVY, width: showPricing ? 55 : 70, borderColor: NAVY }),
+    cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: 'Position', font: FONT, size: 18, bold: true, color: WHITE }) ] }), { fill: NAVY, width: showPricing ? 25 : 30, borderColor: NAVY })
+  ];
+  if (showPricing) {
+    headerCells.push(cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: 'Price', font: FONT, size: 18, bold: true, color: WHITE }) ] }), { fill: NAVY, width: 20, borderColor: NAVY }));
+  }
+  tableRows.push(new TableRow({ children: headerCells, tableHeader: true }));
+
+  var rowIdx = 0;
+  // Articles
+  selectedArticles.forEach(function(a) {
+    var shaded = rowIdx % 2 === 1;
+    var fill = shaded ? GREY_50 : undefined;
+    var posLabel = a.position === 'Custom' ? (a.customPosition || 'Custom')
+                 : a.position === 'Upgrade' ? ('Upgrade to ' + (a.upgradeTarget || '#1'))
+                 : a.position;
+
+    var titlePara = new Paragraph({ children: [ new TextRun({ text: a.t, font: FONT, size: 20, color: GREY_900 }) ], spacing: { after: 40 } });
+    var urlPara = new Paragraph({ children: [
+      new ExternalHyperlink({
+        link: a.url,
+        children: [ new TextRun({ text: a.url.replace('https://', ''), font: FONT, size: 14, color: BLUE, style: 'Hyperlink' }) ]
+      })
+    ], spacing: { after: 0 } });
+
+    var cells = [
+      cell([titlePara, urlPara], { fill: fill }),
+      cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: posLabel, font: FONT, size: 20, color: GREY_900 }) ] }), { fill: fill })
+    ];
+    if (showPricing) {
+      var priceLbl = a.position === 'Upgrade' ? '+$' + (a.currentPrice || 0).toLocaleString() : '$' + (a.currentPrice || 0).toLocaleString();
+      cells.push(cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: priceLbl, font: FONT, size: 18, color: GREY_900 }) ] }), { fill: fill }));
+    }
+    tableRows.push(new TableRow({ children: cells }));
+    rowIdx++;
+  });
+
+  // PAR rows
+  (window.pars || []).forEach(function(par) {
+    var shaded = rowIdx % 2 === 1;
+    var fill = shaded ? GREY_50 : undefined;
+    var parName = par.name || 'Product Analysis Report (PAR)';
+    var parPriceLabel = par.price > 0 ? '$' + par.price + '/mo' : 'FOC';
+    var parPosLabel = showPricing ? parPriceLabel : (par.price > 0 ? 'Included' : 'FOC');
+
+    var nameP = new Paragraph({ children: [ new TextRun({ text: parName, font: FONT, size: 20, color: GREY_900 }) ], spacing: { after: 40 } });
+    var descP = new Paragraph({ children: [ new TextRun({ text: 'In-depth product analysis report hosted on Expert Insights for a period of ' + term + '.', font: FONT, size: 14, color: GREY_500 }) ], spacing: { after: 40 } });
+    var linkP = new Paragraph({ children: [
+      new ExternalHyperlink({ link: 'https://expertinsights.com/data-management/files-mft-par', children: [ new TextRun({ text: 'View example here.', font: FONT, size: 14, color: BLUE, style: 'Hyperlink' }) ] })
+    ], spacing: { after: 0 } });
+
+    var parCells = [
+      cell([nameP, descP, linkP], { fill: fill }),
+      cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: parPosLabel, font: FONT, size: 20, color: GREY_900 }) ] }), { fill: fill })
+    ];
+    if (showPricing) parCells.push(cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: parPriceLabel, font: FONT, size: 18, color: GREY_900 }) ] }), { fill: fill }));
+    tableRows.push(new TableRow({ children: parCells }));
+    rowIdx++;
+  });
+
+  // Custom add-ons
+  (window.customAddons || []).forEach(function(addon) {
+    if (!addon.name) return;
+    var shaded = rowIdx % 2 === 1;
+    var fill = shaded ? GREY_50 : undefined;
+    var priceLbl = addon.price > 0 ? '$' + Number(addon.price).toLocaleString() + '/mo' : 'FOC';
+    var aCells = [
+      cell(new Paragraph({ children: [ new TextRun({ text: addon.name, font: FONT, size: 20, color: GREY_900 }) ] }), { fill: fill }),
+      cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: priceLbl, font: FONT, size: 20, color: GREY_900 }) ] }), { fill: fill })
+    ];
+    if (showPricing) aCells.push(cell(new Paragraph({ alignment: AlignmentType.CENTER, children: [ new TextRun({ text: priceLbl, font: FONT, size: 18, color: GREY_900 }) ] }), { fill: fill }));
+    tableRows.push(new TableRow({ children: aCells }));
+    rowIdx++;
+  });
+
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: tableRows
+  }));
+
+  body.push(para([ run('') ], { after: 200 }));
+
+  // ── WHAT'S INCLUDED ──
+  body.push(para([ run("What's Included", { size: 26, bold: true, color: NAVY }) ], { after: 120 }));
+  ['Sponsored product listing with approved description, logo, and CTA on each article',
+   'Campaign performance reporting covering traffic and engagement across your sponsored listings']
+    .forEach(function(inc) {
+      body.push(new Paragraph({
+        children: [ new TextRun({ text: '•  ' + inc, font: FONT, size: 20, color: GREY_700 }) ],
+        spacing: { after: 80 },
+        indent: { left: 120 }
+      }));
+    });
+
+  var tn = term === 'Monthly Rolling' ? 'monthly on a rolling basis' : 'on a ' + term.toLowerCase() + ' fixed-term contract';
+  body.push(para([ run('All pricing in USD, billed ' + tn + '. Pricing subject to change based on article traffic.', { size: 16, italic: true, color: GREY_500 }) ], { before: 120, after: 260 }));
+
+  // ── OPTIONAL ADD-ONS BAND ──
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorder(),
+    rows: [ new TableRow({ children: [
+      new TableCell({
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: NAVY },
+        borders: noBorder(),
+        margins: { top: 140, bottom: 140, left: 260, right: 260 },
+        children: [ new Paragraph({ children: [ new TextRun({ text: 'Optional Add-ons', font: FONT, size: 24, bold: true, color: WHITE }) ] }) ]
+      })
+    ] }) ]
+  }));
+
+  var standardAddons = [
+    { n: 'Sponsored Newsletter Package', p: 'starting from $3,000 (one-off cost)', sub: 'Inclusion in newsletter comprising of four separate editions over one calendar month' },
+    { n: 'PDF copy of PAR', p: '$1,000 per review' },
+    { n: 'Podcast Interview', p: '$3,000 / one-off cost' },
+    { n: 'Sponsored Editorial', p: '$4,000 / one-off cost' },
+    { n: '4x Guest Post', p: '$5,000 / one-off cost' }
+  ];
+  var addonChildren = [];
+  standardAddons.forEach(function(a) {
+    addonChildren.push(new Paragraph({
+      children: [
+        new TextRun({ text: '•  ', font: FONT, size: 20, color: GREY_700 }),
+        new TextRun({ text: a.n, font: FONT, size: 20, bold: true, color: GREY_900 }),
+        new TextRun({ text: ' — ' + a.p, font: FONT, size: 20, color: GREY_700 })
+      ],
+      spacing: { after: a.sub ? 40 : 80 },
+      indent: { left: 120 }
+    }));
+    if (a.sub) {
+      addonChildren.push(new Paragraph({
+        children: [ new TextRun({ text: a.sub, font: FONT, size: 16, italic: true, color: GREY_500 }) ],
+        spacing: { after: 100 },
+        indent: { left: 260 }
+      }));
+    }
+  });
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [ new TableRow({ children: [
+      new TableCell({
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: 'F3F4F6' },
+        borders: thinBorders(GREY_200),
+        margins: { top: 200, bottom: 200, left: 260, right: 260 },
+        children: addonChildren
+      })
+    ] }) ]
+  }));
+
+  body.push(para([ run('') ], { after: 240 }));
+
+  // ── NEXT STEPS ──
+  body.push(para([ run('Next Steps', { size: 26, bold: true, color: NAVY }) ], { after: 120 }));
+  var steps = [
+    'Review and confirm the articles and positions outlined in this proposal',
+    'Provide any relevant product materials, logos, and landing page URLs',
+    'We will draft your listing content and share with you for review',
+    'Once confirmed, your new listings go live'
+  ];
+  steps.forEach(function(s, i) {
+    body.push(new Paragraph({
+      children: [
+        new TextRun({ text: (i + 1) + '.  ', font: FONT, size: 20, bold: true, color: BLUE }),
+        new TextRun({ text: s, font: FONT, size: 20, color: GREY_700 })
+      ],
+      spacing: { after: 80 },
+      indent: { left: 120 }
+    }));
+  });
+
+  body.push(para([ run('') ], { after: 240 }));
+
+  // ── FOOTER BAND (Contact + Terms) ──
+  function footerCol(title, lines) {
+    var children = [ new Paragraph({ children: [ new TextRun({ text: title, font: FONT, size: 20, bold: true, color: WHITE }) ], spacing: { after: 80 } }) ];
+    lines.forEach(function(l) {
+      children.push(new Paragraph({ children: [ new TextRun({ text: l, font: FONT, size: 16, color: 'CBD5E1' }) ], spacing: { after: 40 } }));
+    });
+    return new TableCell({
+      shading: { type: ShadingType.CLEAR, color: 'auto', fill: NAVY },
+      borders: noBorder(),
+      margins: { top: 280, bottom: 280, left: 340, right: 340 },
+      width: { size: 50, type: WidthType.PERCENTAGE },
+      children: children
+    });
+  }
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: noBorder(),
+    rows: [ new TableRow({ children: [
+      footerCol('Contact Us', [ cName + '  |  ' + cTitle, cEmail ]),
+      footerCol('Terms', [
+        term === 'Monthly Rolling' ? 'Monthly Rolling Contract' : term + ' Contract',
+        'Billed Monthly',
+        'Currency: USD'
+      ])
+    ] }) ]
+  }));
+
+  // Confidentiality line
+  body.push(para([ run('Confidential proposal prepared for ' + vendor + '. Not for external distribution.', { size: 14, italic: true, color: GREY_500 }) ], { before: 200, align: AlignmentType.CENTER }));
+
+  // ── BUILD + DOWNLOAD ──
+  var doc = new Document({
+    creator: 'Expert Insights',
+    title: 'Expert Insights Proposal - ' + vendor,
+    styles: {
+      default: { document: { run: { font: FONT, size: 20 } } }
+    },
+    sections: [{
+      properties: {
+        page: {
+          margin: { top: 720, right: 720, bottom: 720, left: 720 }
+        }
+      },
+      children: body
+    }]
+  });
+
+  Packer.toBlob(doc).then(function(blob) {
+    var safeVendor = vendor.replace(/[^a-zA-Z0-9]+/g, '_');
+    var fname = 'EI_Proposal_' + safeVendor + '_' + today.toISOString().slice(0,10) + '.docx';
+    saveAs(blob, fname);
+  }).catch(function(err) {
+    console.error('Word export failed:', err);
+    alert('Word export failed. Check the console for details.');
+  });
 }
 
 // ═══ IO PDF GENERATION ═══
