@@ -2446,13 +2446,13 @@ function generateIO(id, customerName) {
 
   articles.forEach(function(a) {
     var pos = a.position || 'Inclusion';
-    if (pos === 'Position Custom' && a.customPosition) pos = a.customPosition;
-    if (a.isUpgrade && a.upgradeTarget) pos = 'Position ' + a.upgradeTarget + ' Upgrade';
+    if (pos === 'Custom') pos = a.customPosition || 'Custom';
+    else if (pos === 'Upgrade') pos = 'Upgrade to ' + (a.upgradeTarget || '#1');
 
     var detail = pos;
     var fee = '';
     if (showPricing) {
-      fee = a.isUpgrade ? '+' + fmt$(parseFloat(a.currentPrice)||0) : fmt$(parseFloat(a.currentPrice)||0);
+      fee = (a.position === 'Upgrade') ? '+' + fmt$(parseFloat(a.currentPrice)||0) : fmt$(parseFloat(a.currentPrice)||0);
     }
 
     var titleObj = {bold:false, text: a.t || 'Article'};
@@ -2956,11 +2956,11 @@ function generateIOWord(id, customerName) {
       var shade = i % 2 === 0 ? GREY_50 : undefined;
       var isLast = i === termData.length - 1;
       return new TableRow({
-        height: { value: 440, rule: HeightRule.ATLEAST },
+        cantSplit: true,
         children: [
-          cell({ width: 35, fill: shade, vAlign: VerticalAlign.CENTER,
+          cell({ width: 35, fill: shade, padT: 100, padB: 100, vAlign: VerticalAlign.CENTER,
             children: [ para([ run(pair[0], { bold: true }) ]) ] }),
-          cell({ width: 65, fill: shade, vAlign: VerticalAlign.CENTER,
+          cell({ width: 65, fill: shade, padT: 100, padB: 100, vAlign: VerticalAlign.CENTER,
             children: [ para([ run(pair[1], { bold: isLast }) ]) ] })
         ]
       });
@@ -3000,8 +3000,8 @@ function generateIOWord(id, customerName) {
   var rowIdx = 0;
   articles.forEach(function(a) {
     var pos = a.position || 'Inclusion';
-    if (pos === 'Position Custom' && a.customPosition) pos = a.customPosition;
-    if (a.isUpgrade && a.upgradeTarget) pos = 'Position ' + a.upgradeTarget + ' Upgrade';
+    if (pos === 'Custom') pos = a.customPosition || 'Custom';
+    else if (pos === 'Upgrade') pos = 'Upgrade to ' + (a.upgradeTarget || '#1');
     var titleParas = [ para([ run(a.t || 'Article', { size: 20 }) ]) ];
     if (a.url) {
       titleParas.push(para([ run(a.url.replace('https://', ''), { size: 16, color: BLUE }) ], { before: 40 }));
@@ -3009,7 +3009,7 @@ function generateIOWord(id, customerName) {
     var fee = '';
     if (showPricing) {
       var price = parseFloat(a.currentPrice) || 0;
-      fee = a.isUpgrade ? '+' + fmt$(price) : fmt$(price);
+      fee = (a.position === 'Upgrade') ? '+' + fmt$(price) : fmt$(price);
     }
     svcRows.push(svcRow(titleParas, pos, fee, (rowIdx % 2 === 1) ? GREY_50 : undefined));
     rowIdx++;
@@ -3083,20 +3083,59 @@ function generateIOWord(id, customerName) {
   // ── 6. SIGNATURES ──
   body.push(sectionHeading('5. Signatures'));
 
-  function sigField(label, extraTopSpace) {
-    var out = [];
-    if (extraTopSpace) out.push(emptyPara(16));
-    out.push(para([ run(label, { size: 18, color: GREY_700 }) ], { after: 40 }));
-    out.push(linePara({ after: 180 }));
-    return out;
+  // Build a single signature row: narrow label column + wide bottom-bordered line column.
+  // This mirrors the PDF where "Name:" and the underline sit on the same horizontal baseline.
+  function sigFieldRow(label, rowHeight) {
+    return new TableRow({
+      height: { value: rowHeight || 420, rule: HeightRule.ATLEAST },
+      cantSplit: true,
+      children: [
+        new TableCell({
+          width: { size: 30, type: WidthType.PERCENTAGE },
+          margins: { top: 0, bottom: 0, left: 0, right: 80 },
+          borders: {
+            top: { style: BorderStyle.NONE, size: 0, color: WHITE },
+            bottom: { style: BorderStyle.NONE, size: 0, color: WHITE },
+            left: { style: BorderStyle.NONE, size: 0, color: WHITE },
+            right: { style: BorderStyle.NONE, size: 0, color: WHITE }
+          },
+          verticalAlign: VerticalAlign.BOTTOM,
+          children: [ para([ run(label, { size: 18, color: GREY_700 }) ]) ]
+        }),
+        new TableCell({
+          width: { size: 70, type: WidthType.PERCENTAGE },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+          borders: {
+            top: { style: BorderStyle.NONE, size: 0, color: WHITE },
+            bottom: { style: BorderStyle.SINGLE, size: 6, color: LINE_GREY },
+            left: { style: BorderStyle.NONE, size: 0, color: WHITE },
+            right: { style: BorderStyle.NONE, size: 0, color: WHITE }
+          },
+          verticalAlign: VerticalAlign.BOTTOM,
+          children: [ emptyPara(18) ]
+        })
+      ]
+    });
   }
-  function sigColumn() {
-    return [].concat(
-      sigField('Name:'),
-      sigField('Title:'),
-      sigField('Signature:', true),
-      sigField('Date:')
-    );
+
+  function sigColumnTable() {
+    return new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.NONE, size: 0, color: WHITE },
+        bottom: { style: BorderStyle.NONE, size: 0, color: WHITE },
+        left: { style: BorderStyle.NONE, size: 0, color: WHITE },
+        right: { style: BorderStyle.NONE, size: 0, color: WHITE },
+        insideHorizontal: { style: BorderStyle.NONE, size: 0, color: WHITE },
+        insideVertical: { style: BorderStyle.NONE, size: 0, color: WHITE }
+      },
+      rows: [
+        sigFieldRow('Name:', 340),
+        sigFieldRow('Title:', 340),
+        sigFieldRow('Signature:', 680),   // 2× standard height — extra room to actually sign
+        sigFieldRow('Date:', 340)
+      ]
+    });
   }
 
   body.push(new Table({
@@ -3107,8 +3146,10 @@ function generateIOWord(id, customerName) {
       new TableRow({
         cantSplit: true,
         children: [
-          cell({ width: 50, padT: 200, padB: 200, padL: 240, padR: 240, children: sigColumn() }),
-          cell({ width: 50, padT: 200, padB: 200, padL: 240, padR: 240, children: sigColumn() })
+          cell({ width: 50, padT: 160, padB: 160, padL: 240, padR: 240,
+            children: [ sigColumnTable(), emptyPara(2) ] }),
+          cell({ width: 50, padT: 160, padB: 160, padL: 240, padR: 240,
+            children: [ sigColumnTable(), emptyPara(2) ] })
         ]
       })
     ]
@@ -3131,12 +3172,21 @@ function generateIOWord(id, customerName) {
       var shade = i % 2 === 0 ? GREY_50 : undefined;
       return new TableRow({
         cantSplit: true,
-        height: { value: 520, rule: HeightRule.ATLEAST },
         children: [
-          cell({ width: 35, fill: shade, padT: 200, padB: 200, vAlign: VerticalAlign.CENTER,
+          cell({ width: 35, fill: shade, padT: 120, padB: 120, vAlign: VerticalAlign.CENTER,
             children: [ para([ run(label, { bold: true }) ]) ] }),
-          cell({ width: 65, fill: shade, padT: 200, padB: 120, vAlign: VerticalAlign.BOTTOM,
-            children: [ linePara({ after: 0 }) ] })
+          new TableCell({
+            width: { size: 65, type: WidthType.PERCENTAGE },
+            shading: shadedCellOpts(shade),
+            margins: { top: 120, bottom: 120, left: 200, right: 200 },
+            verticalAlign: VerticalAlign.BOTTOM,
+            children: [
+              new Paragraph({
+                children: [ new TextRun({ text: '\u00A0', font: FONT, size: 20, color: WHITE }) ],
+                border: { bottom: { color: LINE_GREY, space: 1, style: BorderStyle.SINGLE, size: 6 } }
+              })
+            ]
+          })
         ]
       });
     }))
