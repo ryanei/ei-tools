@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Expert Insights - Proposal Manager</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html-docx-js/dist/html-docx.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap');
@@ -2698,9 +2698,12 @@ function generateIO(id, customerName) {
   doc.save('Expert_Insights_IO_-_'+(p.vendor||'Client').replace(/[^a-zA-Z0-9]/g,'_')+'.pdf');
 }
 
-// ═══ IO WORD DOCUMENT GENERATION (via HTML) ═══
-// Builds HTML that mirrors the IO PDF layout exactly, then converts to .docx
-// using html-docx-js. Word renders the HTML natively via altchunks.
+// ═══ IO WORD DOCUMENT GENERATION (native docx) ═══
+// Builds a Word doc using native docx tables that mirror the IO PDF layout.
+// Every visual element (navy headers, grey row shading, bordered tables,
+// drawn underlines for signature fields) uses real Word primitives — no
+// altChunks, no HTML wrapper, no MHT. Verified to render near-identically
+// to the PDF in Word and LibreOffice.
 function generateIOWord(id, customerName) {
   var p;
   if (id) {
@@ -2718,7 +2721,7 @@ function generateIOWord(id, customerName) {
     };
   }
 
-  if (!window.htmlDocx) {
+  if (!window.docx) {
     alert('Word export library not loaded. Please refresh the page and try again.');
     return;
   }
@@ -2740,7 +2743,6 @@ function generateIOWord(id, customerName) {
 
   function fmt$(v){return '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
   function numWord(n){var w=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four'];return w[n]||String(n);}
-  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
   var sd;
   if (p.startDate) {
@@ -2753,244 +2755,428 @@ function generateIOWord(id, customerName) {
   function ord(n){var s=['th','st','nd','rd'],v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
   var dateStr = mosArr[sd.getMonth()]+' '+ord(sd.getDate())+', '+sd.getFullYear();
 
-  // ═══ BUILD ARTICLES TABLE ROWS ═══
-  var articleRowsHtml = '';
-  articles.forEach(function(a) {
-    var pos = a.position || 'Inclusion';
-    if (pos === 'Position Custom' && a.customPosition) pos = a.customPosition;
-    if (a.isUpgrade && a.upgradeTarget) pos = 'Position ' + a.upgradeTarget + ' Upgrade';
+  // ── docx symbols ──
+  var D = window.docx;
+  var Document = D.Document, Packer = D.Packer, Paragraph = D.Paragraph, TextRun = D.TextRun,
+      Table = D.Table, TableRow = D.TableRow, TableCell = D.TableCell,
+      WidthType = D.WidthType, HeightRule = D.HeightRule,
+      AlignmentType = D.AlignmentType, BorderStyle = D.BorderStyle,
+      ShadingType = D.ShadingType, VerticalAlign = D.VerticalAlign,
+      ExternalHyperlink = D.ExternalHyperlink, ImageRun = D.ImageRun,
+      Footer = D.Footer, PageNumber = D.PageNumber,
+      TabStopType = D.TabStopType, TabStopPosition = D.TabStopPosition;
 
-    var urlHtml = a.url ? '<div class="url">' + esc(a.url.replace('https://', '')) + '</div>' : '';
-    var fee = '';
-    if (showPricing) {
-      fee = a.isUpgrade ? '+' + fmt$(parseFloat(a.currentPrice)||0) : fmt$(parseFloat(a.currentPrice)||0);
-    }
-    articleRowsHtml += '<tr>'
-      + '<td class="svc-title">' + esc(a.t || 'Article') + urlHtml + '</td>'
-      + '<td class="svc-details">' + esc(pos) + '</td>'
-      + (showPricing ? '<td class="svc-fee">' + esc(fee) + '</td>' : '')
-      + '</tr>';
-  });
-  pars.forEach(function(par) {
-    var parPrice = parseFloat(par.price) || 0;
-    var feeTxt = showPricing ? (parPrice > 0 ? fmt$(parPrice) : 'FOC') : '';
-    articleRowsHtml += '<tr>'
-      + '<td class="svc-title">' + esc(par.name || 'Product Analysis Report (PAR)') + '</td>'
-      + '<td class="svc-details">Included</td>'
-      + (showPricing ? '<td class="svc-fee">' + esc(feeTxt) + '</td>' : '')
-      + '</tr>';
-  });
-  addons.forEach(function(addon) {
-    if (!addon.name) return;
-    var feeTxt = showPricing ? fmt$(parseFloat(addon.price)||0) : '';
-    articleRowsHtml += '<tr>'
-      + '<td class="svc-title">' + esc(addon.name) + '</td>'
-      + '<td class="svc-details">Add-on</td>'
-      + (showPricing ? '<td class="svc-fee">' + esc(feeTxt) + '</td>' : '')
-      + '</tr>';
-  });
+  // ── Palette (matches IO PDF) ──
+  var NAVY = '0B1D3A', WHITE = 'FFFFFF';
+  var GREY_900 = '111827', GREY_700 = '374151', GREY_500 = '6B7280';
+  var GREY_300 = 'CBD5E1', GREY_200 = 'E5E7EB', GREY_50 = 'F8F9FA';
+  var LINE_GREY = '94A3B8';
+  var BLUE = '2563EB';
+  var FONT = 'Calibri';
 
-  // ═══ BUILD FULL HTML DOCUMENT ═══
-  // Colors and widths mirror the IO PDF (navy #0B1D3A, grey shading, bordered boxes)
-  var termRow = isMonthly ? 'Monthly rolling' : numWord(tM) + ' (' + tM + ') months';
-  var termPairs = [
+  // ── Atoms ──
+  function run(text, opts) {
+    opts = opts || {};
+    return new TextRun({
+      text: text,
+      font: FONT,
+      size: opts.size || 20,
+      bold: !!opts.bold,
+      italics: !!opts.italic,
+      color: opts.color || GREY_900
+    });
+  }
+  function para(children, opts) {
+    opts = opts || {};
+    return new Paragraph({
+      children: Array.isArray(children) ? children : [children],
+      alignment: opts.align,
+      spacing: { before: opts.before || 0, after: opts.after == null ? 0 : opts.after },
+      indent: opts.indent
+    });
+  }
+  // A paragraph that renders as a horizontal line (used for fillable underlines).
+  // Uses explicit line height so stacked lines render distinctly in LibreOffice and Word.
+  function linePara(opts) {
+    opts = opts || {};
+    return new Paragraph({
+      children: [ new TextRun({ text: '\u00A0', font: FONT, size: 20, color: WHITE }) ],
+      border: { bottom: { color: LINE_GREY, space: opts.space == null ? 2 : opts.space, style: BorderStyle.SINGLE, size: opts.size || 6 } },
+      spacing: { before: opts.before || 0, after: opts.after == null ? 120 : opts.after, line: 280, lineRule: 'atLeast' }
+    });
+  }
+  function emptyPara(sz) { return new Paragraph({ children: [ new TextRun({ text: '', font: FONT, size: sz || 20 }) ] }); }
+
+  function outerTblBorders() {
+    return {
+      top: { style: BorderStyle.SINGLE, size: 4, color: GREY_300 },
+      bottom: { style: BorderStyle.SINGLE, size: 4, color: GREY_300 },
+      left: { style: BorderStyle.SINGLE, size: 4, color: GREY_300 },
+      right: { style: BorderStyle.SINGLE, size: 4, color: GREY_300 },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 2, color: GREY_200 },
+      insideVertical: { style: BorderStyle.NONE, size: 0, color: WHITE }
+    };
+  }
+  function shadedCellOpts(fill) {
+    return fill ? { type: ShadingType.CLEAR, color: 'auto', fill: fill } : undefined;
+  }
+  function cell(opts) {
+    return new TableCell({
+      children: opts.children,
+      width: opts.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
+      shading: shadedCellOpts(opts.fill),
+      margins: { top: opts.padT || 140, bottom: opts.padB || 140, left: opts.padL || 200, right: opts.padR || 200 },
+      verticalAlign: opts.vAlign,
+      columnSpan: opts.colSpan
+    });
+  }
+  function headerCell(text, width) {
+    return cell({
+      width: width,
+      fill: NAVY,
+      padT: 140, padB: 140,
+      children: [ para([ run(text, { size: 20, bold: true, color: WHITE }) ]) ]
+    });
+  }
+  function sectionHeading(text, opts) {
+    opts = opts || {};
+    return para([ run(text, { size: 26, bold: true, color: NAVY }) ], { before: opts.before || 200, after: opts.after || 100 });
+  }
+
+  // ── Base64 PNG -> Uint8Array (browser-safe) ──
+  function dataUrlToU8(dataURL) {
+    var b64 = dataURL.split(',')[1];
+    var bin = atob(b64);
+    var len = bin.length;
+    var u8 = new Uint8Array(len);
+    for (var i = 0; i < len; i++) u8[i] = bin.charCodeAt(i);
+    return u8;
+  }
+
+  var body = [];
+
+  // ── LOGO ──
+  try {
+    var logoBytes = dataUrlToU8(window.EI_IO_LOGO);
+    body.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 120 },
+      children: [
+        new ImageRun({ type: 'png', data: logoBytes, transformation: { width: 140, height: 46 } })
+      ]
+    }));
+  } catch(e) {
+    console.warn('IO Word: logo embed failed', e);
+    body.push(para([ run('EXPERT INSIGHTS', { size: 22, bold: true, color: GREY_500 }) ], { align: AlignmentType.CENTER, after: 120 }));
+  }
+
+  // ── TITLE ──
+  body.push(para([ run('INSERTION ORDER', { size: 48, bold: true, color: NAVY }) ], {
+    align: AlignmentType.CENTER, after: 360
+  }));
+
+  // ── 1. PROVIDER / CUSTOMER ──
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: outerTblBorders(),
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        children: [ headerCell('PROVIDER', 50), headerCell('CUSTOMER', 50) ]
+      }),
+      new TableRow({
+        children: [
+          cell({
+            width: 50, padT: 200, padB: 200, padL: 240, padR: 240, vAlign: VerticalAlign.TOP,
+            children: [
+              para([ run('Expert Insights Tech Ltd', { bold: true, size: 22 }) ], { after: 80 }),
+              para([ run('Higher Mill, Buckfast Abbey', { size: 18, color: GREY_700 }) ], { after: 40 }),
+              para([ run('Buckfastleigh, Devon, TQ11 0EE', { size: 18, color: GREY_700 }) ], { after: 40 }),
+              para([ run('United Kingdom', { size: 18, color: GREY_700 }) ])
+            ]
+          }),
+          cell({
+            width: 50, padT: 200, padB: 200, padL: 240, padR: 240, vAlign: VerticalAlign.TOP,
+            children: [
+              para([ run(customerName || '[Customer Legal Entity Name]', { bold: true, size: 22 }) ], { after: 80 }),
+              para([ run('Customer Address:', { size: 18, color: GREY_500 }) ], { after: 120 }),
+              // Three distinct fillable lines as a nested mini-table with fixed row heights.
+              // This renders reliably in both Microsoft Word and LibreOffice (adjacent paragraph
+              // borders can visually collapse in LibreOffice otherwise).
+              new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE, size: 0, color: WHITE },
+                  bottom: { style: BorderStyle.NONE, size: 0, color: WHITE },
+                  left: { style: BorderStyle.NONE, size: 0, color: WHITE },
+                  right: { style: BorderStyle.NONE, size: 0, color: WHITE },
+                  insideHorizontal: { style: BorderStyle.NONE, size: 0, color: WHITE },
+                  insideVertical: { style: BorderStyle.NONE, size: 0, color: WHITE }
+                },
+                rows: [0,1,2].map(function() {
+                  return new TableRow({
+                    height: { value: 360, rule: HeightRule.EXACT },
+                    children: [
+                      new TableCell({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        margins: { top: 0, bottom: 0, left: 0, right: 0 },
+                        borders: {
+                          top: { style: BorderStyle.NONE, size: 0, color: WHITE },
+                          bottom: { style: BorderStyle.SINGLE, size: 6, color: LINE_GREY },
+                          left: { style: BorderStyle.NONE, size: 0, color: WHITE },
+                          right: { style: BorderStyle.NONE, size: 0, color: WHITE }
+                        },
+                        children: [ emptyPara(18) ]
+                      })
+                    ]
+                  });
+                })
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  }));
+
+  // ── 2. SUBSCRIPTION TERM ──
+  body.push(sectionHeading('1. Subscription Term'));
+  var termData = [
     ['Start Date', dateStr],
-    ['Term', termRow],
+    ['Term', isMonthly ? 'Monthly rolling' : numWord(tM) + ' (' + tM + ') months'],
     ['Billing Schedule', 'Monthly in advance'],
     ['Currency', 'USD'],
     ['Payment Terms', 'Net 30 days'],
     ['Total Monthly Fee', fmt$(effM)]
   ];
-  var termRowsHtml = '';
-  termPairs.forEach(function(pair, i) {
-    var shade = i % 2 === 0 ? ' class="shaded"' : '';
-    var isLast = i === termPairs.length - 1;
-    termRowsHtml += '<tr' + shade + '>'
-      + '<td class="term-label">' + esc(pair[0]) + '</td>'
-      + '<td class="term-value' + (isLast ? ' bold' : '') + '">' + esc(pair[1]) + '</td>'
-      + '</tr>';
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: outerTblBorders(),
+    rows: termData.map(function(pair, i) {
+      var shade = i % 2 === 0 ? GREY_50 : undefined;
+      var isLast = i === termData.length - 1;
+      return new TableRow({
+        height: { value: 440, rule: HeightRule.ATLEAST },
+        children: [
+          cell({ width: 35, fill: shade, vAlign: VerticalAlign.CENTER,
+            children: [ para([ run(pair[0], { bold: true }) ]) ] }),
+          cell({ width: 65, fill: shade, vAlign: VerticalAlign.CENTER,
+            children: [ para([ run(pair[1], { bold: isLast }) ]) ] })
+        ]
+      });
+    })
+  }));
+
+  // ── 3. SERVICES ──
+  body.push(sectionHeading('2. Services'));
+  body.push(para([ run('Expert Insights will provide the following Services:', { color: GREY_700 }) ], { after: 120 }));
+
+  var svcRows = [];
+  var svcHeader = [
+    cell({ width: showPricing ? 60 : 72, fill: NAVY, padT: 140, padB: 140,
+      children: [ para([ run('SERVICE / ARTICLE', { size: 18, bold: true, color: WHITE }) ]) ] }),
+    cell({ width: showPricing ? 22 : 28, fill: NAVY, padT: 140, padB: 140,
+      children: [ para([ run('DETAILS', { size: 18, bold: true, color: WHITE }) ], { align: AlignmentType.RIGHT }) ] })
+  ];
+  if (showPricing) {
+    svcHeader.push(cell({ width: 18, fill: NAVY, padT: 140, padB: 140,
+      children: [ para([ run('MONTHLY FEE', { size: 18, bold: true, color: WHITE }) ], { align: AlignmentType.RIGHT }) ] }));
+  }
+  svcRows.push(new TableRow({ tableHeader: true, children: svcHeader }));
+
+  function svcRow(titleParas, detailsText, feeText, altShade) {
+    var rowChildren = [
+      cell({ fill: altShade, padT: 160, padB: 160, vAlign: VerticalAlign.CENTER, children: titleParas }),
+      cell({ fill: altShade, padT: 160, padB: 160, vAlign: VerticalAlign.CENTER,
+        children: [ para([ run(detailsText) ], { align: AlignmentType.RIGHT }) ] })
+    ];
+    if (showPricing) {
+      rowChildren.push(cell({ fill: altShade, padT: 160, padB: 160, vAlign: VerticalAlign.CENTER,
+        children: [ para([ run(feeText) ], { align: AlignmentType.RIGHT }) ] }));
+    }
+    return new TableRow({ children: rowChildren });
+  }
+
+  var rowIdx = 0;
+  articles.forEach(function(a) {
+    var pos = a.position || 'Inclusion';
+    if (pos === 'Position Custom' && a.customPosition) pos = a.customPosition;
+    if (a.isUpgrade && a.upgradeTarget) pos = 'Position ' + a.upgradeTarget + ' Upgrade';
+    var titleParas = [ para([ run(a.t || 'Article', { size: 20 }) ]) ];
+    if (a.url) {
+      titleParas.push(para([ run(a.url.replace('https://', ''), { size: 16, color: BLUE }) ], { before: 40 }));
+    }
+    var fee = '';
+    if (showPricing) {
+      var price = parseFloat(a.currentPrice) || 0;
+      fee = a.isUpgrade ? '+' + fmt$(price) : fmt$(price);
+    }
+    svcRows.push(svcRow(titleParas, pos, fee, (rowIdx % 2 === 1) ? GREY_50 : undefined));
+    rowIdx++;
+  });
+  pars.forEach(function(par) {
+    var feeText = '';
+    if (showPricing) {
+      var pp = parseFloat(par.price) || 0;
+      feeText = pp > 0 ? fmt$(pp) : 'FOC';
+    }
+    svcRows.push(svcRow(
+      [ para([ run(par.name || 'Product Analysis Report (PAR)', { size: 20 }) ]) ],
+      'Included', feeText, (rowIdx % 2 === 1) ? GREY_50 : undefined
+    ));
+    rowIdx++;
+  });
+  addons.forEach(function(addon) {
+    if (!addon.name) return;
+    var feeText = showPricing ? fmt$(parseFloat(addon.price) || 0) : '';
+    svcRows.push(svcRow(
+      [ para([ run(addon.name, { size: 20 }) ]) ],
+      'Add-on', feeText, (rowIdx % 2 === 1) ? GREY_50 : undefined
+    ));
+    rowIdx++;
   });
 
-  var serviceHeaderCols = showPricing
-    ? '<th class="svc-h-article">SERVICE / ARTICLE</th><th class="svc-h-details">DETAILS</th><th class="svc-h-fee">MONTHLY FEE</th>'
-    : '<th class="svc-h-article">SERVICE / ARTICLE</th><th class="svc-h-details">DETAILS</th>';
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: outerTblBorders(),
+    rows: svcRows
+  }));
 
-  var totalFeeLine = !showPricing
-    ? '<p class="total-line">Total Monthly Fee: ' + esc(fmt$(effM)) + '</p>'
-    : '';
+  if (!showPricing) {
+    body.push(para([ run('Total Monthly Fee: ' + fmt$(effM), { size: 22, bold: true, color: NAVY }) ], {
+      align: AlignmentType.RIGHT, before: 120, after: 240
+    }));
+  }
 
-  // Logo (same base64 asset used by the PDF)
-  var logoImg = '<img src="' + window.EI_IO_LOGO + '" alt="Expert Insights" style="width:160px; height:auto;" />';
+  // ── 4. TERMS ──
+  body.push(sectionHeading('3. Terms'));
+  var terms = [
+    'The campaign is invoiced monthly in advance on the 1st of each month.',
+    'If the initial campaign goes live after the 1st of the month, the initial invoice will be prorated for the period from when the campaign went live through to the end of that month.',
+    'Fees do not include applicable taxes, such as local, state, provincial, federal, or VAT.',
+    'All fees to be paid by bank transfer.',
+    'Expert Insights will provide Customer the Service deliverables described above for review and approval prior to publishing. Customer has the right to request reasonable revisions and discretion to approve the Service deliverables.',
+    'Each Subscription Term will renew automatically for terms of the same length as agreed, unless one party gives the other party written notice of its intent not to renew at least 30 days prior to the end of the then current Subscription Term.'
+  ];
+  terms.forEach(function(t) {
+    body.push(new Paragraph({
+      children: [ run(t, { size: 18, color: GREY_700 }) ],
+      bullet: { level: 0 },
+      spacing: { after: 60 }
+    }));
+  });
 
-  var html = ''
-    + '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Expert Insights Insertion Order</title>'
-    + '<style>'
-    + '@page { size: A4; margin: 0.6in 0.6in 0.8in 0.6in; mso-page-orientation: portrait; }'
-    + 'body { font-family: Calibri, Arial, sans-serif; color: #111827; font-size: 10pt; margin: 0; }'
-    + 'h1 { font-size: 20pt; color: #0B1D3A; text-align: center; margin: 6pt 0 18pt 0; font-weight: bold; letter-spacing: 1pt; }'
-    + 'h2 { font-size: 13pt; color: #0B1D3A; margin: 18pt 0 6pt 0; font-weight: bold; }'
-    + 'p { margin: 0 0 6pt 0; }'
-    + '.logo-wrap { text-align: center; margin: 0 0 6pt 0; }'
-    // Generic table reset
-    + 'table { border-collapse: collapse; width: 100%; margin: 0 0 6pt 0; }'
-    + 'td, th { vertical-align: top; padding: 6pt 8pt; }'
-    // Provider / Customer table
-    + '.pc-table { border: 1px solid #CBD5E1; }'
-    + '.pc-header { background: #0B1D3A; color: #FFFFFF; font-weight: bold; font-size: 9pt; padding: 5pt 8pt; letter-spacing: 0.5pt; }'
-    + '.pc-cell { padding: 8pt 10pt; width: 50%; }'
-    + '.pc-cell.left { border-right: 1px solid #CBD5E1; }'
-    + '.pc-name { font-weight: bold; font-size: 10pt; margin-bottom: 3pt; }'
-    + '.pc-addr { font-size: 9pt; color: #374151; line-height: 1.45; }'
-    + '.pc-cust-label { font-size: 8.5pt; color: #6B7280; margin: 6pt 0 3pt 0; }'
-    + '.pc-line { border-bottom: 1px solid #94A3B8; height: 14pt; }'
-    // Subscription Term table
-    + '.term-table { border: 1px solid #CBD5E1; }'
-    + '.term-table tr.shaded { background: #F8F9FA; }'
-    + '.term-table td { border-bottom: 1px solid #E5E7EB; padding: 7pt 10pt; }'
-    + '.term-table tr:last-child td { border-bottom: none; }'
-    + '.term-label { font-weight: bold; width: 35%; border-right: 1px solid #E5E7EB; }'
-    + '.term-value { width: 65%; }'
-    + '.term-value.bold { font-weight: bold; }'
-    // Services table
-    + '.svc-table { border: 1px solid #CBD5E1; }'
-    + '.svc-table thead th { background: #0B1D3A; color: #FFFFFF; font-weight: bold; font-size: 9pt; padding: 6pt 8pt; letter-spacing: 0.3pt; }'
-    + '.svc-h-article { text-align: left; width: ' + (showPricing ? '62%' : '72%') + '; }'
-    + '.svc-h-details { text-align: center; width: ' + (showPricing ? '22%' : '28%') + '; }'
-    + '.svc-h-fee { text-align: center; width: 16%; }'
-    + '.svc-table tbody tr:nth-child(even) { background: #F8F9FA; }'
-    + '.svc-table tbody td { border-bottom: 1px solid #E5E7EB; padding: 7pt 10pt; font-size: 9.5pt; }'
-    + '.svc-table tbody tr:last-child td { border-bottom: none; }'
-    + '.svc-title { }'
-    + '.svc-title .url { color: #2563EB; font-size: 7.5pt; margin-top: 2pt; word-break: break-all; }'
-    + '.svc-details { text-align: center; }'
-    + '.svc-fee { text-align: center; }'
-    + '.total-line { text-align: right; font-weight: bold; font-size: 11pt; color: #0B1D3A; margin: 4pt 0 0 0; padding-right: 4pt; }'
-    // Terms bullets
-    + '.terms-list { padding-left: 0; margin: 6pt 0 0 0; list-style: none; }'
-    + '.terms-list li { font-size: 9pt; color: #374151; padding: 0 0 5pt 14pt; text-indent: -10pt; line-height: 1.45; }'
-    + '.terms-list li:before { content: "• "; color: #374151; font-weight: bold; }'
-    + '.tc-text { font-size: 9pt; color: #374151; line-height: 1.5; margin: 4pt 0 0 0; }'
-    + '.tc-text a { color: #2563EB; text-decoration: underline; }'
-    // Signatures
-    + '.sig-table { border: 1px solid #CBD5E1; }'
-    + '.sig-header { background: #0B1D3A; color: #FFFFFF; font-weight: bold; font-size: 9pt; padding: 6pt 8pt; letter-spacing: 0.3pt; width: 50%; }'
-    + '.sig-cell { padding: 8pt 12pt 14pt 12pt; width: 50%; border-right: 1px solid #CBD5E1; }'
-    + '.sig-cell.right { border-right: none; }'
-    + '.sig-inner { width: 100%; border-collapse: collapse; }'
-    + '.sig-inner td { padding: 0 0 2pt 0; border: none; }'
-    + '.sig-inner .sig-label { width: 70pt; font-weight: bold; font-size: 9pt; vertical-align: bottom; padding-bottom: 4pt; }'
-    + '.sig-inner .sig-line { border-bottom: 1px solid #94A3B8; height: 18pt; padding-bottom: 2pt; }'
-    + '.sig-inner .sig-sig-line { border-bottom: 1px solid #94A3B8; height: 28pt; padding-bottom: 2pt; }'
-    // Billing Contact
-    + '.bill-table { border: 1px solid #CBD5E1; }'
-    + '.bill-header { background: #0B1D3A; color: #FFFFFF; font-weight: bold; font-size: 9pt; padding: 6pt 8pt; letter-spacing: 0.3pt; }'
-    + '.bill-table td { border-bottom: 1px solid #E5E7EB; padding: 6pt 10pt; }'
-    + '.bill-table tr:last-child td { border-bottom: none; }'
-    + '.bill-table tr.shaded { background: #F8F9FA; }'
-    + '.bill-label { font-weight: bold; width: 35%; border-right: 1px solid #E5E7EB; vertical-align: middle; }'
-    + '.bill-line { border-bottom: 1px solid #94A3B8; padding: 0; height: 16pt; width: 65%; }'
-    // Footer line (at end of doc)
-    + '.doc-footer { margin-top: 24pt; border-top: 1px solid #E5E7EB; padding-top: 6pt; font-size: 7.5pt; color: #6B7280; }'
-    + '</style></head><body>'
+  // ── 5. GENERAL T&Cs ──
+  body.push(sectionHeading('4. General Terms and Conditions'));
+  body.push(new Paragraph({
+    spacing: { after: 160 },
+    children: [
+      run('This Insertion Order incorporates the Advertising & Services Terms located at ', { size: 18, color: GREY_700 }),
+      new ExternalHyperlink({
+        link: 'https://expertinsights.com/advertising-terms',
+        children: [ new TextRun({ text: 'https://expertinsights.com/advertising-terms', font: FONT, size: 18, color: BLUE, style: 'Hyperlink' }) ]
+      }),
+      run(' between the Customer identified on this page and Expert Insights Tech Ltd, and together shall be effective on the date last signed below (the "Agreement"). Defined terms in the Advertising & Services Terms shall have the same meaning in this Insertion Order. To the extent of any conflict or inconsistency between the Advertising & Services Terms and this Insertion Order, the terms of this Insertion Order shall prevail.', { size: 18, color: GREY_700 })
+    ]
+  }));
 
-    // LOGO + TITLE
-    + '<div class="logo-wrap">' + logoImg + '</div>'
-    + '<h1>INSERTION ORDER</h1>'
+  // ── 6. SIGNATURES ──
+  body.push(sectionHeading('5. Signatures'));
 
-    // 1. PROVIDER / CUSTOMER
-    + '<table class="pc-table">'
-    + '<tr><td class="pc-header" style="width:50%">PROVIDER</td><td class="pc-header" style="width:50%">CUSTOMER</td></tr>'
-    + '<tr>'
-    + '<td class="pc-cell left">'
-    + '<div class="pc-name">Expert Insights Tech Ltd</div>'
-    + '<div class="pc-addr">Higher Mill, Buckfast Abbey<br/>Buckfastleigh, Devon, TQ11 0EE<br/>United Kingdom</div>'
-    + '</td>'
-    + '<td class="pc-cell">'
-    + '<div class="pc-name">' + esc(customerName || '[Customer Legal Entity Name]') + '</div>'
-    + '<div class="pc-cust-label">Customer Address:</div>'
-    + '<div class="pc-line"></div>'
-    + '<div class="pc-line"></div>'
-    + '<div class="pc-line"></div>'
-    + '</td>'
-    + '</tr>'
-    + '</table>'
+  function sigField(label, extraTopSpace) {
+    var out = [];
+    if (extraTopSpace) out.push(emptyPara(16));
+    out.push(para([ run(label, { size: 18, color: GREY_700 }) ], { after: 40 }));
+    out.push(linePara({ after: 180 }));
+    return out;
+  }
+  function sigColumn() {
+    return [].concat(
+      sigField('Name:'),
+      sigField('Title:'),
+      sigField('Signature:', true),
+      sigField('Date:')
+    );
+  }
 
-    // 2. SUBSCRIPTION TERM
-    + '<h2>1. Subscription Term</h2>'
-    + '<table class="term-table">' + termRowsHtml + '</table>'
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: outerTblBorders(),
+    rows: [
+      new TableRow({ tableHeader: true, cantSplit: true, children: [ headerCell('CUSTOMER', 50), headerCell('EXPERT INSIGHTS', 50) ] }),
+      new TableRow({
+        cantSplit: true,
+        children: [
+          cell({ width: 50, padT: 200, padB: 200, padL: 240, padR: 240, children: sigColumn() }),
+          cell({ width: 50, padT: 200, padB: 200, padL: 240, padR: 240, children: sigColumn() })
+        ]
+      })
+    ]
+  }));
 
-    // 3. SERVICES
-    + '<h2>2. Services</h2>'
-    + '<p>Expert Insights will provide the following Services:</p>'
-    + '<table class="svc-table">'
-    + '<thead><tr>' + serviceHeaderCols + '</tr></thead>'
-    + '<tbody>' + articleRowsHtml + '</tbody>'
-    + '</table>'
-    + totalFeeLine
+  // ── 7. BILLING CONTACT ──
+  body.push(sectionHeading('Billing Contact'));
+  var billFields = ['Name:', 'Email:', 'Telephone:', 'PO Number (if required):'];
+  body.push(new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: outerTblBorders(),
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        cantSplit: true,
+        children: [ cell({ colSpan: 2, width: 100, fill: NAVY, padT: 140, padB: 140,
+          children: [ para([ run('BILLING DETAILS', { size: 20, bold: true, color: WHITE }) ]) ] }) ]
+      })
+    ].concat(billFields.map(function(label, i) {
+      var shade = i % 2 === 0 ? GREY_50 : undefined;
+      return new TableRow({
+        cantSplit: true,
+        height: { value: 520, rule: HeightRule.ATLEAST },
+        children: [
+          cell({ width: 35, fill: shade, padT: 200, padB: 200, vAlign: VerticalAlign.CENTER,
+            children: [ para([ run(label, { bold: true }) ]) ] }),
+          cell({ width: 65, fill: shade, padT: 200, padB: 120, vAlign: VerticalAlign.BOTTOM,
+            children: [ linePara({ after: 0 }) ] })
+        ]
+      });
+    }))
+  }));
 
-    // 4. TERMS
-    + '<h2>3. Terms</h2>'
-    + '<ul class="terms-list">'
-    + '<li>The campaign is invoiced monthly in advance on the 1st of each month.</li>'
-    + '<li>If the initial campaign goes live after the 1st of the month, the initial invoice will be prorated for the period from when the campaign went live through to the end of that month.</li>'
-    + '<li>Fees do not include applicable taxes, such as local, state, provincial, federal, or VAT.</li>'
-    + '<li>All fees to be paid by bank transfer.</li>'
-    + '<li>Expert Insights will provide Customer the Service deliverables described above for review and approval prior to publishing. Customer has the right to request reasonable revisions and discretion to approve the Service deliverables.</li>'
-    + '<li>Each Subscription Term will renew automatically for terms of the same length as agreed, unless one party gives the other party written notice of its intent not to renew at least 30 days prior to the end of the then current Subscription Term.</li>'
-    + '</ul>'
+  // ── BUILD ──
+  var doc = new Document({
+    creator: 'Expert Insights',
+    title: 'Expert Insights IO - ' + (p.vendor || 'Client'),
+    styles: { default: { document: { run: { font: FONT, size: 20 } } } },
+    sections: [{
+      properties: { page: { margin: { top: 720, right: 720, bottom: 900, left: 720 } } },
+      footers: {
+        default: new Footer({
+          children: [
+            new Paragraph({
+              tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+              children: [
+                new TextRun({ text: 'Expert Insights Tech Ltd. Registration No: 11425031. Higher Mill, Buckfast Abbey, Buckfastleigh, TQ11 0EE', font: FONT, size: 14, color: GREY_500 }),
+                new TextRun({ text: '\t', font: FONT, size: 14 }),
+                new TextRun({ text: 'Page ', font: FONT, size: 14, color: GREY_500 }),
+                new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 14, color: GREY_500 }),
+                new TextRun({ text: ' of ', font: FONT, size: 14, color: GREY_500 }),
+                new TextRun({ children: [PageNumber.TOTAL_PAGES], font: FONT, size: 14, color: GREY_500 })
+              ]
+            })
+          ]
+        })
+      },
+      children: body
+    }]
+  });
 
-    // 5. GENERAL T&Cs
-    + '<h2>4. General Terms and Conditions</h2>'
-    + '<p class="tc-text">This Insertion Order incorporates the Advertising &amp; Services Terms located at <a href="https://expertinsights.com/advertising-terms">https://expertinsights.com/advertising-terms</a> between the Customer identified on this page and Expert Insights Tech Ltd, and together shall be effective on the date last signed below (the &quot;Agreement&quot;). Defined terms in the Advertising &amp; Services Terms shall have the same meaning in this Insertion Order. To the extent of any conflict or inconsistency between the Advertising &amp; Services Terms and this Insertion Order, the terms of this Insertion Order shall prevail.</p>'
-
-    // 6. SIGNATURES
-    + '<h2>5. Signatures</h2>'
-    + '<table class="sig-table">'
-    + '<tr><td class="sig-header">CUSTOMER</td><td class="sig-header">EXPERT INSIGHTS</td></tr>'
-    + '<tr>'
-    + '<td class="sig-cell">'
-    +   '<table class="sig-inner">'
-    +   '<tr><td class="sig-label">Name:</td><td class="sig-line"></td></tr>'
-    +   '<tr><td class="sig-label">Title:</td><td class="sig-line"></td></tr>'
-    +   '<tr><td class="sig-label">Signature:</td><td class="sig-sig-line"></td></tr>'
-    +   '<tr><td class="sig-label">Date:</td><td class="sig-line"></td></tr>'
-    +   '</table>'
-    + '</td>'
-    + '<td class="sig-cell right">'
-    +   '<table class="sig-inner">'
-    +   '<tr><td class="sig-label">Name:</td><td class="sig-line"></td></tr>'
-    +   '<tr><td class="sig-label">Title:</td><td class="sig-line"></td></tr>'
-    +   '<tr><td class="sig-label">Signature:</td><td class="sig-sig-line"></td></tr>'
-    +   '<tr><td class="sig-label">Date:</td><td class="sig-line"></td></tr>'
-    +   '</table>'
-    + '</td>'
-    + '</tr>'
-    + '</table>'
-
-    // 7. BILLING CONTACT
-    + '<h2>Billing Contact</h2>'
-    + '<table class="bill-table">'
-    + '<tr><td class="bill-header" colspan="2">BILLING DETAILS</td></tr>'
-    + '<tr class="shaded"><td class="bill-label">Name:</td><td class="bill-line"></td></tr>'
-    + '<tr><td class="bill-label">Email:</td><td class="bill-line"></td></tr>'
-    + '<tr class="shaded"><td class="bill-label">Telephone:</td><td class="bill-line"></td></tr>'
-    + '<tr><td class="bill-label">PO Number (if required):</td><td class="bill-line"></td></tr>'
-    + '</table>'
-
-    // Footer line
-    + '<div class="doc-footer">Expert Insights Tech Ltd. Registration No: 11425031. Higher Mill, Buckfast Abbey, Buckfastleigh, TQ11 0EE</div>'
-
-    + '</body></html>';
-
-  // Convert HTML -> DOCX blob
-  try {
-    var docxBlob = htmlDocx.asBlob(html, { orientation: 'portrait', margins: { top: 720, right: 720, bottom: 960, left: 720 } });
+  Packer.toBlob(doc).then(function(blob) {
     var safeVendor = (p.vendor || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
-    saveAs(docxBlob, 'Expert_Insights_IO_-_' + safeVendor + '.docx');
-  } catch(err) {
+    saveAs(blob, 'Expert_Insights_IO_-_' + safeVendor + '.docx');
+  }).catch(function(err) {
     console.error('IO Word export failed:', err);
     alert('IO Word export failed. Check the console for details.');
-  }
+  });
 }
 
 function initDashCount() {
