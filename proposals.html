@@ -768,7 +768,7 @@ function getDiscountedTotal() {
   const raw = getTotal();
   const disc = window.globalDiscount || 0;
   if (!disc) return raw;
-  return Math.round(raw * (1 - disc / 100));
+  return raw * (1 - disc / 100);
 }
 
 function updateGlobalDiscount(pct) {
@@ -873,8 +873,8 @@ function renderSelected() {
       </td>
       <td style="text-align:right;padding-right:10px;font-weight:600">Monthly Total</td>
       <td class="price-cell total-price">
-        ${hasDiscount ? `<div style="text-decoration:line-through;color:var(--grey-500);font-size:12px">$${rawTotal.toLocaleString()}</div>` : ''}
-        $${discTotal.toLocaleString()}
+        ${hasDiscount ? `<div style="text-decoration:line-through;color:var(--grey-500);font-size:12px">$${rawTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>` : ''}
+        $${discTotal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}
         ${hasDiscount ? `<div class="discounted-price">${disc}% off</div>` : ''}
       </td>
       <td></td>
@@ -1111,7 +1111,7 @@ function generatePDF() {
 
     const labels = ['Contract Term','Items','Monthly Cost'];
     const itemCount = selectedArticles.length + window.pars.length + (window.customAddons ? window.customAddons.filter(a => a.name).length : 0);
-    const vals = [term, itemCount.toString(), `$${total.toLocaleString()}`];
+    const vals = [term, itemCount.toString(), `$${total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`];
     const blue = [false,false,true];
     
     labels.forEach((l,i) => {
@@ -1358,7 +1358,7 @@ function generatePDF() {
     ['Contract Term','Items','Monthly Cost'].forEach((l,i) => {
       const cx = mx+colW*i+colW/2, bl = [false,false,true][i];
       const itemCount = n + window.pars.length + (window.customAddons ? window.customAddons.filter(a => a.name).length : 0);
-      const v = [term, itemCount.toString(), `$${total.toLocaleString()}`][i];
+      const v = [term, itemCount.toString(), `$${total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`][i];
       d.setFont('helvetica','normal'); d.setFontSize(8); d.setTextColor(107,114,128);
       d.text(l, cx, sy+8, {align:'center'});
       d.setFont('helvetica','bold'); d.setFontSize(bl?14:13);
