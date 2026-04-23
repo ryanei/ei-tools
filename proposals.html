@@ -559,6 +559,23 @@ body {
     </div>
     <!-- Body -->
     <div style="padding:20px 24px;overflow-y:auto;flex:1;">
+      <!-- Monthly Total Override -->
+      <div style="margin-bottom:18px;padding:12px 14px;background:#F8F9FA;border-radius:8px;border:1px solid #E5E7EB;">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <label for="ioTermsMonthlyOverride" style="display:block;font-size:13px;font-weight:500;color:#0B1D3A;margin-bottom:4px;">Monthly Total on IO</label>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:15px;color:#374151;font-weight:500;">$</span>
+              <input type="number" id="ioTermsMonthlyOverride" step="0.01" min="0" oninput="updateIOCalcHint()" style="flex:1;padding:6px 10px;border:1px solid #CBD5E1;border-radius:6px;font-size:14px;font-family:inherit;">
+              <button type="button" onclick="resetIOMonthlyOverride()" title="Reset to calculated value" style="background:none;border:1px solid #CBD5E1;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;color:#374151;">Reset</button>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#6B7280;max-width:220px;">
+            Defaults to the calculated discounted total. Override to match a figure quoted on an earlier proposal.
+          </div>
+        </div>
+        <div id="ioTermsCalcHint" style="font-size:12px;color:#6B7280;margin-top:8px;"></div>
+      </div>
       <div id="ioTermsAutoRenewRow" style="display:none;margin-bottom:18px;padding:12px 14px;background:#F8F9FA;border-radius:8px;border:1px solid #E5E7EB;">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500;color:#0B1D3A;">
           <input type="checkbox" id="ioTermsAutoRenew" checked onchange="renderIOTermsList()" style="width:16px;height:16px;cursor:pointer;">
@@ -778,7 +795,7 @@ function updateGlobalDiscount(pct) {
 
 function updatePrice(slug, val) {
   const a = selectedArticles.find(x => x.s === slug);
-  if (a) { a.currentPrice = parseInt(val) || 0; renderSelected(); }
+  if (a) { a.currentPrice = parseFloat(val) || 0; renderSelected(); }
 }
 
 function updateCustomPosition(slug, val) {
@@ -850,7 +867,7 @@ function renderSelected() {
         ${isCustom ? `<input class="custom-pos-input" type="text" value="${customVal}" placeholder="e.g. Position #5" onchange="updateCustomPosition('${a.s}',this.value)">` : ''}
         ${isUpgrade ? `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;"><span style="font-size:12px;color:#6B7280;">to</span><select class="custom-pos-input" style="width:auto;padding:3px 6px;" onchange="updateUpgradeTarget('${a.s}',this.value)"><option value="#1" ${upgradeTarget==='#1'?'selected':''}>Position #1</option><option value="#2" ${upgradeTarget==='#2'?'selected':''}>Position #2</option><option value="#3" ${upgradeTarget==='#3'?'selected':''}>Position #3</option></select></div>` : ''}
       </td>
-      <td class="price-cell">${isUpgrade ? '<span style="color:#10B981;font-weight:600;font-size:12px;margin-right:2px">+</span>' : ''}<input class="price-input" type="number" value="${a.currentPrice}" onchange="updatePrice('${a.s}',this.value)"${isUpgrade ? ' placeholder="Additional cost"' : ''}></td>
+      <td class="price-cell">${isUpgrade ? '<span style="color:#10B981;font-weight:600;font-size:12px;margin-right:2px">+</span>' : ''}<input class="price-input" type="number" step="0.01" min="0" value="${a.currentPrice}" onchange="updatePrice('${a.s}',this.value)"${isUpgrade ? ' placeholder="Additional cost"' : ''}></td>
       <td style="text-align:center"><button class="remove-btn" onclick="removeArticle('${a.s}')">&times;</button></td>
     </tr>`;
   }).join('');
@@ -919,7 +936,7 @@ function renderPARs() {
       <input type="text" value="${p.name.replace(/"/g, '&quot;')}" onchange="updatePARName(${i}, this.value)"
         style="flex:1;padding:5px 8px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;font-family:inherit;">
       <label style="font-size:12px;font-weight:600;color:#374151;white-space:nowrap;">$/mo:</label>
-      <input type="number" value="${p.price}" min="0" step="50" onchange="updatePARPriceVal(${i}, this.value)"
+      <input type="number" value="${p.price}" min="0" step="0.01" onchange="updatePARPriceVal(${i}, this.value)"
         style="width:80px;padding:5px 8px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;font-family:inherit;">
       ${p.price === 0 ? '<span class="par-foc">FOC</span>' : ''}
       <button onclick="removePAR(${i})" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:16px;padding:2px 6px;" title="Remove">✕</button>
@@ -957,7 +974,7 @@ function renderCustomAddons() {
   el.innerHTML = window.customAddons.map(function(a, i) {
     return '<div class="addon-row">' +
       '<input type="text" placeholder="Item name (e.g. Sponsored Newsletter)" value="' + (a.name||'').replace(/"/g,'&quot;') + '" onchange="updateAddonField('+i+',\'name\',this.value)">' +
-      '<input type="number" placeholder="$/mo" value="' + (a.price||0) + '" min="0" step="50" onchange="updateAddonField('+i+',\'price\',this.value)">' +
+      '<input type="number" placeholder="$/mo" value="' + (a.price||0) + '" min="0" step="0.01" onchange="updateAddonField('+i+',\'price\',this.value)">' +
       '<button class="addon-remove" onclick="removeCustomAddon('+i+')" title="Remove">&times;</button>' +
       '</div>';
   }).join('');
@@ -2169,10 +2186,19 @@ function openIOTermsModal(id, format) {
   var isMonthly = term.toLowerCase().indexOf('monthly') !== -1;
   var tM = parseInt(term) || 1;
 
+  // Compute the calculated discounted monthly total (what the IO would show by default)
+  var parsed = parseProposalData(p.articlesJson);
+  var addons = parsed.addons || [];
+  var addonTotal = addons.reduce(function(s,a){return s+(parseFloat(a.price)||0);},0);
+  var rawMonthly = (parseFloat(p.monthlyTotal) || 0) + addonTotal;
+  var discount = parseFloat(p.discount) || 0;
+  var calcMonthly = discount > 0 ? rawMonthly * (1 - discount/100) : rawMonthly;
+
   window.ioTermsState.proposalId = id;
   window.ioTermsState.format = format;
   window.ioTermsState.isMonthly = isMonthly;
   window.ioTermsState.termMonths = tM;
+  window.ioTermsState.calcMonthly = calcMonthly;
 
   // Build the default bullet list
   var bullets = isMonthly ? getMonthlyRollingBullets() : getFixedTermBullets(tM, true);
@@ -2182,6 +2208,11 @@ function openIOTermsModal(id, format) {
   var subtitle = document.getElementById('ioTermsSubtitle');
   var termLabel = isMonthly ? 'Monthly rolling' : numWordForTerms(tM);
   subtitle.textContent = (p.vendor || 'Proposal') + ' \u2014 ' + termLabel + ' \u2014 ' + (format === 'word' ? 'Word' : 'PDF') + ' export';
+
+  // Pre-fill the monthly-total override input with the calculated value
+  var overrideInput = document.getElementById('ioTermsMonthlyOverride');
+  overrideInput.value = calcMonthly.toFixed(2);
+  updateIOCalcHint();
 
   // Show/hide the auto-renew toggle based on term type
   document.getElementById('ioTermsAutoRenewRow').style.display = isMonthly ? 'none' : 'block';
@@ -2195,6 +2226,28 @@ function openIOTermsModal(id, format) {
 
   // Show overlay
   document.getElementById('ioTermsOverlay').style.display = 'flex';
+}
+
+// Reset the override field back to the calculated monthly
+function resetIOMonthlyOverride() {
+  var calc = window.ioTermsState.calcMonthly || 0;
+  document.getElementById('ioTermsMonthlyOverride').value = calc.toFixed(2);
+  updateIOCalcHint();
+}
+
+// Show a hint under the override input indicating whether it matches the calculated value
+function updateIOCalcHint() {
+  var calc = window.ioTermsState.calcMonthly || 0;
+  var hint = document.getElementById('ioTermsCalcHint');
+  var entered = parseFloat(document.getElementById('ioTermsMonthlyOverride').value);
+  var calcStr = '$' + calc.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (isNaN(entered) || Math.abs(entered - calc) < 0.005) {
+    hint.textContent = 'Calculated: ' + calcStr + ' (matches)';
+    hint.style.color = '#6B7280';
+  } else {
+    hint.innerHTML = 'Calculated: ' + calcStr + ' &middot; <span style="color:#D97706;font-weight:500;">override active</span>';
+    hint.style.color = '#6B7280';
+  }
 }
 
 // Re-render the bullet checkboxes whenever the auto-renew toggle flips or the modal opens
@@ -2236,13 +2289,22 @@ function confirmIOTermsModal() {
     }
   });
 
+  // Read the monthly-total override. Only pass it through if it differs from the
+  // calculated value (otherwise let the generator compute as normal).
+  var overrideRaw = document.getElementById('ioTermsMonthlyOverride').value;
+  var overrideVal = parseFloat(overrideRaw);
+  var monthlyOverride = null;
+  if (!isNaN(overrideVal) && Math.abs(overrideVal - state.calcMonthly) >= 0.005) {
+    monthlyOverride = overrideVal;
+  }
+
   closeIOTermsModal();
 
-  // Call the right generator with the selected bullets
+  // Call the right generator with the selected bullets and optional override
   if (state.format === 'word') {
-    generateIOWord(state.proposalId, '', selected);
+    generateIOWord(state.proposalId, '', selected, monthlyOverride);
   } else {
-    generateIO(state.proposalId, '', selected);
+    generateIO(state.proposalId, '', selected, monthlyOverride);
   }
 }
 
@@ -2257,7 +2319,7 @@ document.addEventListener('click', function(e) {
   if (e.target === overlay) closeIOTermsModal();
 });
 
-function generateIO(id, customerName, termsOverride) {
+function generateIO(id, customerName, termsOverride, monthlyOverride) {
   var p;
   if (id) {
     p = allProposals.find(function(x){return x.id===id;});
@@ -2286,6 +2348,9 @@ function generateIO(id, customerName, termsOverride) {
   var addonTotal = addons.reduce(function(s,a){return s+(parseFloat(a.price)||0);},0);
   monthly += addonTotal;
   var effM = discount > 0 ? monthly * (1 - discount/100) : monthly;
+  // Honour a caller-provided monthly-total override (used to match figures
+  // quoted on an earlier proposal — e.g. when rounding caused a discrepancy).
+  if (typeof monthlyOverride === 'number' && !isNaN(monthlyOverride)) effM = monthlyOverride;
   var term = p.contractTerm || 'Monthly Rolling';
   var tM = parseInt(term) || 1;
   var total = effM * tM;
@@ -2867,7 +2932,7 @@ function generateIO(id, customerName, termsOverride) {
 // drawn underlines for signature fields) uses real Word primitives — no
 // altChunks, no HTML wrapper, no MHT. Verified to render near-identically
 // to the PDF in Word and LibreOffice.
-function generateIOWord(id, customerName, termsOverride) {
+function generateIOWord(id, customerName, termsOverride, monthlyOverride) {
   var p;
   if (id) {
     p = allProposals.find(function(x){return x.id===id;});
@@ -2900,6 +2965,8 @@ function generateIOWord(id, customerName, termsOverride) {
   var addonTotal = addons.reduce(function(s,a){return s+(parseFloat(a.price)||0);},0);
   monthly += addonTotal;
   var effM = discount > 0 ? monthly * (1 - discount/100) : monthly;
+  // Honour a caller-provided monthly-total override (see generateIO for details).
+  if (typeof monthlyOverride === 'number' && !isNaN(monthlyOverride)) effM = monthlyOverride;
   var term = p.contractTerm || 'Monthly Rolling';
   var tM = parseInt(term) || 1;
   var isMonthly = term.toLowerCase().indexOf('monthly') !== -1;
