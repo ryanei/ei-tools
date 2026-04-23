@@ -546,6 +546,37 @@ body {
   </div>
 </div>
 
+<!-- ═══ IO Terms Modal ═══ -->
+<div id="ioTermsOverlay" style="display:none;position:fixed;inset:0;background:rgba(11,29,58,0.55);z-index:9998;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:12px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,0.25);font-family:'IBM Plex Sans',sans-serif;">
+    <!-- Header -->
+    <div style="padding:20px 24px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h3 style="margin:0;font-size:18px;font-weight:600;color:#0B1D3A;">Configure IO Terms</h3>
+        <div id="ioTermsSubtitle" style="font-size:13px;color:#6B7280;margin-top:2px;"></div>
+      </div>
+      <button onclick="closeIOTermsModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#6B7280;line-height:1;padding:0 4px;">&times;</button>
+    </div>
+    <!-- Body -->
+    <div style="padding:20px 24px;overflow-y:auto;flex:1;">
+      <div id="ioTermsAutoRenewRow" style="display:none;margin-bottom:18px;padding:12px 14px;background:#F8F9FA;border-radius:8px;border:1px solid #E5E7EB;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:500;color:#0B1D3A;">
+          <input type="checkbox" id="ioTermsAutoRenew" checked onchange="renderIOTermsList()" style="width:16px;height:16px;cursor:pointer;">
+          <span>Auto-renew at end of Initial Term</span>
+        </label>
+        <div style="font-size:12px;color:#6B7280;margin-left:26px;margin-top:4px;">If off, campaign will end at the Initial Term expiry.</div>
+      </div>
+      <div style="font-size:13px;color:#374151;font-weight:500;margin-bottom:10px;">Terms to include in this IO:</div>
+      <div id="ioTermsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+    <!-- Footer -->
+    <div style="padding:16px 24px;border-top:1px solid #E5E7EB;display:flex;justify-content:flex-end;gap:10px;">
+      <button onclick="closeIOTermsModal()" style="padding:9px 18px;border-radius:6px;border:1px solid #CBD5E1;background:#fff;color:#374151;font-weight:500;cursor:pointer;">Cancel</button>
+      <button id="ioTermsConfirmBtn" onclick="confirmIOTermsModal()" style="padding:9px 20px;border-radius:6px;border:none;background:#0B1D3A;color:#fff;font-weight:500;cursor:pointer;">Generate</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 let ARTICLES = [];
@@ -1713,11 +1744,11 @@ function renderDashTable() {
             </button>
             <div class="dash-menu-divider"></div>
             <div class="dash-menu-label">Insertion Order</div>
-            <button class="dash-menu-item" onclick="generateIO('${p.id}');closeActionMenus();">
+            <button class="dash-menu-item" onclick="openIOTermsModal('${p.id}', 'pdf');closeActionMenus();">
               <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 3a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h3a1 1 0 100-2H7z"/></svg>
               Generate IO (PDF)
             </button>
-            <button class="dash-menu-item" onclick="generateIOWord('${p.id}');closeActionMenus();">
+            <button class="dash-menu-item" onclick="openIOTermsModal('${p.id}', 'word');closeActionMenus();">
               <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 3a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h3a1 1 0 100-2H7z"/></svg>
               Generate IO (Word)
             </button>
@@ -2085,7 +2116,148 @@ function setCustomerName(id) {
   });
 }
 
-function generateIO(id, customerName) {
+// ═══ IO TERMS MODAL ═══
+// Lets the user toggle individual term bullets before generating the IO.
+// Auto-renew off drops the Renewal and Cancellation bullets for fixed-term campaigns.
+
+window.ioTermsState = { proposalId: null, format: null, isMonthly: false, bullets: [] };
+
+// Common bullets shared by both monthly-rolling and fixed-term
+var IO_COMMON_BULLETS = [
+  'The campaign is invoiced monthly in advance on the 1st of each month.',
+  'If the initial campaign goes live after the 1st of the month, the initial invoice will be prorated for the period from when the campaign went live through to the end of that month.',
+  'Fees do not include applicable taxes, such as local, state, provincial, federal, or VAT.',
+  'All fees to be paid by bank transfer.',
+  'Expert Insights will provide Customer the Service deliverables described above for review and approval prior to publishing. Customer has the right to request reasonable revisions and discretion to approve the Service deliverables.'
+];
+
+// Monthly-rolling terms (unchanged behaviour - current live terms)
+function getMonthlyRollingBullets() {
+  return IO_COMMON_BULLETS.concat([
+    'Each Subscription Term will renew automatically for terms of the same length as agreed, unless one party gives the other party written notice of its intent not to renew at least 30 days prior to the end of the then current Subscription Term.'
+  ]);
+}
+
+// Fixed-term terms. If autoRenew is true, include Initial/Renewal/Cancellation bullets.
+// If autoRenew is false, only include the Initial Term bullet with a modified ending.
+function getFixedTermBullets(termMonths, autoRenew) {
+  var termWord = numWordForTerms(termMonths);
+  var initialOn = 'Initial Term: The campaign shall commence on the Start Date and will continue for a period of ' + termWord + ' (\u201CInitial Term\u201D).';
+  if (autoRenew) {
+    return [
+      initialOn,
+      'Renewal Term: Upon the expiration of the Initial Term, the campaign will automatically renew on a monthly-rolling basis (\u201CRenewal Term\u201D), unless terminated in accordance with this agreement.',
+      'Cancellation: Either party may terminate the campaign during the Renewal Term by providing at least thirty (30) days\u2019 written notice prior to the next renewal date.'
+    ].concat(IO_COMMON_BULLETS);
+  } else {
+    return [ initialOn ].concat(IO_COMMON_BULLETS);
+  }
+}
+
+// Helper that converts a month count to words like "eight (8) months"
+function numWordForTerms(n) {
+  var w = ['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty','twenty-one','twenty-two','twenty-three','twenty-four'];
+  var word = w[n] || String(n);
+  return word + ' (' + n + ') months';
+}
+
+// Open the modal with defaults based on the proposal's term type
+function openIOTermsModal(id, format) {
+  var p = allProposals.find(function(x){return x.id===id;});
+  if (!p) { alert('Proposal not found'); return; }
+  var term = p.contractTerm || 'Monthly Rolling';
+  var isMonthly = term.toLowerCase().indexOf('monthly') !== -1;
+  var tM = parseInt(term) || 1;
+
+  window.ioTermsState.proposalId = id;
+  window.ioTermsState.format = format;
+  window.ioTermsState.isMonthly = isMonthly;
+  window.ioTermsState.termMonths = tM;
+
+  // Build the default bullet list
+  var bullets = isMonthly ? getMonthlyRollingBullets() : getFixedTermBullets(tM, true);
+  window.ioTermsState.bullets = bullets;
+
+  // Set subtitle
+  var subtitle = document.getElementById('ioTermsSubtitle');
+  var termLabel = isMonthly ? 'Monthly rolling' : numWordForTerms(tM);
+  subtitle.textContent = (p.vendor || 'Proposal') + ' \u2014 ' + termLabel + ' \u2014 ' + (format === 'word' ? 'Word' : 'PDF') + ' export';
+
+  // Show/hide the auto-renew toggle based on term type
+  document.getElementById('ioTermsAutoRenewRow').style.display = isMonthly ? 'none' : 'block';
+  document.getElementById('ioTermsAutoRenew').checked = true;
+
+  // Update confirm button label
+  document.getElementById('ioTermsConfirmBtn').textContent = 'Generate ' + (format === 'word' ? 'Word' : 'PDF');
+
+  // Render the list
+  renderIOTermsList();
+
+  // Show overlay
+  document.getElementById('ioTermsOverlay').style.display = 'flex';
+}
+
+// Re-render the bullet checkboxes whenever the auto-renew toggle flips or the modal opens
+function renderIOTermsList() {
+  var state = window.ioTermsState;
+  var bullets;
+  if (state.isMonthly) {
+    bullets = getMonthlyRollingBullets();
+  } else {
+    var autoRenew = document.getElementById('ioTermsAutoRenew').checked;
+    bullets = getFixedTermBullets(state.termMonths, autoRenew);
+  }
+  state.bullets = bullets;
+
+  var list = document.getElementById('ioTermsList');
+  list.innerHTML = '';
+  bullets.forEach(function(text, i) {
+    var row = document.createElement('label');
+    row.style.cssText = 'display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:#F8F9FA;border:1px solid #E5E7EB;border-radius:6px;cursor:pointer;';
+    row.innerHTML = '<input type="checkbox" data-idx="' + i + '" checked style="margin-top:3px;width:15px;height:15px;cursor:pointer;flex-shrink:0;">' +
+                    '<span style="font-size:13px;color:#374151;line-height:1.5;">' + text.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+    list.appendChild(row);
+  });
+}
+
+function closeIOTermsModal() {
+  document.getElementById('ioTermsOverlay').style.display = 'none';
+}
+
+function confirmIOTermsModal() {
+  var state = window.ioTermsState;
+  // Collect the checked bullets
+  var checkboxes = document.querySelectorAll('#ioTermsList input[type="checkbox"]');
+  var selected = [];
+  checkboxes.forEach(function(cb) {
+    if (cb.checked) {
+      var idx = parseInt(cb.getAttribute('data-idx'));
+      selected.push(state.bullets[idx]);
+    }
+  });
+
+  closeIOTermsModal();
+
+  // Call the right generator with the selected bullets
+  if (state.format === 'word') {
+    generateIOWord(state.proposalId, '', selected);
+  } else {
+    generateIO(state.proposalId, '', selected);
+  }
+}
+
+// Close on Escape or overlay click
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('ioTermsOverlay').style.display === 'flex') {
+    closeIOTermsModal();
+  }
+});
+document.addEventListener('click', function(e) {
+  var overlay = document.getElementById('ioTermsOverlay');
+  if (e.target === overlay) closeIOTermsModal();
+});
+
+function generateIO(id, customerName, termsOverride) {
   var p;
   if (id) {
     p = allProposals.find(function(x){return x.id===id;});
@@ -2512,7 +2684,7 @@ function generateIO(id, customerName) {
   var bulletGap = 1.5;
   var maxTW = cW - 8;
 
-  var terms = [
+  var terms = termsOverride || [
     'The campaign is invoiced monthly in advance on the 1st of each month.',
     'If the initial campaign goes live after the 1st of the month, the initial invoice will be prorated for the period from when the campaign went live through to the end of that month.',
     'Fees do not include applicable taxes, such as local, state, provincial, federal, or VAT.',
@@ -2695,7 +2867,7 @@ function generateIO(id, customerName) {
 // drawn underlines for signature fields) uses real Word primitives — no
 // altChunks, no HTML wrapper, no MHT. Verified to render near-identically
 // to the PDF in Word and LibreOffice.
-function generateIOWord(id, customerName) {
+function generateIOWord(id, customerName, termsOverride) {
   var p;
   if (id) {
     p = allProposals.find(function(x){return x.id===id;});
@@ -3037,7 +3209,7 @@ function generateIOWord(id, customerName) {
 
   // ── 4. TERMS ──
   body.push(sectionHeading('3. Terms'));
-  var terms = [
+  var terms = termsOverride || [
     'The campaign is invoiced monthly in advance on the 1st of each month.',
     'If the initial campaign goes live after the 1st of the month, the initial invoice will be prorated for the period from when the campaign went live through to the end of that month.',
     'Fees do not include applicable taxes, such as local, state, provincial, federal, or VAT.',
