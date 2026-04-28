@@ -383,21 +383,17 @@ function initials(name){return (name||"?").split(/\s+/).map(w=>w[0]).slice(0,2).
 
 // ── Data loading via gviz JSONP ──
 function loadSheet(sheetName){
-  const url = `https://docs.google.com/spreadsheets/d/${ACCOUNTS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
   const cb = "_acctCb_" + sheetName.replace(/\W/g,"") + "_" + Date.now() + Math.floor(Math.random()*1000);
+  const url = `https://docs.google.com/spreadsheets/d/${ACCOUNTS_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}`;
   return new Promise((resolve, reject) => {
     window[cb] = function(data){
       try {
-        const jsonStr = data.responseText || data;
-        const match = typeof jsonStr === "string" ? jsonStr.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/) : null;
-        const parsed = match ? JSON.parse(match[1]) : (typeof data === "object" ? data : JSON.parse(data));
-        if (!parsed.table) { resolve([]); return; }
-        const cols = parsed.table.cols.map(c => c.label || c.id);
-        const rows = parsed.table.rows.map((r, idx) => {
+        if (!data || !data.table) { resolve([]); return; }
+        const cols = data.table.cols.map(c => c.label || c.id);
+        const rows = data.table.rows.map((r, idx) => {
           const obj = { _rowIndex: idx };
           r.c.forEach((cell, i) => {
             let v = cell ? (cell.v != null ? cell.v : "") : "";
-            // gviz returns dates as Date(yyyy,mm,dd) strings — normalise
             if (typeof v === "string" && v.startsWith("Date(")) {
               const m = v.match(/Date\((\d+),(\d+),(\d+)/);
               if (m) v = `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
@@ -413,7 +409,7 @@ function loadSheet(sheetName){
     };
     const script = document.createElement("script");
     script.id = "_sc_" + cb;
-    script.src = url + "&tq=&responseHandler=" + cb;
+    script.src = url;
     script.onerror = () => reject(new Error("Failed to load " + sheetName));
     document.body.appendChild(script);
   });
