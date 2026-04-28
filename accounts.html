@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Advertiser & campaign database — overview of accounts, contracts, listicle and newsletter campaigns.">
+<title>Accounts · EI Tools</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563EB'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='800' font-size='14'%3EEI%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0C1222;--ink-soft:#3A4258;--ink-muted:#6B7490;--surface:#F7F8FB;--surface-raised:#FFF;--border:#E2E5EF;--border-hover:#C8CCDA;--accent:#2563EB;--accent-hover:#1D4FD7;--accent-soft:#EEF4FF;--green:#0D9B5C;--green-soft:#EDFCF4;--amber:#D97706;--amber-soft:#FFF9EB;--red:#DC2626;--red-soft:#FEF2F2;--purple:#7C3AED;--purple-soft:#F3F0FF;--teal:#0891B2;--teal-soft:#ECFEFF;--radius:14px;--radius-sm:8px;--shadow-md:0 4px 16px rgba(12,18,34,0.06),0 1px 4px rgba(12,18,34,0.04);--shadow-lg:0 8px 32px rgba(12,18,34,0.08),0 2px 8px rgba(12,18,34,0.04);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* Topbar */
+.topbar{background:linear-gradient(135deg,#0C1222 0%,#162040 50%,#1a2d5a 100%);padding:0 40px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}
+.topbar-logo img{height:22px;}
+.topbar-title{font-size:15px;font-weight:700;color:white;letter-spacing:-0.3px;}
+.topbar-title span{color:rgba(255,255,255,0.4);font-weight:500;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.topbar-env{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:#34d399;background:rgba(52,211,153,0.1);padding:4px 10px;border-radius:20px;}
+.back-link{color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px;font-weight:500;transition:color 0.15s;}
+.back-link:hover{color:white;}
+.topbar-tools{display:flex;align-items:center;gap:4px;margin-left:8px;}
+.topbar-tool{padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);text-decoration:none;transition:all 0.15s;}
+.topbar-tool:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.06);}
+.topbar-tool.active{color:white;background:rgba(255,255,255,0.1);font-weight:600;}
+
+/* Main */
+.main{max-width:1280px;margin:0 auto;padding:32px 40px;}
+
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;}
+.kpi-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;}
+.kpi-label{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.kpi-value{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.kpi-sub{font-size:12px;color:var(--ink-muted);margin-top:4px;}
+.kpi-card.teal{border-left:3px solid var(--teal);}
+.kpi-card.green{border-left:3px solid var(--green);}
+.kpi-card.accent{border-left:3px solid var(--accent);}
+.kpi-card.amber{border-left:3px solid var(--amber);}
+
+/* Section */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:18px;font-weight:800;letter-spacing:-0.3px;}
+.section-actions{display:flex;gap:10px;}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface-raised);color:var(--ink);transition:all 0.15s;}
+.btn:hover{border-color:var(--border-hover);box-shadow:var(--shadow-md);}
+.btn-primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.3);}
+.btn-danger:hover{background:var(--red-soft);}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-muted);}
+.btn-ghost:hover{background:var(--surface);color:var(--ink);}
+
+/* Filters */
+.filters{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-select{padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;}
+.filter-search{padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;width:240px;}
+.filter-search:focus,.filter-select:focus{border-color:var(--accent);}
+
+/* Table */
+.table-wrap{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;}
+tbody td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr{cursor:pointer;transition:background 0.1s;}
+tbody tr:hover{background:var(--accent-soft);}
+tbody tr:last-child td{border-bottom:none;}
+
+.adv-cell{display:flex;align-items:center;gap:12px;}
+.adv-logo{width:32px;height:32px;border-radius:8px;object-fit:contain;background:var(--surface);border:1px solid var(--border);flex-shrink:0;}
+.adv-logo-fallback{width:32px;height:32px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.adv-name{font-weight:700;color:var(--ink);}
+.adv-meta{font-size:11px;color:var(--ink-muted);margin-top:2px;}
+
+/* Status badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-prospect{background:var(--accent-soft);color:var(--accent);}
+.badge-active{background:var(--green-soft);color:var(--green);}
+.badge-paused{background:var(--amber-soft);color:var(--amber);}
+.badge-churned{background:var(--red-soft);color:var(--red);}
+.badge-listicle{background:var(--purple-soft);color:var(--purple);}
+.badge-newsletter{background:var(--teal-soft);color:var(--teal);}
+.badge-planned{background:var(--amber-soft);color:var(--amber);}
+.badge-live{background:var(--green-soft);color:var(--green);}
+.badge-completed{background:var(--accent-soft);color:var(--accent);}
+.badge-cancelled{background:var(--red-soft);color:var(--red);}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface-raised);border-radius:var(--radius);width:640px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:32px;}
+.modal-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:24px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+.form-input,.form-select,.form-textarea{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;transition:border-color 0.15s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-textarea{resize:vertical;min-height:70px;}
+.modal-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+.modal-actions-right{display:flex;gap:10px;}
+
+/* Drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.4);z-index:90;display:none;backdrop-filter:blur(4px);}
+.drawer-overlay.active{display:block;}
+.drawer{position:fixed;top:0;right:0;width:680px;max-width:100vw;height:100vh;background:var(--surface);box-shadow:-8px 0 32px rgba(12,18,34,0.12);z-index:91;transform:translateX(100%);transition:transform 0.25s ease;display:flex;flex-direction:column;overflow:hidden;}
+.drawer.active{transform:translateX(0);}
+.drawer-header{padding:24px 28px;border-bottom:1px solid var(--border);background:var(--surface-raised);display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+.drawer-header-left{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.drawer-logo{width:48px;height:48px;border-radius:10px;object-fit:contain;background:var(--surface);border:1px solid var(--border);flex-shrink:0;}
+.drawer-logo-fallback{width:48px;height:48px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0;}
+.drawer-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:4px;}
+.drawer-subtitle{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-muted);}
+.drawer-close{background:none;border:none;font-size:22px;color:var(--ink-muted);cursor:pointer;padding:4px 10px;border-radius:6px;}
+.drawer-close:hover{background:var(--surface);color:var(--ink);}
+.drawer-body{flex:1;overflow-y:auto;padding:24px 28px;}
+.drawer-section{margin-bottom:28px;}
+.drawer-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.drawer-section-title{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.8px;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+.detail-item{display:flex;flex-direction:column;gap:3px;}
+.detail-label{font-size:11px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.4px;}
+.detail-value{font-size:13px;color:var(--ink);font-weight:500;}
+.detail-value.notes{font-weight:400;color:var(--ink-soft);white-space:pre-wrap;}
+.detail-item.full{grid-column:1/-1;}
+
+.campaign-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.campaign-card-left{flex:1;min-width:0;}
+.campaign-card-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.campaign-card-meta{font-size:12px;color:var(--ink-muted);display:flex;gap:12px;flex-wrap:wrap;}
+.campaign-card-actions{display:flex;gap:6px;flex-shrink:0;}
+.empty-card{background:var(--surface-raised);border:1px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;color:var(--ink-muted);font-size:13px;}
+
+/* Loading / messages */
+.loading{text-align:center;padding:60px 20px;color:var(--ink-muted);font-size:14px;}
+.error-msg{text-align:center;padding:40px;color:var(--red);}
+
+/* Footer */
+.footer{max-width:1280px;margin:0 auto;padding:20px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.footer-left{font-size:12px;color:var(--ink-muted);}
+.footer-right{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.kpi-row{animation:fadeUp 0.4s ease both;}
+.table-wrap{animation:fadeUp 0.5s ease 0.1s both;}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var s;try{s=JSON.parse(sessionStorage.getItem("eitools_session"))}catch(e){}
+  if(!s||!s.username){window.location.href="index.html";return;}
+  var EP="https://script.google.com/macros/s/AKfycbxQEH2It-Od480pY905hj6xtThN1sOyDa4s2HTSuBu6V94YpudFhS_FgimJX_plW7EP/exec";
+  fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=accounts&type=pageview",{mode:"no-cors"}).catch(function(){});
+})();
+</script>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo"><span style="color:white;font-weight:800;font-size:14px;letter-spacing:-0.3px;">EI</span></div>
+    <div class="topbar-title"><a href="index.html" style="color:white;text-decoration:none;">Tools</a> <span>/ Accounts</span></div>
+  </div>
+  <nav class="topbar-tools">
+    <a href="dashboard.html" class="topbar-tool">Dashboard</a>
+    <a href="pipeline.html" class="topbar-tool">Pipeline</a>
+    <a href="proposals.html" class="topbar-tool">Proposals</a>
+    <a href="accounts.html" class="topbar-tool active">Accounts</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="topbar-env">LIVE</div>
+    <a href="index.html" class="back-link">&#8592; Hub</a>
+  </div>
+</div>
+
+<div class="main">
+  <div id="kpis"></div>
+
+  <div class="section-header">
+    <div class="section-title">Advertisers</div>
+    <div class="section-actions">
+      <button class="btn btn-primary" onclick="openAdvertiserModal()">+ New Advertiser</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <input type="text" class="filter-search" id="filterSearch" placeholder="Search advertisers…" oninput="renderTable()">
+    <select class="filter-select" id="filterStatus" onchange="renderTable()">
+      <option value="">All Statuses</option>
+      <option value="Prospect">Prospect</option>
+      <option value="Active">Active</option>
+      <option value="Paused">Paused</option>
+      <option value="Churned">Churned</option>
+    </select>
+    <select class="filter-select" id="filterOwner" onchange="renderTable()">
+      <option value="">All Owners</option>
+    </select>
+    <button class="btn btn-ghost" onclick="reload()">Refresh</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Advertiser</th>
+          <th>Status</th>
+          <th>Owner</th>
+          <th>Annual Value</th>
+          <th>Contract</th>
+          <th>Campaigns</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="advertisersBody">
+        <tr><td colspan="7" class="loading">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Advertiser modal -->
+<div class="modal-overlay" id="advertiserModal">
+  <div class="modal">
+    <div class="modal-title" id="advModalTitle">New Advertiser</div>
+    <input type="hidden" id="fAdvId">
+    <input type="hidden" id="fAdvCreated">
+    <div class="form-row">
+      <div class="form-group full">
+        <label class="form-label">Name *</label>
+        <input type="text" class="form-input" id="fAdvName" placeholder="ManageEngine">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Logo URL</label>
+        <input type="text" class="form-input" id="fAdvLogo" placeholder="https://…/logo.png">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="fAdvStatus">
+          <option value="Prospect">Prospect</option>
+          <option value="Active">Active</option>
+          <option value="Paused">Paused</option>
+          <option value="Churned">Churned</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account Owner</label>
+        <input type="text" class="form-input" id="fAdvOwner" placeholder="Ryan">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contract Start</label>
+        <input type="date" class="form-input" id="fAdvStart">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contract End</label>
+        <input type="date" class="form-input" id="fAdvEnd">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Annual Value ($)</label>
+        <input type="number" step="0.01" class="form-input" id="fAdvValue" placeholder="50000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Products</label>
+        <input type="text" class="form-input" id="fAdvProducts" placeholder="Listicle, Newsletter sponsorship">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="fAdvNotes" placeholder="Anything to remember about this account…"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="advDeleteBtn" onclick="deleteAdvertiser()" style="display:none;">Delete</button>
+      <span style="flex:1;"></span>
+      <div class="modal-actions-right">
+        <button class="btn" onclick="closeAdvertiserModal()">Cancel</button>
+        <button class="btn btn-primary" id="advSaveBtn" onclick="saveAdvertiser()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Campaign modal -->
+<div class="modal-overlay" id="campaignModal">
+  <div class="modal">
+    <div class="modal-title" id="campModalTitle">New Campaign</div>
+    <input type="hidden" id="fCampId">
+    <input type="hidden" id="fCampAdvId">
+    <input type="hidden" id="fCampCreated">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Type *</label>
+        <select class="form-select" id="fCampType">
+          <option value="Listicle">Listicle</option>
+          <option value="Newsletter">Newsletter</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="fCampStatus">
+          <option value="Planned">Planned</option>
+          <option value="Live">Live</option>
+          <option value="Completed">Completed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Campaign Name *</label>
+        <input type="text" class="form-input" id="fCampName" placeholder="Q2 Newsletter — InfoSec Voice">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input type="date" class="form-input" id="fCampStart">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Date</label>
+        <input type="date" class="form-input" id="fCampEnd">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target (leads / placements)</label>
+        <input type="number" class="form-input" id="fCampTarget" placeholder="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Delivered</label>
+        <input type="number" class="form-input" id="fCampDelivered" placeholder="0">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Asset URL</label>
+        <input type="text" class="form-input" id="fCampAsset" placeholder="https://…">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="fCampNotes"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="campDeleteBtn" onclick="deleteCampaign()" style="display:none;">Delete</button>
+      <span style="flex:1;"></span>
+      <div class="modal-actions-right">
+        <button class="btn" onclick="closeCampaignModal()">Cancel</button>
+        <button class="btn btn-primary" id="campSaveBtn" onclick="saveCampaign()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-header-left" id="drawerHeaderLeft"></div>
+    <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<div class="footer">
+  <div class="footer-left">Expert Insights &middot; Accounts</div>
+  <div class="footer-right">v1.0.0</div>
+</div>
+
+<script>
+// ── Config ──
+const ACCOUNTS_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcwZhAgCsZxFQ-dl7gKv6StZC2en_QVzgtrp5aBHYPg4In-9A9Zk4iv7C_lxGZ_SvY/exec";
+
+let advertisers = [];
+let campaigns = [];
+let currentDrawerAdvId = null;
+
+// ── Helpers ──
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function fmt(n){return (Math.round(n)||0).toLocaleString();}
+function fmtDate(d){if(!d)return"";const dt=new Date(d);if(isNaN(dt))return String(d);return dt.toISOString().slice(0,10);}
+function genId(prefix){return prefix+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function initials(name){return (name||"?").split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();}
+
+// ── Data loading via gviz JSONP ──
+function loadSheet(sheetName){
+  const url = `https://docs.google.com/spreadsheets/d/${ACCOUNTS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+  const cb = "_acctCb_" + sheetName.replace(/\W/g,"") + "_" + Date.now() + Math.floor(Math.random()*1000);
+  return new Promise((resolve, reject) => {
+    window[cb] = function(data){
+      try {
+        const jsonStr = data.responseText || data;
+        const match = typeof jsonStr === "string" ? jsonStr.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\)/) : null;
+        const parsed = match ? JSON.parse(match[1]) : (typeof data === "object" ? data : JSON.parse(data));
+        if (!parsed.table) { resolve([]); return; }
+        const cols = parsed.table.cols.map(c => c.label || c.id);
+        const rows = parsed.table.rows.map((r, idx) => {
+          const obj = { _rowIndex: idx };
+          r.c.forEach((cell, i) => {
+            let v = cell ? (cell.v != null ? cell.v : "") : "";
+            // gviz returns dates as Date(yyyy,mm,dd) strings — normalise
+            if (typeof v === "string" && v.startsWith("Date(")) {
+              const m = v.match(/Date\((\d+),(\d+),(\d+)/);
+              if (m) v = `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
+            }
+            obj[cols[i]] = v;
+          });
+          return obj;
+        });
+        resolve(rows);
+      } catch(e) { reject(e); }
+      delete window[cb];
+      document.getElementById("_sc_" + cb)?.remove();
+    };
+    const script = document.createElement("script");
+    script.id = "_sc_" + cb;
+    script.src = url + "&tq=&responseHandler=" + cb;
+    script.onerror = () => reject(new Error("Failed to load " + sheetName));
+    document.body.appendChild(script);
+  });
+}
+
+async function reload(){
+  document.getElementById("advertisersBody").innerHTML = '<tr><td colspan="7" class="loading">Loading…</td></tr>';
+  try {
+    const [adv, camp] = await Promise.all([loadSheet("Advertisers"), loadSheet("Campaigns")]);
+    advertisers = adv;
+    campaigns = camp;
+    renderKpis();
+    populateOwnerFilter();
+    renderTable();
+  } catch(e) {
+    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="7" class="error-msg">Failed to load: ${esc(e.message)}. Check that the Sheet is shared as "Anyone with link – Viewer".</td></tr>`;
+  }
+}
+
+// ── KPIs ──
+function renderKpis(){
+  const total = advertisers.length;
+  const active = advertisers.filter(a => a.Status === "Active").length;
+  const annualValue = advertisers
+    .filter(a => a.Status === "Active")
+    .reduce((s,a) => s + (parseFloat(a["Annual Value"]) || 0), 0);
+  const liveCampaigns = campaigns.filter(c => c.Status === "Live").length;
+
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi-card teal"><div class="kpi-label">Advertisers</div><div class="kpi-value">${total}</div><div class="kpi-sub">across all statuses</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Active Accounts</div><div class="kpi-value">${active}</div><div class="kpi-sub">currently contracted</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">Active Annual Value</div><div class="kpi-value">$${fmt(annualValue)}</div><div class="kpi-sub">contracted revenue</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Live Campaigns</div><div class="kpi-value">${liveCampaigns}</div><div class="kpi-sub">${campaigns.length} total</div></div>
+    </div>`;
+}
+
+function populateOwnerFilter(){
+  const owners = [...new Set(advertisers.map(a => a["Account Owner"]).filter(Boolean))].sort();
+  const sel = document.getElementById("filterOwner");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Owners</option>' + owners.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join("");
+  sel.value = cur;
+}
+
+// ── Table ──
+function renderTable(){
+  const search = document.getElementById("filterSearch").value.toLowerCase().trim();
+  const status = document.getElementById("filterStatus").value;
+  const owner = document.getElementById("filterOwner").value;
+
+  let filtered = advertisers.filter(a => {
+    if (status && a.Status !== status) return false;
+    if (owner && a["Account Owner"] !== owner) return false;
+    if (search && !((a.Name || "").toLowerCase().includes(search) || (a.Products || "").toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    const order = {"Active":0, "Prospect":1, "Paused":2, "Churned":3};
+    const oa = order[a.Status] ?? 4, ob = order[b.Status] ?? 4;
+    if (oa !== ob) return oa - ob;
+    return (a.Name || "").localeCompare(b.Name || "");
+  });
+
+  const tbody = document.getElementById("advertisersBody");
+  if (!filtered.length){
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--ink-muted);">No advertisers found. Click "+ New Advertiser" to add one.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(a => {
+    const advCamps = campaigns.filter(c => c["Advertiser ID"] === a.ID);
+    const listicle = advCamps.find(c => c.Type === "Listicle");
+    const newsletters = advCamps.filter(c => c.Type === "Newsletter");
+    const contract = (a["Contract Start"] || a["Contract End"]) ? `${fmtDate(a["Contract Start"]) || "—"} → ${fmtDate(a["Contract End"]) || "—"}` : "—";
+    const logo = a["Logo URL"]
+      ? `<img class="adv-logo" src="${esc(a["Logo URL"])}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'adv-logo-fallback',textContent:'${initials(a.Name)}'}));">`
+      : `<div class="adv-logo-fallback">${esc(initials(a.Name))}</div>`;
+    return `
+      <tr onclick="openDrawer('${esc(a.ID)}')">
+        <td>
+          <div class="adv-cell">
+            ${logo}
+            <div>
+              <div class="adv-name">${esc(a.Name || "(unnamed)")}</div>
+              ${a.Products ? `<div class="adv-meta">${esc(a.Products)}</div>` : ""}
+            </div>
+          </div>
+        </td>
+        <td>${statusBadge(a.Status)}</td>
+        <td>${esc(a["Account Owner"] || "—")}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${a["Annual Value"] ? "$" + fmt(parseFloat(a["Annual Value"])) : "—"}</td>
+        <td style="font-size:12px;color:var(--ink-muted);">${contract}</td>
+        <td>
+          ${listicle ? `<span class="badge badge-listicle">Listicle</span>` : ""}
+          ${newsletters.length ? `<span class="badge badge-newsletter">${newsletters.length} Newsletter${newsletters.length>1?"s":""}</span>` : ""}
+          ${!listicle && !newsletters.length ? `<span style="font-size:12px;color:var(--ink-muted);">None</span>` : ""}
+        </td>
+        <td onclick="event.stopPropagation();"><button class="btn btn-sm" onclick="openAdvertiserModal('${esc(a.ID)}')">Edit</button></td>
+      </tr>`;
+  }).join("");
+}
+
+function statusBadge(status){
+  const cls = {"Prospect":"badge-prospect","Active":"badge-active","Paused":"badge-paused","Churned":"badge-churned"};
+  return `<span class="badge ${cls[status]||""}">${esc(status||"—")}</span>`;
+}
+
+function campaignStatusBadge(status){
+  const cls = {"Planned":"badge-planned","Live":"badge-live","Completed":"badge-completed","Cancelled":"badge-cancelled"};
+  return `<span class="badge ${cls[status]||""}">${esc(status||"—")}</span>`;
+}
+
+// ── Advertiser Modal ──
+function openAdvertiserModal(id){
+  const a = id ? advertisers.find(x => x.ID === id) : null;
+  document.getElementById("advModalTitle").textContent = a ? "Edit Advertiser" : "New Advertiser";
+  document.getElementById("fAdvId").value = a ? a.ID : "";
+  document.getElementById("fAdvCreated").value = a ? (a["Created At"] || "") : "";
+  document.getElementById("fAdvName").value = a ? (a.Name || "") : "";
+  document.getElementById("fAdvLogo").value = a ? (a["Logo URL"] || "") : "";
+  document.getElementById("fAdvStatus").value = a ? (a.Status || "Prospect") : "Prospect";
+  document.getElementById("fAdvOwner").value = a ? (a["Account Owner"] || "") : "";
+  document.getElementById("fAdvStart").value = a ? fmtDate(a["Contract Start"]) : "";
+  document.getElementById("fAdvEnd").value = a ? fmtDate(a["Contract End"]) : "";
+  document.getElementById("fAdvValue").value = a ? (a["Annual Value"] || "") : "";
+  document.getElementById("fAdvProducts").value = a ? (a.Products || "") : "";
+  document.getElementById("fAdvNotes").value = a ? (a.Notes || "") : "";
+  document.getElementById("advDeleteBtn").style.display = a ? "" : "none";
+  document.getElementById("advertiserModal").classList.add("active");
+}
+
+function closeAdvertiserModal(){
+  document.getElementById("advertiserModal").classList.remove("active");
+}
+
+async function saveAdvertiser(){
+  const btn = document.getElementById("advSaveBtn");
+  const name = document.getElementById("fAdvName").value.trim();
+  if (!name){ alert("Name is required."); return; }
+
+  btn.disabled = true; btn.textContent = "Saving…";
+  const id = document.getElementById("fAdvId").value || genId("adv");
+  const now = new Date().toISOString().replace("T"," ").slice(0,19);
+  const payload = {
+    action: "saveAdvertiser",
+    sheetId: ACCOUNTS_SHEET_ID,
+    "ID": id,
+    "Name": name,
+    "Logo URL": document.getElementById("fAdvLogo").value.trim(),
+    "Status": document.getElementById("fAdvStatus").value,
+    "Account Owner": document.getElementById("fAdvOwner").value.trim(),
+    "Contract Start": document.getElementById("fAdvStart").value,
+    "Contract End": document.getElementById("fAdvEnd").value,
+    "Annual Value": document.getElementById("fAdvValue").value,
+    "Products": document.getElementById("fAdvProducts").value.trim(),
+    "Notes": document.getElementById("fAdvNotes").value.trim(),
+    "Created At": document.getElementById("fAdvCreated").value || now,
+    "Updated At": now
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL + "?" + new URLSearchParams(payload).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 600));
+    await reload();
+    closeAdvertiserModal();
+    if (currentDrawerAdvId === id) openDrawer(id);
+  } catch(e){
+    alert("Error saving: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Save";
+  }
+}
+
+async function deleteAdvertiser(){
+  const id = document.getElementById("fAdvId").value;
+  if (!id) return;
+  const childCount = campaigns.filter(c => c["Advertiser ID"] === id).length;
+  const msg = childCount
+    ? `Delete this advertiser AND its ${childCount} campaign${childCount>1?"s":""}? This cannot be undone.`
+    : "Delete this advertiser? This cannot be undone.";
+  if (!confirm(msg)) return;
+
+  const btn = document.getElementById("advDeleteBtn");
+  btn.disabled = true; btn.textContent = "Deleting…";
+  try {
+    await fetch(APPS_SCRIPT_URL + "?" + new URLSearchParams({
+      action: "deleteAdvertiser",
+      sheetId: ACCOUNTS_SHEET_ID,
+      ID: id
+    }).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 600));
+    await reload();
+    closeAdvertiserModal();
+    closeDrawer();
+  } catch(e){
+    alert("Error deleting: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Delete";
+  }
+}
+
+// ── Drawer ──
+function openDrawer(advId){
+  const a = advertisers.find(x => x.ID === advId);
+  if (!a) return;
+  currentDrawerAdvId = advId;
+
+  const logo = a["Logo URL"]
+    ? `<img class="drawer-logo" src="${esc(a["Logo URL"])}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'drawer-logo-fallback',textContent:'${initials(a.Name)}'}));">`
+    : `<div class="drawer-logo-fallback">${esc(initials(a.Name))}</div>`;
+
+  document.getElementById("drawerHeaderLeft").innerHTML = `
+    ${logo}
+    <div style="flex:1;min-width:0;">
+      <div class="drawer-title">${esc(a.Name || "(unnamed)")}</div>
+      <div class="drawer-subtitle">
+        ${statusBadge(a.Status)}
+        ${a["Account Owner"] ? `<span>${esc(a["Account Owner"])}</span>` : ""}
+        ${a["Annual Value"] ? `<span>$${fmt(parseFloat(a["Annual Value"]))}/yr</span>` : ""}
+      </div>
+    </div>
+    <button class="btn btn-sm" onclick="openAdvertiserModal('${esc(a.ID)}')">Edit</button>
+  `;
+
+  const advCamps = campaigns.filter(c => c["Advertiser ID"] === advId);
+  const listicle = advCamps.find(c => c.Type === "Listicle");
+  const newsletters = advCamps.filter(c => c.Type === "Newsletter")
+    .sort((x, y) => (y["Start Date"] || "").localeCompare(x["Start Date"] || ""));
+
+  document.getElementById("drawerBody").innerHTML = `
+    <div class="drawer-section">
+      <div class="drawer-section-header">
+        <div class="drawer-section-title">Account Details</div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Contract Start</div><div class="detail-value">${fmtDate(a["Contract Start"]) || "—"}</div></div>
+        <div class="detail-item"><div class="detail-label">Contract End</div><div class="detail-value">${fmtDate(a["Contract End"]) || "—"}</div></div>
+        <div class="detail-item"><div class="detail-label">Annual Value</div><div class="detail-value">${a["Annual Value"] ? "$" + fmt(parseFloat(a["Annual Value"])) : "—"}</div></div>
+        <div class="detail-item"><div class="detail-label">Products</div><div class="detail-value">${esc(a.Products || "—")}</div></div>
+        ${a.Notes ? `<div class="detail-item full"><div class="detail-label">Notes</div><div class="detail-value notes">${esc(a.Notes)}</div></div>` : ""}
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-header">
+        <div class="drawer-section-title">Listicle Campaign <span style="color:var(--ink-muted);font-weight:500;">(max 1)</span></div>
+        ${!listicle ? `<button class="btn btn-sm" onclick="openCampaignModal(null,'${esc(advId)}','Listicle')">+ Add Listicle</button>` : ""}
+      </div>
+      ${listicle ? renderCampaignCard(listicle) : `<div class="empty-card">No listicle campaign yet.</div>`}
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-header">
+        <div class="drawer-section-title">Newsletter Campaigns <span style="color:var(--ink-muted);font-weight:500;">(${newsletters.length})</span></div>
+        <button class="btn btn-sm" onclick="openCampaignModal(null,'${esc(advId)}','Newsletter')">+ Add Newsletter</button>
+      </div>
+      ${newsletters.length ? newsletters.map(renderCampaignCard).join("") : `<div class="empty-card">No newsletter campaigns yet.</div>`}
+    </div>
+  `;
+
+  document.getElementById("drawerOverlay").classList.add("active");
+  document.getElementById("drawer").classList.add("active");
+}
+
+function renderCampaignCard(c){
+  const dates = (c["Start Date"] || c["End Date"]) ? `${fmtDate(c["Start Date"]) || "?"} → ${fmtDate(c["End Date"]) || "?"}` : "";
+  const progress = c.Target ? `${c.Delivered || 0} / ${c.Target}` : "";
+  return `
+    <div class="campaign-card">
+      <div class="campaign-card-left">
+        <div class="campaign-card-title">
+          ${esc(c.Name || "(unnamed)")}
+          ${campaignStatusBadge(c.Status)}
+        </div>
+        <div class="campaign-card-meta">
+          ${dates ? `<span>${dates}</span>` : ""}
+          ${progress ? `<span>${progress}</span>` : ""}
+          ${c["Asset URL"] ? `<a href="${esc(c["Asset URL"])}" target="_blank" rel="noopener" onclick="event.stopPropagation();">Asset ↗</a>` : ""}
+        </div>
+      </div>
+      <div class="campaign-card-actions">
+        <button class="btn btn-sm" onclick="openCampaignModal('${esc(c.ID)}')">Edit</button>
+      </div>
+    </div>`;
+}
+
+function closeDrawer(){
+  currentDrawerAdvId = null;
+  document.getElementById("drawerOverlay").classList.remove("active");
+  document.getElementById("drawer").classList.remove("active");
+}
+
+// ── Campaign Modal ──
+function openCampaignModal(campId, advId, presetType){
+  const c = campId ? campaigns.find(x => x.ID === campId) : null;
+  const linkedAdvId = c ? c["Advertiser ID"] : advId;
+
+  // Listicle uniqueness guard for new campaigns
+  if (!c && presetType === "Listicle"){
+    const existing = campaigns.find(x => x["Advertiser ID"] === linkedAdvId && x.Type === "Listicle");
+    if (existing){ alert("This advertiser already has a listicle campaign. Edit the existing one instead."); return; }
+  }
+
+  document.getElementById("campModalTitle").textContent = c ? "Edit Campaign" : "New Campaign";
+  document.getElementById("fCampId").value = c ? c.ID : "";
+  document.getElementById("fCampAdvId").value = linkedAdvId || "";
+  document.getElementById("fCampCreated").value = c ? (c["Created At"] || "") : "";
+  document.getElementById("fCampType").value = c ? c.Type : (presetType || "Newsletter");
+  document.getElementById("fCampStatus").value = c ? (c.Status || "Planned") : "Planned";
+  document.getElementById("fCampName").value = c ? (c.Name || "") : "";
+  document.getElementById("fCampStart").value = c ? fmtDate(c["Start Date"]) : "";
+  document.getElementById("fCampEnd").value = c ? fmtDate(c["End Date"]) : "";
+  document.getElementById("fCampTarget").value = c ? (c.Target || "") : "";
+  document.getElementById("fCampDelivered").value = c ? (c.Delivered || "") : "";
+  document.getElementById("fCampAsset").value = c ? (c["Asset URL"] || "") : "";
+  document.getElementById("fCampNotes").value = c ? (c.Notes || "") : "";
+  document.getElementById("campDeleteBtn").style.display = c ? "" : "none";
+  document.getElementById("campaignModal").classList.add("active");
+}
+
+function closeCampaignModal(){
+  document.getElementById("campaignModal").classList.remove("active");
+}
+
+async function saveCampaign(){
+  const btn = document.getElementById("campSaveBtn");
+  const name = document.getElementById("fCampName").value.trim();
+  const advId = document.getElementById("fCampAdvId").value;
+  const type = document.getElementById("fCampType").value;
+  if (!name){ alert("Campaign name is required."); return; }
+  if (!advId){ alert("Missing advertiser link."); return; }
+
+  // Listicle uniqueness on edit/type-change
+  const existingId = document.getElementById("fCampId").value;
+  if (type === "Listicle"){
+    const dup = campaigns.find(x => x["Advertiser ID"] === advId && x.Type === "Listicle" && x.ID !== existingId);
+    if (dup){ alert("This advertiser already has a listicle campaign. Each advertiser can only have one."); return; }
+  }
+
+  btn.disabled = true; btn.textContent = "Saving…";
+  const id = existingId || genId("camp");
+  const now = new Date().toISOString().replace("T"," ").slice(0,19);
+  const payload = {
+    action: "saveCampaign",
+    sheetId: ACCOUNTS_SHEET_ID,
+    "ID": id,
+    "Advertiser ID": advId,
+    "Type": type,
+    "Name": name,
+    "Status": document.getElementById("fCampStatus").value,
+    "Start Date": document.getElementById("fCampStart").value,
+    "End Date": document.getElementById("fCampEnd").value,
+    "Target": document.getElementById("fCampTarget").value,
+    "Delivered": document.getElementById("fCampDelivered").value,
+    "Asset URL": document.getElementById("fCampAsset").value.trim(),
+    "Notes": document.getElementById("fCampNotes").value.trim(),
+    "Created At": document.getElementById("fCampCreated").value || now,
+    "Updated At": now
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL + "?" + new URLSearchParams(payload).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 600));
+    await reload();
+    closeCampaignModal();
+    if (currentDrawerAdvId) openDrawer(currentDrawerAdvId);
+  } catch(e){
+    alert("Error saving campaign: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Save";
+  }
+}
+
+async function deleteCampaign(){
+  const id = document.getElementById("fCampId").value;
+  if (!id) return;
+  if (!confirm("Delete this campaign? This cannot be undone.")) return;
+
+  const btn = document.getElementById("campDeleteBtn");
+  btn.disabled = true; btn.textContent = "Deleting…";
+  try {
+    await fetch(APPS_SCRIPT_URL + "?" + new URLSearchParams({
+      action: "deleteCampaign",
+      sheetId: ACCOUNTS_SHEET_ID,
+      ID: id
+    }).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 600));
+    await reload();
+    closeCampaignModal();
+    if (currentDrawerAdvId) openDrawer(currentDrawerAdvId);
+  } catch(e){
+    alert("Error deleting campaign: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Delete";
+  }
+}
+
+// ── Init ──
+reload();
+</script>
+</body>
+</html>
