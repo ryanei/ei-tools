@@ -3,22 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Promo Graphic Builder · EI Tools</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="description" content="Create promotional graphics for Expert Insights content with customisable templates.">
+<title>Promo Builder · EI Tools</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563EB'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='800' font-size='14'%3EEI%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1e2a36; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #f0f2f5; color: #1e2a36; height: 100vh; overflow: hidden; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
 
 /* ─── TOPBAR (matches hub) ─── */
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 48px; background: linear-gradient(135deg, #0C1222, #162040, #1a2d5a); flex-shrink: 0; }
-.topbar-left { display: flex; align-items: center; gap: 14px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 40px; height: 56px; background: linear-gradient(135deg, #0C1222 0%, #162040 50%, #1a2d5a 100%); flex-shrink: 0; }
+.topbar-brand { display: flex; align-items: center; gap: 12px; }
 .topbar-logo img { height: 22px; width: auto; }
-.topbar-title { color: #fff; font-size: 14px; font-weight: 600; }
-.topbar-title span { opacity: 0.6; font-weight: 400; }
+.topbar-title { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+.topbar-title span { color: rgba(255,255,255,0.4); font-weight: 500; }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
-.topbar-back { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.15s; }
-.topbar-back:hover { color: #fff; }
+.topbar-env { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; color: #34d399; background: rgba(52,211,153,0.1); padding: 4px 10px; border-radius: 20px; }
+.back-link { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.15s; }
+.back-link:hover { color: #fff; }
+.topbar-tools { display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+.topbar-tool { padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); text-decoration: none; transition: all 0.15s; }
+.topbar-tool:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.06); }
+.topbar-tool.active { color: #fff; background: rgba(255,255,255,0.1); font-weight: 600; }
 
 /* ─── MAIN LAYOUT ─── */
 .main { display: flex; flex: 1; overflow: hidden; }
@@ -30,7 +39,7 @@ body { font-family: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif; background: 
 .preview-wrap { box-shadow: 0 8px 32px rgba(0,0,0,0.12); border-radius: 4px; overflow: visible; flex-shrink: 0; margin-bottom: 28px; }
 
 /* ─── THE GRAPHIC (what gets exported) ─── */
-.graphic { width: 630px; background: #f5f6f8; }
+.graphic { width: 630px; background: #f5f6f8; font-family: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif; }
 .graphic-header { padding: 40px 40px 32px; text-align: center; color: #fff; }
 .graphic-logo { height: 40px; margin-bottom: 4px; }
 .graphic-headline { font-size: 38px; font-weight: 800; line-height: 1.15; margin: 12px 0; outline: none; }
@@ -121,12 +130,19 @@ body { font-family: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif; background: 
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-left">
-    <div class="topbar-logo"><img src="https://www.expertinsights.com/wp-content/themes/developer starter theme/assets/img/new-ei-logo-white.png" alt="Expert Insights" style="height:22px;width:auto;"></div>
-    <div class="topbar-title">Tools <span>/ Promo Builder</span></div>
+  <div class="topbar-brand">
+    <div class="topbar-logo"><img src="https://www.expertinsights.com/wp-content/themes/developer starter theme/assets/img/new-ei-logo-white.png" alt="EI" style="height:22px;width:auto;"></div>
+    <div class="topbar-title"><a href="index.html" style="color:#fff;text-decoration:none;">Tools</a> <span>/ Promo Builder</span></div>
   </div>
+  <nav class="topbar-tools">
+    <a href="dashboard.html" class="topbar-tool">Dashboard</a>
+    <a href="pipeline.html" class="topbar-tool">Pipeline</a>
+    <a href="proposals.html" class="topbar-tool">Proposals</a>
+    <a href="promo-builder.html" class="topbar-tool active">Promo</a>
+  </nav>
   <div class="topbar-right">
-    <a href="index.html" class="topbar-back">← Tools Hub</a>
+    <div class="topbar-env">LIVE</div>
+    <a href="index.html" class="back-link">← Hub</a>
   </div>
 </div>
 
