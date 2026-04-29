@@ -338,7 +338,8 @@ function annDate(s){if(!s)return"";if(typeof s==="string"&&s.indexOf("Date(")===
 function typeBadge(t){var cls={"update":"type-update","heads-up":"type-headsup","outage":"type-outage"}[t]||"type-update";return '<span class="announce-type-badge '+cls+'">'+escAnn(t||"update")+'</span>'}
 function loadAnnouncements(){
   fetchSheet("Announcements",function(rows){
-    allAnnouncements = rows.filter(function(r){return r.title||r.message;}).sort(function(a,b){return (annDate(b.date)||"").localeCompare(annDate(a.date)||"")});
+    function annSortKey(r){return String(r.created_at||r.updated_at||r.date||"");}
+    allAnnouncements = rows.filter(function(r){return r.title||r.message;}).sort(function(a,b){return annSortKey(b).localeCompare(annSortKey(a))});
     var active = allAnnouncements.filter(function(r){return r.active&&String(r.active).toLowerCase()==="true"}).slice(0,3);
     var listEl = document.getElementById("announcementsList");
     var wrap = document.getElementById("announcements");
