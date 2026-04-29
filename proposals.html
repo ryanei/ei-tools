@@ -401,29 +401,6 @@ body {
 .addon-row input[type="text"] { flex:1; padding:6px 10px; border:1px solid #D1D5DB; border-radius:6px; font-size:13px; font-family:inherit; }
 .addon-row input[type="number"] { width:90px; padding:6px 10px; border:1px solid #D1D5DB; border-radius:6px; font-size:13px; font-family:inherit; }
 .addon-remove { padding:4px 8px; border:none; background:none; color:#EF4444; cursor:pointer; font-size:16px; font-weight:bold; }
-
-
-
-/* ── Unified topbar (EI Blue design system, overrides any prior rules) ── */
-.topbar{position:sticky !important;top:0;z-index:50;height:64px !important;display:flex;align-items:center;justify-content:space-between;padding:0 32px !important;background:var(--ei-blue) !important;background-image:none !important;color:#fff;border-bottom:1px solid var(--ei-blue-900) !important;box-shadow:0 1px 0 rgba(255,255,255,0.04) inset,0 8px 24px -16px rgba(1,39,71,0.5) !important;}
-.topbar-brand{display:flex !important;align-items:center !important;gap:14px !important;}
-.topbar-brand .ei-mark{width:28px;height:28px;display:block;flex-shrink:0;}
-.topbar-title{font-size:13px !important;font-weight:500 !important;color:rgba(255,255,255,0.78) !important;display:flex;align-items:center;gap:10px;padding-left:16px;margin-left:4px;border-left:1px solid rgba(255,255,255,0.18);height:28px;line-height:28px;letter-spacing:0 !important;}
-.topbar-title .crumb{color:rgba(255,255,255,0.6);font-weight:500;}
-.topbar-title a.crumb{color:rgba(255,255,255,0.6);text-decoration:none;}
-.topbar-title a.crumb:hover{color:#fff;}
-.topbar-title .crumb.active{color:#fff !important;}
-.topbar-title .sep{color:rgba(255,255,255,0.35);}
-.topbar-nav{display:flex;align-items:center;gap:4px;flex:1;justify-content:center;}
-.topbar-nav a{font-size:13px;font-weight:500;color:rgba(255,255,255,0.65) !important;padding:6px 14px;border-radius:100px;text-decoration:none;transition:color 180ms ease,background 180ms ease;background:transparent !important;}
-.topbar-nav a:hover{color:#fff !important;background:rgba(255,255,255,0.08) !important;}
-.topbar-nav a.active{color:var(--ei-blue) !important;background:#fff !important;}
-.topbar-right{display:flex !important;align-items:center !important;gap:10px !important;}
-.topbar-env{font-family:var(--mono) !important;font-size:10px !important;font-weight:500 !important;color:#d4f5e1 !important;padding:4px 10px !important;background:rgba(255,255,255,0.08) !important;border-radius:100px !important;text-transform:uppercase;letter-spacing:0.08em;display:inline-flex !important;align-items:center;gap:6px;}
-.topbar-env::before{content:"";width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
-
-
-
 /* ============================================================
    Proposals — design system rebuild
    ============================================================ */
@@ -554,12 +531,27 @@ body {
 #editingIndicator.editing-indicator button:hover{color:var(--p-ink);border-color:var(--p-ink);}
 
 
-
-/* ── Topbar nav anchoring — keep buttons at geometric centre regardless of breadcrumb width ── */
-.topbar{display:grid !important;grid-template-columns:1fr auto 1fr;align-items:center;}
-.topbar-brand{justify-self:start;}
-.topbar-nav{justify-self:center;flex:0 0 auto !important;}
-.topbar-right{justify-self:end;}
+/* ── Canonical unified topbar (overrides any earlier per-page rules) ── */
+.topbar{display:grid !important;grid-template-columns:1fr auto 1fr;align-items:center;height:64px !important;padding:0 32px !important;background:#012747 !important;background-image:none !important;color:#fff !important;border-bottom:1px solid #001a30 !important;box-shadow:0 1px 0 rgba(255,255,255,0.04) inset,0 8px 24px -16px rgba(1,39,71,0.5) !important;position:sticky !important;top:0;z-index:50;}
+.topbar-brand{justify-self:start;display:flex !important;align-items:center !important;gap:14px !important;}
+.topbar-brand .ei-mark{width:28px !important;height:28px !important;display:block;flex-shrink:0;}
+.topbar-title{font-family:'Inter Tight',sans-serif !important;font-size:13px !important;font-weight:500 !important;color:rgba(255,255,255,0.78) !important;display:flex !important;align-items:center !important;gap:10px !important;padding-left:16px !important;margin-left:4px !important;border-left:1px solid rgba(255,255,255,0.18) !important;height:28px !important;line-height:28px !important;letter-spacing:0 !important;}
+.topbar-title .crumb{color:rgba(255,255,255,0.6) !important;font-weight:500 !important;}
+.topbar-title a.crumb{color:rgba(255,255,255,0.6) !important;text-decoration:none !important;}
+.topbar-title a.crumb:hover{color:#fff !important;}
+.topbar-title .crumb.active{color:#fff !important;}
+.topbar-title .sep{color:rgba(255,255,255,0.35) !important;}
+.topbar-nav{justify-self:center;display:flex !important;align-items:center !important;gap:4px !important;flex:0 0 auto !important;}
+.topbar-nav a{font-family:'Inter Tight',sans-serif !important;font-size:13px !important;font-weight:500 !important;color:rgba(255,255,255,0.65) !important;padding:6px 14px !important;border-radius:100px !important;text-decoration:none !important;background:transparent !important;letter-spacing:0 !important;transition:color 180ms ease,background 180ms ease;}
+.topbar-nav a:hover{color:#fff !important;background:rgba(255,255,255,0.08) !important;}
+.topbar-nav a.active{color:#012747 !important;background:#fff !important;}
+.topbar-right{justify-self:end;display:flex !important;align-items:center !important;gap:10px !important;}
+.topbar-env{font-family:'JetBrains Mono',monospace !important;font-size:10px !important;font-weight:500 !important;color:#d4f5e1 !important;padding:4px 10px !important;background:rgba(255,255,255,0.08) !important;border-radius:100px !important;text-transform:uppercase !important;letter-spacing:0.08em !important;display:inline-flex !important;align-items:center !important;gap:6px !important;}
+.topbar-env::before{content:"";width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
+.topbar-avatar{width:32px !important;height:32px !important;border-radius:100px !important;background:#fff !important;color:#012747 !important;display:grid !important;place-items:center !important;font-size:11px !important;font-weight:600 !important;letter-spacing:0.02em !important;}
+.topbar-username{font-size:12px !important;color:rgba(255,255,255,0.78) !important;font-weight:500 !important;padding-left:6px !important;}
+.topbar-logout{font-size:11px !important;color:rgba(255,255,255,0.45) !important;background:none !important;border:none !important;cursor:pointer;font-family:inherit !important;font-weight:500 !important;padding:6px 10px !important;border-radius:6px !important;text-transform:uppercase !important;letter-spacing:0.06em !important;}
+.topbar-logout:hover{color:#fff !important;background:rgba(255,255,255,0.08) !important;}
 
 </style>
 </head>
