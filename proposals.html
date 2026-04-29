@@ -541,6 +541,18 @@ body {
   .prop-row > div:nth-child(6){display:none;}
 }
 
+
+
+/* Builder back/edit bar */
+.builder-bar{max-width:1240px;margin:0 auto;padding:24px 32px 0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.builder-back{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:var(--p-radius);font-size:12.5px;font-weight:500;color:var(--p-soft);background:transparent;border:1px solid transparent;cursor:pointer;font-family:var(--p-sans);transition:all 150ms ease;}
+.builder-back:hover{color:var(--p-ink);background:var(--paper-2);border-color:var(--p-line);}
+.builder-back svg{width:14px;height:14px;}
+#editingIndicator.editing-indicator{display:inline-flex;align-items:center;gap:14px;padding:8px 14px;background:var(--ei-blue-50);border:1px solid var(--ei-blue-100);border-radius:var(--p-radius);font-size:12.5px;color:var(--p-ink);}
+#editingIndicator.editing-indicator strong{color:var(--ei-blue);font-weight:600;}
+#editingIndicator.editing-indicator button{padding:4px 10px;border-radius:6px;border:1px solid var(--p-line);background:var(--surface);color:var(--p-soft);font-size:11.5px;cursor:pointer;font-family:inherit;}
+#editingIndicator.editing-indicator button:hover{color:var(--p-ink);border-color:var(--p-ink);}
+
 </style>
 </head>
 <body>
@@ -567,16 +579,17 @@ body {
   <div class="header-badge">Proposal Manager</div>
 </div>
 
-<div class="nav-tabs">
-  <button class="nav-tab active" onclick="switchView('builder')">Create Proposal</button>
-  <button class="nav-tab" onclick="switchView('dashboard')">Proposals <span class="tab-count" id="proposalCount">0</span></button>
-</div>
-
-<div id="builderView" class="view-container active">
+<div id="builderView" class="view-container">
   <div class="container">
-    <div id="editingIndicator" class="editing-indicator" style="display:none; max-width:900px; margin:16px auto 0 auto;">
-      <span>Editing: <strong id="editingId"></strong></span>
-      <button onclick="clearEditing()">Cancel Edit</button>
+    <div class="builder-bar">
+      <button class="builder-back" onclick="switchView('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Proposals
+      </button>
+      <div id="editingIndicator" class="editing-indicator" style="display:none;">
+        <span>Editing: <strong id="editingId"></strong></span>
+        <button onclick="clearEditing();switchView('dashboard');">Cancel</button>
+      </div>
     </div>
     <div class="grid">
     <div class="card">
@@ -683,7 +696,7 @@ body {
 </div>
 </div>
 
-<div id="dashboardView" class="view-container">
+<div id="dashboardView" class="view-container active">
   <main class="prop-canvas">
     <header class="prop-screen-header">
       <div>
@@ -1882,12 +1895,16 @@ let editingProposalId = null;
 
 // ═══ VIEW SWITCHING ═══
 function switchView(view) {
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
   if (view === 'builder') {
-    document.querySelector('.nav-tab:first-child').classList.add('active');
     document.getElementById('builderView').classList.add('active');
+    window.scrollTo({top: 0});
   } else {
+    document.getElementById('dashboardView').classList.add('active');
+    window.scrollTo({top: 0});
+    loadProposals();
+  }
+} else {
     document.querySelector('.nav-tab:last-child').classList.add('active');
     document.getElementById('dashboardView').classList.add('active');
     loadProposals();
@@ -3794,7 +3811,7 @@ function initDashCount() {
 }
 
 init();
-initDashCount();
+loadProposals();
 </script>
 </body>
 </html>
