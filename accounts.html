@@ -138,17 +138,38 @@ tbody tr:last-child td{border-bottom:none;}
 .dyn-row.service{grid-template-columns:1fr 2fr 36px;}
 .dyn-row .form-input,.dyn-row .form-select{padding:8px 10px;font-size:13px;}
 .dyn-row .form-label{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;}
-.dyn-remove{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.dyn-remove{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
 .dyn-remove:hover{background:var(--red-soft);border-color:rgba(220,38,38,0.3);}
 
-/* Article card (two-row layout) */
-.article-card{padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:10px;}
-.article-card-row1{display:grid;grid-template-columns:1fr 36px;gap:10px;align-items:end;margin-bottom:10px;}
-.article-card-row2{display:grid;grid-template-columns:80px 1fr 110px 110px;gap:10px;align-items:end;}
-.article-card .form-input,.article-card .form-select{padding:8px 10px;font-size:13px;}
-.article-card .form-label{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;}
-.article-card-hint{font-size:11px;color:var(--ink-muted);margin-top:6px;font-style:italic;}
-.article-card.in-package{border-left:3px solid var(--purple);}
+/* Article rows */
+.article-row{display:grid;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;}
+.article-row.standalone{grid-template-columns:22px 1fr 80px 110px 110px 36px;}
+.article-row.in-package{grid-template-columns:22px 1fr 80px 110px 36px;background:transparent;border:none;padding:6px 0;margin-bottom:4px;}
+.article-row.selected{background:var(--accent-soft);border-color:var(--accent);}
+.article-row .form-input,.article-row .form-select{padding:7px 10px;font-size:13px;}
+.article-checkbox{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
+
+/* Package wrapper */
+.pkg-wrapper{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;}
+.pkg-wrapper-header{display:grid;grid-template-columns:1fr 130px 110px auto auto;gap:10px;align-items:center;margin-bottom:12px;}
+.pkg-wrapper-name{font-size:14px;font-weight:700;color:var(--ink);padding:8px 10px;}
+.pkg-wrapper-name-input{padding:7px 10px;font-size:14px;font-weight:700;border:1px solid transparent;background:transparent;color:var(--ink);outline:none;border-radius:var(--radius-sm);}
+.pkg-wrapper-name-input:hover{background:var(--surface-raised);border-color:var(--border);}
+.pkg-wrapper-name-input:focus{background:var(--surface-raised);border-color:var(--accent);}
+.pkg-wrapper-articles{padding:0 6px;}
+
+/* Selection action bar */
+.selection-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--accent);color:white;border-radius:var(--radius-sm);margin-bottom:14px;font-size:13px;}
+.selection-bar.warn{background:var(--amber);}
+.selection-bar .form-input{padding:7px 10px;font-size:13px;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:white;}
+.selection-bar .form-input::placeholder{color:rgba(255,255,255,0.7);}
+.selection-bar .form-input:focus{border-color:white;background:rgba(255,255,255,0.25);}
+.selection-bar .btn{background:white;color:var(--accent);border-color:white;}
+.selection-bar .btn:hover{background:rgba(255,255,255,0.9);}
+.selection-bar .btn-ghost{background:transparent;color:white;border-color:transparent;}
+.selection-bar .btn-ghost:hover{background:rgba(255,255,255,0.1);color:white;}
+.selection-bar.warn .btn{color:var(--amber);}
+.selection-bar-msg{flex:1;}
 
 /* Drawer */
 .drawer-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.4);z-index:90;display:none;backdrop-filter:blur(4px);}
@@ -405,7 +426,7 @@ tbody tr:last-child td{border-bottom:none;}
           <div class="dyn-block-header">
             <div>
               <div class="dyn-block-title">Articles</div>
-              <div class="dyn-block-sub">URL, position, and price. Bundle multiple articles by giving them the same Package name — they'll share one monthly price.</div>
+              <div class="dyn-block-sub">Tick two or more articles, then click "Group as package" to bundle them under one monthly price.</div>
             </div>
             <button class="btn btn-sm" onclick="addArticle()">+ Add Article</button>
           </div>
@@ -445,7 +466,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <div class="footer">
   <div class="footer-left">Expert Insights &middot; Accounts</div>
-  <div class="footer-right">v2.3.0</div>
+  <div class="footer-right">v2.4.0</div>
 </div>
 
 <script>
@@ -459,8 +480,7 @@ let currentDrawerId = null;
 let wizard = {
   mode: 'new', step: 1, editingId: null,
   contacts: [], articles: [], services: [],
-  _packageIdByTag: {},  // existing package name (lowercased) -> id, for ID stability on edit
-  _packageNotesByTag: {}  // existing package name -> notes, to preserve across saves
+  packageMeta: {}  // lowerCaseTag -> { name, monthly_price, status, notes, _origId }
 };
 
 // ── Helpers ──
@@ -474,6 +494,7 @@ function isTrue(v){return v && String(v).toUpperCase()==="TRUE";}
 function daysUntil(d){const s=fmtDate(d);if(!s)return null;const dt=new Date(s);if(isNaN(dt))return null;return Math.ceil((dt-new Date())/(1000*60*60*24));}
 function fullName(first,last){return [first,last].filter(Boolean).join(" ");}
 function urlLabel(u){if(!u)return"(no URL)";try{const url=new URL(u);const slug=url.pathname.split("/").filter(Boolean).pop();return slug?slug.replace(/-/g," "):url.hostname;}catch(e){return u;}}
+function tagKey(t){return (t||"").trim().toLowerCase();}
 
 // ── Loading ──
 function loadSheet(sheetName){
@@ -597,9 +618,7 @@ function renderTable(){
     if (status && a.status !== status) return false;
     if (search) {
       const hay = [
-        a.name||"",
-        a._primaryName||"",
-        a.primary_contact_email||"",
+        a.name||"", a._primaryName||"", a.primary_contact_email||"",
         ...(a._contacts||[]).map(c => fullName(c.first_name,c.last_name)+" "+c.email),
         ...(a._packages||[]).map(pk => pk.name||""),
         ...(a._articles||[]).map(x => x.url||"")
@@ -710,16 +729,17 @@ function openWizard(id){
   wizard.contacts = a ? a._contacts.map(c => ({id: c.id || genId("con"), first_name: c.first_name||"", last_name: c.last_name||"", email: c.email||""})) : [];
   renderContactsList();
 
-  // Step 3 — flatten articles, derive package_tag from linked package, capture package metadata
-  wizard._packageIdByTag = {};
-  wizard._packageNotesByTag = {};
+  // Step 3 — populate packageMeta and articles
+  wizard.packageMeta = {};
   if (a) {
     a._packages.forEach(pk => {
-      const tag = (pk.name || "").trim().toLowerCase();
-      if (tag) {
-        wizard._packageIdByTag[tag] = pk.id;
-        wizard._packageNotesByTag[tag] = pk.notes || "";
-      }
+      const k = tagKey(pk.name);
+      if (k) wizard.packageMeta[k] = {
+        name: pk.name || "",
+        monthly_price: pk.monthly_price || "",
+        notes: pk.notes || "",
+        _origId: pk.id
+      };
     });
     wizard.articles = a._articles
       .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
@@ -730,8 +750,9 @@ function openWizard(id){
           url: art.url || "",
           position: String(art.position || "1"),
           package_tag: pkg ? (pkg.name || "") : "",
-          monthly_price: pkg ? (pkg.monthly_price || "") : (art.monthly_price || ""),
-          active: pkg ? (((pkg.status||"Active") === "Active") ? "TRUE" : "FALSE") : (isTrue(art.active) ? "TRUE" : "FALSE")
+          monthly_price: pkg ? "" : (art.monthly_price || ""),
+          active: isTrue(art.active) ? "TRUE" : "FALSE",
+          _selected: false
         };
       });
     wizard.services = a._services.map(s => ({ id: s.id || genId("svc"), name: s.name||"", details: s.details||"" }));
@@ -786,55 +807,202 @@ function renderContactsList(){
     </div>`).join("");
 }
 
-// ── Wizard: articles ──
-function addArticle(){ wizard.articles.push({ id: genId("art"), url: "", position: "1", package_tag: "", monthly_price: "", active: "TRUE" }); renderArticlesList(); }
+// ── Wizard: articles + packages (checkbox-driven) ──
+function addArticle(){
+  wizard.articles.push({ id: genId("art"), url: "", position: "1", package_tag: "", monthly_price: "", active: "TRUE", _selected: false });
+  renderArticlesList();
+}
 function removeArticle(i){ wizard.articles.splice(i, 1); renderArticlesList(); }
-function updateArticleField(i, field, val){ wizard.articles[i][field] = val; if (field === "package_tag") renderArticlesList(); }
+function updateArticleField(i, field, val){ wizard.articles[i][field] = val; }
+function toggleSelection(i, checked){ wizard.articles[i]._selected = checked; renderArticlesList(); }
+function clearSelection(){ wizard.articles.forEach(a => a._selected = false); renderArticlesList(); }
+
+function nextAutoPackageName(){
+  let n = 1;
+  while (wizard.packageMeta[("package " + n)]) n++;
+  return "Package " + n;
+}
+
+function groupSelectedAsPackage(){
+  const priceInput = document.getElementById("groupPriceInput");
+  const price = priceInput ? priceInput.value.trim() : "";
+  if (!price) { alert("Enter a monthly price for the package."); priceInput?.focus(); return; }
+  const selectedIdxs = wizard.articles.map((a,i)=>a._selected?i:-1).filter(i=>i>=0);
+  if (selectedIdxs.length < 2) return;
+  const name = nextAutoPackageName();
+  const k = tagKey(name);
+  wizard.packageMeta[k] = { name: name, monthly_price: price, notes: "" };
+  selectedIdxs.forEach(i => {
+    wizard.articles[i].package_tag = name;
+    wizard.articles[i]._selected = false;
+    // Keep article's monthly_price in state but it won't be used while in package
+  });
+  renderArticlesList();
+}
+
+function ungroupSelected(){
+  wizard.articles.forEach(a => { if (a._selected) { a.package_tag = ""; a._selected = false; }});
+  renderArticlesList();
+}
+
+function ungroupPackage(key){
+  if (!confirm("Ungroup this package? Articles will become standalone (with empty prices).")) return;
+  wizard.articles.forEach(a => { if (tagKey(a.package_tag) === key) a.package_tag = ""; });
+  delete wizard.packageMeta[key];
+  renderArticlesList();
+}
+
+function updatePackageMeta(key, field, val){
+  if (!wizard.packageMeta[key]) return;
+  wizard.packageMeta[key][field] = val;
+}
+
+function renamePackage(oldKey){
+  const meta = wizard.packageMeta[oldKey];
+  if (!meta) return;
+  const newName = prompt("Rename package", meta.name || "");
+  if (newName === null) return;
+  const trimmed = newName.trim();
+  if (!trimmed) { alert("Name cannot be empty."); return; }
+  const newKey = tagKey(trimmed);
+  if (newKey !== oldKey && wizard.packageMeta[newKey]) {
+    alert("A package with that name already exists.");
+    return;
+  }
+  // Move metadata
+  wizard.packageMeta[newKey] = { ...meta, name: trimmed };
+  if (newKey !== oldKey) delete wizard.packageMeta[oldKey];
+  // Update articles
+  wizard.articles.forEach(a => { if (tagKey(a.package_tag) === oldKey) a.package_tag = trimmed; });
+  renderArticlesList();
+}
+
+function setPackageStatus(key, status){
+  // Bulk set article status for all articles in the package
+  wizard.articles.forEach(a => { if (tagKey(a.package_tag) === key) a.active = status; });
+  renderArticlesList();
+}
+
 function renderArticlesList(){
   const el = document.getElementById("articlesList");
-  if (!wizard.articles.length) { el.innerHTML = `<div class="dyn-empty">Click "+ Add Article" to start.</div>`; return; }
   const positions = ["1","2","3","4","5","6","7","8","9","10"];
 
-  // Track first occurrence of each package tag, for "shared price" handling
-  const tagFirstSeen = {};
-  wizard.articles.forEach((a, i) => {
-    const tag = (a.package_tag||"").trim().toLowerCase();
-    if (tag && !(tag in tagFirstSeen)) tagFirstSeen[tag] = i;
+  // Group articles
+  const groups = {};
+  const groupOrder = [];
+  const standalone = [];
+  wizard.articles.forEach((a, idx) => {
+    const k = tagKey(a.package_tag);
+    if (k) {
+      if (!groups[k]) { groups[k] = []; groupOrder.push(k); }
+      groups[k].push({ ...a, _idx: idx });
+    } else {
+      standalone.push({ ...a, _idx: idx });
+    }
   });
 
-  // Datalist of all currently-typed package tags
-  const tagOptions = [...new Set(wizard.articles.map(a => (a.package_tag||"").trim()).filter(Boolean))];
-  const datalistHtml = `<datalist id="packageTagOptions">${tagOptions.map(t => `<option value="${esc(t)}">`).join("")}</datalist>`;
+  // Selection analysis
+  const selIdxs = wizard.articles.map((a,i)=>a._selected?i:-1).filter(i=>i>=0);
+  const selCount = selIdxs.length;
+  const selTags = new Set(selIdxs.map(i => tagKey(wizard.articles[i].package_tag)));
 
-  const rowsHtml = wizard.articles.map((a, i) => {
-    const tag = (a.package_tag||"").trim().toLowerCase();
-    const inPackage = !!tag;
-    const isPrimaryInPackage = inPackage && tagFirstSeen[tag] === i;
-    const isSecondaryInPackage = inPackage && tagFirstSeen[tag] !== i;
-    const priceDisabled = isSecondaryInPackage;
-    const priceValue = isSecondaryInPackage ? (wizard.articles[tagFirstSeen[tag]].monthly_price || "") : (a.monthly_price || "");
-    const sharedCount = inPackage ? wizard.articles.filter(x => (x.package_tag||"").trim().toLowerCase() === tag).length : 0;
-    const hint = isSecondaryInPackage
-      ? `Price set on the first article in package "${esc(wizard.articles[tagFirstSeen[tag]].package_tag)}".`
-      : (isPrimaryInPackage && sharedCount > 1 ? `Package total — shared across ${sharedCount} articles.` : "");
+  // Action bar
+  let actionBar = "";
+  if (selCount > 0) {
+    const allStandalone = selTags.size === 1 && selTags.has("");
+    const allInOnePackage = selTags.size === 1 && !selTags.has("");
+    if (allStandalone && selCount >= 2) {
+      actionBar = `
+        <div class="selection-bar">
+          <span class="selection-bar-msg"><strong>${selCount}</strong> articles selected — group them as a package:</span>
+          <input class="form-input" id="groupPriceInput" type="number" step="0.01" placeholder="Monthly $" style="width:130px;">
+          <button class="btn btn-sm" onclick="groupSelectedAsPackage()">Group as package</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Cancel</button>
+        </div>`;
+    } else if (allStandalone && selCount === 1) {
+      actionBar = `
+        <div class="selection-bar warn">
+          <span class="selection-bar-msg"><strong>1</strong> selected — pick at least one more standalone article to group.</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Cancel</button>
+        </div>`;
+    } else if (allInOnePackage) {
+      const tagName = wizard.packageMeta[[...selTags][0]]?.name || [...selTags][0];
+      actionBar = `
+        <div class="selection-bar">
+          <span class="selection-bar-msg"><strong>${selCount}</strong> selected from "${esc(tagName)}":</span>
+          <button class="btn btn-sm" onclick="ungroupSelected()">Remove from package</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Cancel</button>
+        </div>`;
+    } else {
+      actionBar = `
+        <div class="selection-bar warn">
+          <span class="selection-bar-msg">Selection mixes packages — clear and re-select to group or ungroup.</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+        </div>`;
+    }
+  }
 
-    return `
-      <div class="article-card ${inPackage?"in-package":""}">
-        <div class="article-card-row1">
-          <div class="form-group"><label class="form-label">Article URL</label><input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateArticleField(${i},'url',this.value)" placeholder="https://expertinsights.com/..."></div>
-          <button class="dyn-remove" onclick="removeArticle(${i})" title="Remove">×</button>
+  // Render package wrappers
+  let pkgHtml = "";
+  groupOrder.forEach(k => {
+    const arts = groups[k];
+    const meta = wizard.packageMeta[k] || { name: arts[0]?.package_tag || "Package", monthly_price: "", notes: "" };
+    // Derived status: active if any article is active
+    const derivedActive = arts.some(a => a.active === "TRUE");
+    pkgHtml += `
+      <div class="pkg-wrapper">
+        <div class="pkg-wrapper-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <strong style="font-size:14px;">${esc(meta.name)}</strong>
+            <button class="btn btn-ghost btn-sm" onclick="renamePackage('${esc(k)}')" title="Rename">✏</button>
+          </div>
+          <input class="form-input" type="number" step="0.01" value="${esc(meta.monthly_price||"")}" placeholder="Monthly $" oninput="updatePackageMeta('${esc(k)}','monthly_price',this.value)">
+          <select class="form-select" onchange="setPackageStatus('${esc(k)}',this.value)">
+            <option value="TRUE" ${derivedActive?"selected":""}>Active</option>
+            <option value="FALSE" ${!derivedActive?"selected":""}>Inactive</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="ungroupPackage('${esc(k)}')">Ungroup</button>
+          <span></span>
         </div>
-        <div class="article-card-row2">
-          <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updateArticleField(${i},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
-          <div class="form-group"><label class="form-label">Package <span style="color:var(--ink-muted);text-transform:none;letter-spacing:0;">(optional)</span></label><input class="form-input" list="packageTagOptions" type="text" value="${esc(a.package_tag||"")}" oninput="updateArticleField(${i},'package_tag',this.value)" placeholder="e.g. Tier 1"></div>
-          <div class="form-group"><label class="form-label">${inPackage?"Pkg Monthly $":"Monthly $"}</label><input class="form-input" type="number" step="0.01" value="${esc(priceValue)}" ${priceDisabled?"disabled":""} oninput="updateArticleField(${i},'monthly_price',this.value)" placeholder="0.00"></div>
-          <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updateArticleField(${i},'active',this.value)"><option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option><option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option></select></div>
+        <div class="pkg-wrapper-articles">
+          ${arts.map(a => `
+            <div class="article-row in-package ${a._selected?"selected":""}">
+              <input type="checkbox" class="article-checkbox" ${a._selected?"checked":""} onchange="toggleSelection(${a._idx}, this.checked)">
+              <input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateArticleField(${a._idx},'url',this.value)" placeholder="https://expertinsights.com/...">
+              <select class="form-select" onchange="updateArticleField(${a._idx},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select>
+              <select class="form-select" onchange="updateArticleField(${a._idx},'active',this.value)">
+                <option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option>
+                <option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option>
+              </select>
+              <button class="dyn-remove" onclick="removeArticle(${a._idx})" title="Remove">×</button>
+            </div>`).join("")}
         </div>
-        ${hint ? `<div class="article-card-hint">${hint}</div>` : ""}
       </div>`;
-  }).join("");
+  });
 
-  el.innerHTML = datalistHtml + rowsHtml;
+  // Render standalone articles
+  let standHtml = "";
+  if (standalone.length) {
+    standHtml = standalone.map(a => `
+      <div class="article-row standalone ${a._selected?"selected":""}">
+        <input type="checkbox" class="article-checkbox" ${a._selected?"checked":""} onchange="toggleSelection(${a._idx}, this.checked)">
+        <input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateArticleField(${a._idx},'url',this.value)" placeholder="https://expertinsights.com/...">
+        <select class="form-select" onchange="updateArticleField(${a._idx},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select>
+        <input class="form-input" type="number" step="0.01" value="${esc(a.monthly_price||"")}" oninput="updateArticleField(${a._idx},'monthly_price',this.value)" placeholder="Monthly $">
+        <select class="form-select" onchange="updateArticleField(${a._idx},'active',this.value)">
+          <option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option>
+          <option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option>
+        </select>
+        <button class="dyn-remove" onclick="removeArticle(${a._idx})" title="Remove">×</button>
+      </div>`).join("");
+  }
+
+  if (!groupOrder.length && !standalone.length) {
+    el.innerHTML = `<div class="dyn-empty">Click "+ Add Article" to start.</div>`;
+    return;
+  }
+
+  el.innerHTML = actionBar + pkgHtml + standHtml;
 }
 
 // ── Wizard: services ──
@@ -862,41 +1030,38 @@ async function saveBundle(){
   const id = wizard.editingId || genId("adv");
   const now = new Date().toISOString().replace("T"," ").slice(0,19);
 
-  // Build packages from unique non-empty package_tags
-  const tagToPackage = new Map();
-  wizard.articles.forEach(a => {
-    if (!a.url) return;
-    const tag = (a.package_tag||"").trim();
-    if (!tag) return;
-    const key = tag.toLowerCase();
-    if (!tagToPackage.has(key)) {
-      const existingId = wizard._packageIdByTag[key];
-      const existingNotes = wizard._packageNotesByTag[key] || "";
-      tagToPackage.set(key, {
-        id: existingId || genId("pkg"),
-        name: tag,
-        monthly_price: a.monthly_price || "",
-        status: a.active === "TRUE" ? "Active" : "Inactive",
-        notes: existingNotes
-      });
-    } else {
-      const ex = tagToPackage.get(key);
-      if (!ex.monthly_price && a.monthly_price) ex.monthly_price = a.monthly_price;
-      if (a.active === "TRUE") ex.status = "Active";  // any active article makes package active
-    }
+  // Determine which package_tags are actually used
+  const usedTags = new Set(wizard.articles.filter(a => a.url && a.package_tag).map(a => tagKey(a.package_tag)));
+
+  // Build packages from packageMeta for used tags
+  const cleanPackages = [];
+  usedTags.forEach(k => {
+    const meta = wizard.packageMeta[k];
+    if (!meta) return;
+    const arts = wizard.articles.filter(a => tagKey(a.package_tag) === k);
+    const status = arts.some(a => a.active === "TRUE") ? "Active" : "Inactive";
+    cleanPackages.push({
+      id: meta._origId || genId("pkg"),
+      name: meta.name || k,
+      monthly_price: meta.monthly_price || "",
+      status: status,
+      notes: meta.notes || ""
+    });
   });
 
-  const cleanPackages = Array.from(tagToPackage.values());
+  // Map tag -> package id for article linking
+  const tagToPkgId = {};
+  cleanPackages.forEach(p => { tagToPkgId[tagKey(p.name)] = p.id; });
 
   const allArticles = wizard.articles.filter(a => a.url).map(a => {
-    const tag = (a.package_tag||"").trim().toLowerCase();
-    const pkg = tag ? tagToPackage.get(tag) : null;
+    const k = tagKey(a.package_tag);
+    const pkgId = k ? tagToPkgId[k] : "";
     return {
       id: a.id,
-      package_id: pkg ? pkg.id : "",
+      package_id: pkgId || "",
       url: a.url,
       position: a.position,
-      monthly_price: pkg ? "" : a.monthly_price,
+      monthly_price: pkgId ? "" : (a.monthly_price||""),
       active: a.active
     };
   });
