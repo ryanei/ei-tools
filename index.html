@@ -75,6 +75,54 @@ body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--s
 .announce-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:2px;}
 .announce-text{font-size:13px;color:var(--ink-soft);line-height:1.5;}
 .announce-time{font-size:11px;color:var(--ink-muted);margin-top:4px;font-family:'JetBrains Mono',monospace;}
+.announcements-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.announcements-label{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:1.2px;}
+.announce-manage-btn{font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:none;padding:5px 12px;border-radius:6px;cursor:pointer;font-family:inherit;transition:all 0.15s;display:none;}
+.announce-manage-btn.visible{display:inline-block;}
+.announce-manage-btn:hover{background:var(--accent);color:white;}
+.announce-card{position:relative;}
+.announce-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;}
+.announce-version{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--ink-muted);}
+.announce-type-badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;}
+.type-update{background:#EEF4FF;color:#2563EB;}
+.type-headsup{background:#FFF9EB;color:#D97706;}
+.type-outage{background:#FEF2F2;color:#DC2626;}
+.announce-card.is-update{border-color:rgba(37,99,235,0.18);}
+.announce-card.is-headsup .announce-icon{background:#D97706;}
+.announce-card.is-headsup{background:#FFF9EB;border-color:rgba(217,119,6,0.18);}
+.announce-card.is-outage .announce-icon{background:#DC2626;}
+.announce-card.is-outage{background:#FEF2F2;border-color:rgba(220,38,38,0.18);}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface-raised);border-radius:var(--radius);width:680px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(12,18,34,0.12);padding:32px;}
+.modal-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close-x{background:none;border:none;font-size:22px;color:var(--ink-muted);cursor:pointer;padding:4px 10px;border-radius:6px;}
+.modal-close-x:hover{background:var(--surface);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+.form-input,.form-select,.form-textarea{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;transition:border-color 0.15s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-textarea{resize:vertical;min-height:80px;}
+.modal-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);}
+.modal-actions-right{display:flex;gap:10px;}
+.btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface-raised);color:var(--ink);transition:all 0.15s;}
+.btn:hover{border-color:var(--border-hover);box-shadow:var(--shadow-md);}
+.btn-primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{color:#DC2626;border-color:rgba(220,38,38,0.3);}
+.btn-danger:hover{background:#FEF2F2;}
+.announce-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.announce-list-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);}
+.announce-list-item-body{flex:1;min-width:0;}
+.announce-list-item-title{font-size:13px;font-weight:700;color:var(--ink);}
+.announce-list-item-meta{font-size:11px;color:var(--ink-muted);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap;}
+.announce-list-item-actions{display:flex;gap:6px;flex-shrink:0;}
+.announce-empty{padding:20px;text-align:center;color:var(--ink-muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius-sm);}
+.announce-inactive{opacity:0.55;}
 
 .hero{padding:48px 40px 36px;max-width:1100px;margin:0 auto;}
 .hero h1{font-size:32px;font-weight:800;letter-spacing:-0.8px;line-height:1.15;}
@@ -191,7 +239,70 @@ var ex=getSession();if(ex){document.addEventListener("DOMContentLoaded",function
 </div>
 
 <!-- Announcements -->
-<div class="announcements" id="announcements"></div>
+<div class="announcements" id="announcements">
+  <div class="announcements-header" id="announcementsHeader">
+    <div class="announcements-label">Latest Updates</div>
+    <button class="announce-manage-btn" id="announceManageBtn" onclick="openAnnounceManager()">&#9998; Manage</button>
+  </div>
+  <div id="announcementsList"></div>
+</div>
+
+<!-- Announcement Manager Modal -->
+<div class="modal-overlay" id="announceModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="announceModalTitle">Manage Announcements</span>
+      <button class="modal-close-x" onclick="closeAnnounceManager()">&times;</button>
+    </div>
+    <div id="announceListWrap"></div>
+    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border);">
+      <div style="font-size:13px;font-weight:700;margin-bottom:14px;" id="announceFormTitle">+ New announcement</div>
+      <input type="hidden" id="fAnnId">
+      <input type="hidden" id="fAnnCreated">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Version</label>
+          <input type="text" class="form-input" id="fAnnVersion" placeholder="v1.3.0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="fAnnType">
+            <option value="update">Update</option>
+            <option value="heads-up">Heads-up</option>
+            <option value="outage">Outage</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Title *</label>
+          <input type="text" class="form-input" id="fAnnTitle" placeholder="Accounts tool launched">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Message</label>
+          <textarea class="form-textarea" id="fAnnMessage" placeholder="What changed and why your colleagues should care."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="fAnnDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Active</label>
+          <select class="form-select" id="fAnnActive">
+            <option value="TRUE">Active</option>
+            <option value="FALSE">Hidden</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="announceDeleteBtn" onclick="deleteAnnouncement()" style="display:none;">Delete</button>
+        <span style="flex:1;"></span>
+        <div class="modal-actions-right">
+          <button class="btn" onclick="resetAnnounceForm()">Reset</button>
+          <button class="btn btn-primary" id="announceSaveBtn" onclick="saveAnnouncement()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="hero"><h1 id="heroTitle">Sales & Campaign Tools</h1><p>Internal tools for proposal management, campaign reporting, and client operations.</p></div>
 <div class="admin-section" id="adminSection">
@@ -217,10 +328,138 @@ var ex=getSession();if(ex){document.addEventListener("DOMContentLoaded",function
 function fetchSheet(sheetName,cb){var n="cb"+Date.now()+Math.random().toString(36).substr(2,5);var url="https://docs.google.com/spreadsheets/d/"+AUTH_SHEET_ID+"/gviz/tq?tqx=responseHandler:"+n+"&sheet="+encodeURIComponent(sheetName)+"&headers=1";window[n]=function(r){var rows=[];if(r&&r.table&&r.table.rows){var c=r.table.cols.map(function(x){return x.label});r.table.rows.forEach(function(row){var o={};row.c.forEach(function(cell,i){o[c[i]]=cell?(cell.v!=null?String(cell.v):""):""});rows.push(o)})}cb(rows);delete window[n]};var s=document.createElement("script");s.src=url;document.body.appendChild(s)}
 function doLogin(){var u=document.getElementById("loginUser").value.trim().toLowerCase();var p=document.getElementById("loginPass").value;var e=document.getElementById("loginError");var b=document.getElementById("loginBtn");if(!u||!p){e.textContent="Enter username and password";return}b.disabled=true;b.textContent="Signing in...";e.textContent="";fetchSheet("Users",function(users){var m=users.find(function(x){return x.username&&x.username.toLowerCase()===u&&x.password===p});if(m){var s={username:m.username,name:m.name||m.username,role:m.role||"user"};setSession(s);logActivity("hub","login");showHub(s)}else{e.textContent="Invalid username or password";b.disabled=false;b.textContent="Sign In"}})}
 var ADMIN_USERS=["relliott"];var RESTRICTED_TOOLS=["pipeline.html","accounts.html"];
-function applyToolPerms(s){if(ADMIN_USERS.indexOf((s.username||"").toLowerCase())>=0)return;document.querySelectorAll("a.tool-card").forEach(function(card){if(RESTRICTED_TOOLS.indexOf(card.getAttribute("href"))<0)return;card.classList.add("card-planned");card.removeAttribute("href");var st=card.querySelector(".tool-card-status");if(st){st.textContent="Coming Soon";st.classList.remove("status-live");st.classList.add("status-planned");}})}
+function applyToolPerms(s){var isAdmin=ADMIN_USERS.indexOf((s.username||"").toLowerCase())>=0;if(isAdmin){var mb=document.getElementById("announceManageBtn");if(mb)mb.classList.add("visible");}if(isAdmin)return;document.querySelectorAll("a.tool-card").forEach(function(card){if(RESTRICTED_TOOLS.indexOf(card.getAttribute("href"))<0)return;card.classList.add("card-planned");card.removeAttribute("href");var st=card.querySelector(".tool-card-status");if(st){st.textContent="Coming Soon";st.classList.remove("status-live");st.classList.add("status-planned");}})}
 function showHub(s){document.getElementById("loginScreen").style.display="none";document.getElementById("hub").classList.add("visible");var ini=(s.name||"U").split(" ").map(function(w){return w[0]}).join("").toUpperCase().substring(0,2);document.getElementById("userAvatar").textContent=ini;document.getElementById("userName").textContent=s.name||s.username;document.getElementById("heroTitle").textContent="Welcome back, "+(s.name||s.username).split(" ")[0];document.getElementById("versionLabel").textContent=HUB_VERSION;applyToolPerms(s);if(s.role==="admin"){document.getElementById("adminSection").classList.add("visible");loadActivity()}loadAnnouncements();logActivity("hub","pageview")}
 function doLogout(){clearSession();location.reload()}
-function loadAnnouncements(){fetchSheet("Announcements",function(rows){var active=rows.filter(function(r){return r.active&&r.active.toLowerCase()==="true"});if(!active.length)return;var el=document.getElementById("announcements");var html="";active.forEach(function(r){html+='<div class="announce-card" style="margin-bottom:12px;"><div class="announce-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 0 1 0 3.46"/></svg></div><div class="announce-body"><div class="announce-title">'+(r.title||"Announcement")+'</div><div class="announce-text">'+(r.message||"")+'</div>'+(r.date?'<div class="announce-time">'+r.date+'</div>':'')+'</div></div>'});el.innerHTML=html;el.classList.add("visible")})}
+var ANNOUNCE_SCRIPT_URL = "PLACEHOLDER_ANNOUNCE_URL";
+var allAnnouncements = [];
+function escAnn(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]})}
+function annDate(s){if(!s)return"";if(typeof s==="string"&&s.indexOf("Date(")===0){var m=s.match(/Date\((\d+),(\d+),(\d+)/);if(m)return m[1]+"-"+String(+m[2]+1).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0")}var d=new Date(s);return isNaN(d)?String(s):d.toISOString().slice(0,10)}
+function typeBadge(t){var cls={"update":"type-update","heads-up":"type-headsup","outage":"type-outage"}[t]||"type-update";return '<span class="announce-type-badge '+cls+'">'+escAnn(t||"update")+'</span>'}
+function loadAnnouncements(){
+  fetchSheet("Announcements",function(rows){
+    allAnnouncements = rows.filter(function(r){return r.title||r.message;}).sort(function(a,b){return (annDate(b.date)||"").localeCompare(annDate(a.date)||"")});
+    var active = allAnnouncements.filter(function(r){return r.active&&String(r.active).toLowerCase()==="true"}).slice(0,3);
+    var listEl = document.getElementById("announcementsList");
+    var wrap = document.getElementById("announcements");
+    if (!active.length) {
+      listEl.innerHTML = "";
+      // Show wrapper anyway if admin (so they can manage)
+      if (document.getElementById("announceManageBtn").classList.contains("visible")) wrap.classList.add("visible");
+      return;
+    }
+    var html = "";
+    active.forEach(function(r){
+      var typeClass = "is-" + (r.type==="heads-up"?"headsup":(r.type||"update"));
+      html += '<div class="announce-card '+typeClass+'" style="margin-bottom:12px;">'
+        + '<div class="announce-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 0 1 0 3.46"/></svg></div>'
+        + '<div class="announce-body">'
+          + '<div class="announce-title">'+escAnn(r.title||"Announcement")+'</div>'
+          + '<div class="announce-text">'+escAnn(r.message||"")+'</div>'
+          + '<div class="announce-meta">'
+            + (r.version?'<span class="announce-version">'+escAnn(r.version)+'</span>':'')
+            + typeBadge(r.type||"update")
+            + (r.date?'<span class="announce-time" style="margin-top:0;">'+escAnn(annDate(r.date))+'</span>':'')
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    });
+    listEl.innerHTML = html;
+    wrap.classList.add("visible");
+  })
+}
+function openAnnounceManager(){renderAnnouncementsList();resetAnnounceForm();document.getElementById("announceModal").classList.add("active")}
+function closeAnnounceManager(){document.getElementById("announceModal").classList.remove("active")}
+function renderAnnouncementsList(){
+  var wrap = document.getElementById("announceListWrap");
+  if (!allAnnouncements.length) { wrap.innerHTML = '<div class="announce-empty">No announcements yet. Add one below.</div>'; return; }
+  var html = '<div class="announce-list">';
+  allAnnouncements.forEach(function(r){
+    var inactive = !(r.active && String(r.active).toLowerCase()==="true");
+    html += '<div class="announce-list-item '+(inactive?"announce-inactive":"")+'">'
+      + '<div class="announce-list-item-body">'
+        + '<div class="announce-list-item-title">'+escAnn(r.title||"(untitled)")+'</div>'
+        + '<div class="announce-list-item-meta">'
+          + (r.version?'<span style="font-family:JetBrains Mono,monospace;">'+escAnn(r.version)+'</span>':'')
+          + typeBadge(r.type||"update")
+          + '<span>'+escAnn(annDate(r.date)||"no date")+'</span>'
+          + (inactive?'<span style="color:var(--amber);font-weight:600;">HIDDEN</span>':'')
+        + '</div>'
+      + '</div>'
+      + '<div class="announce-list-item-actions">'
+        + '<button class="btn btn-sm" onclick="editAnnouncement(\''+escAnn(r.id)+'\')">Edit</button>'
+      + '</div>'
+    + '</div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+function editAnnouncement(id){
+  var r = allAnnouncements.find(function(x){return x.id===id});
+  if(!r) return;
+  document.getElementById("announceFormTitle").textContent = "Edit announcement";
+  document.getElementById("fAnnId").value = r.id;
+  document.getElementById("fAnnCreated").value = r.created_at || "";
+  document.getElementById("fAnnVersion").value = r.version || "";
+  document.getElementById("fAnnType").value = r.type || "update";
+  document.getElementById("fAnnTitle").value = r.title || "";
+  document.getElementById("fAnnMessage").value = r.message || "";
+  document.getElementById("fAnnDate").value = annDate(r.date) || "";
+  document.getElementById("fAnnActive").value = (r.active && String(r.active).toLowerCase()==="true") ? "TRUE" : "FALSE";
+  document.getElementById("announceDeleteBtn").style.display = "";
+}
+function resetAnnounceForm(){
+  document.getElementById("announceFormTitle").textContent = "+ New announcement";
+  document.getElementById("fAnnId").value = "";
+  document.getElementById("fAnnCreated").value = "";
+  document.getElementById("fAnnVersion").value = HUB_VERSION ? "v"+HUB_VERSION : "";
+  document.getElementById("fAnnType").value = "update";
+  document.getElementById("fAnnTitle").value = "";
+  document.getElementById("fAnnMessage").value = "";
+  document.getElementById("fAnnDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("fAnnActive").value = "TRUE";
+  document.getElementById("announceDeleteBtn").style.display = "none";
+}
+function saveAnnouncement(){
+  var btn = document.getElementById("announceSaveBtn");
+  var title = document.getElementById("fAnnTitle").value.trim();
+  if (!title) { alert("Title is required."); return; }
+  if (ANNOUNCE_SCRIPT_URL === "PLACEHOLDER_ANNOUNCE_URL") { alert("Announcement script URL not configured yet."); return; }
+  btn.disabled = true; btn.textContent = "Saving...";
+  var id = document.getElementById("fAnnId").value || ("ann_" + Date.now().toString(36));
+  var now = new Date().toISOString().replace("T"," ").slice(0,19);
+  var p = new URLSearchParams({
+    action: "saveAnnouncement",
+    id: id,
+    active: document.getElementById("fAnnActive").value,
+    version: document.getElementById("fAnnVersion").value.trim(),
+    type: document.getElementById("fAnnType").value,
+    title: title,
+    message: document.getElementById("fAnnMessage").value.trim(),
+    date: document.getElementById("fAnnDate").value,
+    created_at: document.getElementById("fAnnCreated").value || now,
+    updated_at: now
+  });
+  fetch(ANNOUNCE_SCRIPT_URL + "?" + p.toString(), {mode:"no-cors"})
+    .then(function(){return new Promise(function(r){setTimeout(r,700)})})
+    .then(function(){loadAnnouncements();setTimeout(function(){renderAnnouncementsList();resetAnnounceForm();},800)})
+    .catch(function(e){alert("Error: "+e.message)})
+    .finally(function(){btn.disabled=false;btn.textContent="Save"});
+}
+function deleteAnnouncement(){
+  var id = document.getElementById("fAnnId").value;
+  if (!id) return;
+  if (!confirm("Delete this announcement?")) return;
+  if (ANNOUNCE_SCRIPT_URL === "PLACEHOLDER_ANNOUNCE_URL") { alert("Announcement script URL not configured yet."); return; }
+  var btn = document.getElementById("announceDeleteBtn");
+  btn.disabled = true; btn.textContent = "Deleting...";
+  var p = new URLSearchParams({action:"deleteAnnouncement",id:id});
+  fetch(ANNOUNCE_SCRIPT_URL + "?" + p.toString(), {mode:"no-cors"})
+    .then(function(){return new Promise(function(r){setTimeout(r,700)})})
+    .then(function(){loadAnnouncements();setTimeout(function(){renderAnnouncementsList();resetAnnounceForm();},800)})
+    .catch(function(e){alert("Error: "+e.message)})
+    .finally(function(){btn.disabled=false;btn.textContent="Delete"});
+}
 function loadActivity(){fetch(ACTIVITY_ENDPOINT+"?action=getActivity").then(function(r){return r.json()}).then(function(d){if(!d||!d.data)return;var rows=d.data;var logins=rows.filter(function(r){return r.action==="login"});var now=new Date();var week=new Date(now-7*864e5);var rv=rows.filter(function(r){return new Date(r.timestamp)>week});var uu={};rows.forEach(function(r){uu[r.username]=true});document.getElementById("statLogins").textContent=logins.length;document.getElementById("statViews").textContent=rv.length;document.getElementById("statUsers").textContent=Object.keys(uu).length;var sorted=rows.slice().sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp)}).slice(0,50);if(!sorted.length){document.getElementById("activityTableWrap").innerHTML='<div class="activity-empty">No activity recorded yet.</div>';return}var h='<table class="activity-table"><thead><tr><th>Time</th><th>User</th><th>Page</th><th>Action</th></tr></thead><tbody>';sorted.forEach(function(r){var dt=new Date(r.timestamp);var t=dt.toLocaleDateString("en-GB",{day:"numeric",month:"short"})+" "+dt.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});h+='<tr><td class="time-cell">'+t+"</td><td>"+(r.username||"-")+"</td><td>"+(r.page||"-")+"</td><td>"+(r.action||"-")+"</td></tr>"});h+="</tbody></table>";document.getElementById("activityTableWrap").innerHTML=h}).catch(function(){document.getElementById("activityTableWrap").innerHTML='<div class="activity-empty">Failed to load activity data.</div>'})}
 document.addEventListener("keydown",function(e){if(e.key==="Enter"&&document.getElementById("loginScreen").style.display!=="none")doLogin()});
 </script>
