@@ -225,6 +225,94 @@
 .topbar-env{font-family:var(--mono) !important;font-size:10px !important;font-weight:500 !important;color:#d4f5e1 !important;padding:4px 10px !important;background:rgba(255,255,255,0.08) !important;border-radius:100px !important;text-transform:uppercase;letter-spacing:0.08em;display:inline-flex !important;align-items:center;gap:6px;}
 .topbar-env::before{content:"";width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
 
+
+
+/* ──────────────────────────────────────────────────────────────
+   Reports body redesign — EI Blue design system overrides.
+────────────────────────────────────────────────────────────── */
+
+/* Canvas: paper bg + Inter Tight everywhere */
+body{background:var(--paper) !important;color:var(--ink) !important;font-family:var(--sans) !important;letter-spacing:-0.005em;}
+
+/* Screen header (just below topbar) */
+.screen-header{max-width:1240px;margin:0 auto;padding:48px 32px 24px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;border-bottom:1px solid var(--line);}
+.screen-header .screen-eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--soft);text-transform:uppercase;letter-spacing:0.16em;display:inline-flex;align-items:center;gap:12px;margin-bottom:14px;}
+.screen-header .screen-eyebrow::before{content:"";width:24px;height:1px;background:var(--ei-blue);}
+.screen-header .screen-title{font-size:40px;font-weight:500;letter-spacing:-0.028em;line-height:1;color:var(--ink);}
+.screen-header .screen-sub{margin-top:12px;color:var(--soft);font-size:15px;max-width:540px;line-height:1.5;}
+
+/* Advertiser banner: refined chip-style strip */
+.advertiser-banner{background:var(--ei-blue-50) !important;border-bottom:1px solid var(--ei-blue-100) !important;padding:14px 32px !important;max-width:none;}
+.advertiser-banner-label{font-family:var(--mono) !important;font-size:10px !important;color:var(--ei-blue) !important;text-transform:uppercase !important;letter-spacing:0.12em !important;font-weight:500 !important;}
+.advertiser-banner-name{font-size:18px !important;font-weight:600 !important;color:var(--ink) !important;letter-spacing:-0.018em !important;}
+
+/* Filters bar: lift, mono labels, EI Blue accents */
+.filters-bar{background:var(--surface) !important;border:1px solid var(--line) !important;border-radius:var(--radius-lg) !important;padding:14px 18px !important;max-width:1240px;margin:0 auto 24px !important;display:flex !important;gap:14px !important;align-items:center !important;flex-wrap:wrap !important;color:var(--soft) !important;font-size:13px !important;box-shadow:var(--shadow-1);}
+.filters-bar .filter-label{font-family:var(--mono) !important;font-size:10px !important;font-weight:500 !important;color:var(--soft) !important;text-transform:uppercase !important;letter-spacing:0.12em !important;}
+.advertiser-select{padding:7px 12px !important;border:1px solid var(--line) !important;border-radius:var(--radius) !important;font-size:13px !important;font-family:var(--sans) !important;color:var(--ink) !important;background:var(--paper-2) !important;cursor:pointer;min-width:180px !important;transition:border-color 180ms ease,box-shadow 180ms ease,background 180ms ease;}
+.advertiser-select:hover{border-color:var(--mute) !important;}
+.advertiser-select:focus{outline:none !important;border-color:var(--ei-blue) !important;background:var(--surface) !important;box-shadow:0 0 0 3px var(--ei-blue-50) !important;}
+
+/* Buttons (filters bar action group) */
+.btn{padding:7px 14px !important;background:var(--surface) !important;color:var(--ink) !important;border:1px solid var(--line) !important;border-radius:var(--radius) !important;font-size:13px !important;font-weight:500 !important;cursor:pointer;font-family:var(--sans) !important;transition:all 180ms ease;}
+.btn:hover{border-color:var(--ink) !important;background:var(--surface) !important;color:var(--ink) !important;}
+.btn-pdf,.filters-bar .btn-pdf{background:var(--ei-blue) !important;color:#fff !important;border-color:var(--ei-blue) !important;}
+.btn-pdf:hover,.filters-bar .btn-pdf:hover{background:var(--ei-blue-700) !important;border-color:var(--ei-blue-700) !important;color:#fff !important;}
+
+/* Main canvas wrapper */
+.main{max-width:1240px !important;margin:0 auto !important;padding:0 32px 96px !important;}
+
+/* Section cards */
+.section{background:var(--surface) !important;border:1px solid var(--line) !important;border-radius:var(--radius-lg) !important;padding:24px 26px !important;margin-bottom:14px !important;box-shadow:var(--shadow-1);}
+.section-header{display:flex !important;align-items:flex-end !important;justify-content:space-between !important;margin-bottom:20px !important;padding-bottom:14px !important;border-bottom:1px solid var(--line-2) !important;}
+.section-title{font-size:15px !important;font-weight:600 !important;color:var(--ink) !important;letter-spacing:-0.012em !important;}
+.section-subtitle{font-family:var(--mono) !important;font-size:11px !important;color:var(--mute) !important;margin-top:4px !important;text-transform:uppercase;letter-spacing:0.1em;}
+
+/* KPI cards */
+.kpi-row{gap:14px !important;margin-bottom:14px !important;}
+.kpi-card{background:var(--surface) !important;border:1px solid var(--line) !important;border-radius:var(--radius-lg) !important;padding:22px !important;box-shadow:var(--shadow-1);overflow:visible !important;}
+.kpi-card .accent{display:none !important;}  /* hide top stripe — replaced by left border tint via :first-child */
+.kpi-label{font-family:var(--mono) !important;font-size:10px !important;font-weight:500 !important;color:var(--mute) !important;text-transform:uppercase !important;letter-spacing:0.12em !important;margin-bottom:10px !important;}
+.kpi-value{font-size:30px !important;font-weight:500 !important;letter-spacing:-0.028em !important;line-height:1 !important;color:var(--ink) !important;}
+
+/* Ranked list (top accounts etc.) */
+.ranked-item{padding:10px 12px !important;border-radius:var(--radius) !important;border-bottom:1px solid var(--line-2);}
+.ranked-item:last-child{border-bottom:none;}
+.ranked-item:hover{background:var(--paper-2) !important;}
+.rank-badge{font-family:var(--mono) !important;font-size:11px !important;color:var(--mute) !important;background:transparent !important;border:none !important;padding:0 !important;width:22px;text-align:left;}
+.ranked-name{font-size:13px !important;color:var(--ink) !important;font-weight:500;}
+.ranked-val{font-family:var(--mono) !important;font-size:12px !important;color:var(--soft) !important;font-weight:500 !important;}
+
+/* Horizontal bars */
+.hbar-bar{border-radius:3px !important;background:var(--ei-blue) !important;height:18px !important;}
+.hbar-label{font-size:12px !important;color:var(--ink-2) !important;}
+.hbar-value{font-family:var(--mono) !important;font-size:11px !important;color:var(--soft) !important;}
+
+/* Region cards / compact rows */
+.region-card{background:var(--paper-2) !important;border:1px solid var(--line) !important;border-radius:var(--radius) !important;padding:12px 14px !important;}
+.region-card-name{font-size:13px !important;color:var(--ink) !important;font-weight:500;}
+.region-card-val{font-family:var(--mono) !important;font-size:13px !important;color:var(--ei-blue) !important;font-weight:600;}
+.compact-row{padding:8px 10px !important;border-bottom:1px solid var(--line-2);}
+.compact-row:last-child{border-bottom:none;}
+.compact-label{font-size:13px !important;color:var(--ink-2) !important;}
+.compact-val{font-family:var(--mono) !important;font-size:12px !important;color:var(--soft) !important;}
+
+/* Data table */
+.data-table{font-size:13px !important;}
+.data-table th{font-family:var(--mono) !important;font-size:10px !important;color:var(--mute) !important;text-transform:uppercase !important;letter-spacing:0.12em !important;font-weight:500 !important;border-bottom:1px solid var(--line) !important;padding:12px 14px !important;text-align:left;}
+.data-table td{padding:10px 14px !important;border-bottom:1px solid var(--line-2) !important;color:var(--ink-2) !important;}
+.data-table tr:last-child td{border-bottom:none !important;}
+
+/* Loading / error */
+.loading-screen,.error-screen{padding:80px 32px !important;text-align:center;color:var(--mute);}
+.spinner{border-top-color:var(--ei-blue) !important;}
+
+/* Footer */
+.footer{max-width:1240px !important;margin:0 auto !important;padding:24px 32px !important;border-top:1px solid var(--line) !important;background:transparent !important;color:var(--mute) !important;font-size:12px !important;text-align:left !important;}
+.footer strong{color:var(--ink);font-weight:600;}
+
+/* Print: keep PDF layouts intact (these rules don't run on screen) */
+
 </style>
 </head>
 <body>
@@ -251,6 +339,14 @@
   </nav>
   <div class="topbar-right">
     <span class="topbar-env">Live</span>
+  </div>
+</div>
+
+<div class="screen-header">
+  <div>
+    <div class="screen-eyebrow">Audience reporting · Bombora data</div>
+    <h1 class="screen-title">Reports</h1>
+    <p class="screen-sub">Live campaign performance — visitor counts, surge accounts, and PDF exports per advertiser.</p>
   </div>
 </div>
 
