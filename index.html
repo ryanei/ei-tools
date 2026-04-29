@@ -272,6 +272,14 @@ img,svg{display:block;max-width:100%;}
 .hub.visible .tool-card:nth-child(4){animation:fadeUp 0.45s ease 0.40s both;}
 .hub.visible .admin-section{animation:fadeUp 0.45s ease 0.46s both;}
 .hub.visible .footer{animation:fadeUp 0.4s ease 0.5s both;}
+
+
+/* ── Topbar nav anchoring — keep buttons at geometric centre regardless of breadcrumb width ── */
+.topbar{display:grid !important;grid-template-columns:1fr auto 1fr;align-items:center;}
+.topbar-brand{justify-self:start;}
+.topbar-nav{justify-self:center;flex:0 0 auto !important;}
+.topbar-right{justify-self:end;}
+
 </style>
 </head>
 <body>

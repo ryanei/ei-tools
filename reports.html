@@ -532,6 +532,14 @@
 .topbar-env{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;color:#d4f5e1;padding:4px 10px;background:rgba(255,255,255,0.08);border-radius:100px;text-transform:uppercase;letter-spacing:0.08em;display:inline-flex;align-items:center;gap:6px;}
 .topbar-env::before{content:"";width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
 
+
+
+/* ── Topbar nav anchoring — keep buttons at geometric centre regardless of breadcrumb width ── */
+.topbar{display:grid !important;grid-template-columns:1fr auto 1fr;align-items:center;}
+.topbar-brand{justify-self:start;}
+.topbar-nav{justify-self:center;flex:0 0 auto !important;}
+.topbar-right{justify-self:end;}
+
 </style>
 </head>
 <body>

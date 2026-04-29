@@ -173,6 +173,14 @@ tbody tr:last-child td{border-bottom:none;}
 .topbar-env{font-family:var(--mono) !important;font-size:10px !important;font-weight:500 !important;color:#d4f5e1 !important;padding:4px 10px !important;background:rgba(255,255,255,0.08) !important;border-radius:100px !important;text-transform:uppercase;letter-spacing:0.08em;display:inline-flex !important;align-items:center;gap:6px;}
 .topbar-env::before{content:"";width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
 
+
+
+/* ── Topbar nav anchoring — keep buttons at geometric centre regardless of breadcrumb width ── */
+.topbar{display:grid !important;grid-template-columns:1fr auto 1fr;align-items:center;}
+.topbar-brand{justify-self:start;}
+.topbar-nav{justify-self:center;flex:0 0 auto !important;}
+.topbar-right{justify-self:end;}
+
 </style>
 </head>
 <body>
