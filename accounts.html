@@ -92,7 +92,7 @@ tbody tr:last-child td{border-bottom:none;}
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .modal-overlay.active{display:flex;}
-.modal{background:var(--surface-raised);border-radius:var(--radius);width:820px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:0;display:flex;flex-direction:column;}
+.modal{background:var(--surface-raised);border-radius:var(--radius);width:840px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:0;display:flex;flex-direction:column;}
 .modal-header{padding:24px 32px 16px;border-bottom:1px solid var(--border);}
 .modal-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;justify-content:space-between;}
 .modal-close-x{background:none;border:none;font-size:22px;color:var(--ink-muted);cursor:pointer;padding:4px 10px;border-radius:6px;}
@@ -101,7 +101,7 @@ tbody tr:last-child td{border-bottom:none;}
 .modal-footer{padding:16px 32px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);}
 .modal-footer-actions{display:flex;gap:10px;}
 
-/* Wizard steps */
+/* Wizard */
 .wizard-steps{display:flex;align-items:center;gap:8px;margin-top:18px;}
 .wizard-step{display:flex;align-items:center;gap:8px;color:var(--ink-muted);font-size:12px;font-weight:600;}
 .wizard-step-num{width:24px;height:24px;border-radius:50%;background:var(--surface);color:var(--ink-muted);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:1.5px solid var(--border);}
@@ -120,8 +120,11 @@ tbody tr:last-child td{border-bottom:none;}
 .form-label .req{color:var(--red);}
 .form-input,.form-select,.form-textarea{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;transition:border-color 0.15s;}
 .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-input:disabled{background:var(--surface);color:var(--ink-muted);cursor:not-allowed;}
 .form-textarea{resize:vertical;min-height:60px;}
 .form-help{font-size:11px;color:var(--ink-muted);}
+.form-checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);}
+.form-checkbox-row input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);}
 
 /* Dynamic blocks */
 .dyn-block{margin-top:18px;}
@@ -129,24 +132,23 @@ tbody tr:last-child td{border-bottom:none;}
 .dyn-block-title{font-size:13px;font-weight:700;color:var(--ink);}
 .dyn-block-sub{font-size:12px;color:var(--ink-muted);font-weight:500;}
 .dyn-row{display:grid;gap:10px;align-items:end;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:10px;position:relative;}
-.dyn-row.contact{grid-template-columns:1fr 1fr 36px;}
-.dyn-row.standalone{grid-template-columns:1fr 90px 110px 110px 36px;}
+.dyn-row.contact{grid-template-columns:1fr 1fr 1.4fr 36px;}
+.dyn-row.standalone{grid-template-columns:1.6fr 80px 100px 100px 36px;}
 .dyn-row.service{grid-template-columns:1fr 2fr 36px;}
-.dyn-row.pkg-article{grid-template-columns:1fr 90px 36px;}
+.dyn-row.pkg-article{grid-template-columns:1fr 80px 36px;}
 .dyn-row .form-input,.dyn-row .form-select{padding:8px 10px;font-size:13px;}
 .dyn-row .form-label{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;}
 .dyn-remove{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
 .dyn-remove:hover{background:var(--red-soft);border-color:rgba(220,38,38,0.3);}
 .dyn-empty{padding:18px;text-align:center;color:var(--ink-muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--surface);}
 
-/* Package card in wizard */
 .pkg-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
 .pkg-card-header{display:grid;grid-template-columns:1fr 130px 110px 36px;gap:10px;align-items:end;margin-bottom:14px;}
 .pkg-card-articles{margin-top:10px;padding-top:14px;border-top:1px dashed var(--border);}
 .pkg-card-articles-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .pkg-card-articles-title{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;}
 
-/* Slide-over drawer */
+/* Drawer */
 .drawer-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.4);z-index:90;display:none;backdrop-filter:blur(4px);}
 .drawer-overlay.active{display:block;}
 .drawer{position:fixed;top:0;right:0;width:760px;max-width:100vw;height:100vh;background:var(--surface);box-shadow:-8px 0 32px rgba(12,18,34,0.12);z-index:91;transform:translateX(100%);transition:transform 0.25s ease;display:flex;flex-direction:column;overflow:hidden;}
@@ -170,14 +172,12 @@ tbody tr:last-child td{border-bottom:none;}
 .detail-label{font-size:11px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.4px;}
 .detail-value{font-size:13px;color:var(--ink);font-weight:500;}
 
-/* Contact card */
 .contact-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .contact-card.primary{border-left:3px solid var(--accent);}
 .contact-name{font-weight:700;font-size:14px;}
 .contact-email{font-size:12px;color:var(--ink-muted);font-family:'JetBrains Mono',monospace;}
 .contact-tag{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;}
 
-/* Detail packages */
 .pkg-detail{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;}
 .pkg-detail.inactive{opacity:0.6;}
 .pkg-detail-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
@@ -187,24 +187,24 @@ tbody tr:last-child td{border-bottom:none;}
 .pkg-detail-article{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px dashed var(--border);font-size:13px;}
 .pkg-detail-article:first-child{border-top:none;}
 .pkg-article-pos{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);font-weight:600;min-width:24px;}
-.pkg-article-title{flex:1;}
+.pkg-article-link{flex:1;color:var(--accent);text-decoration:none;word-break:break-all;}
+.pkg-article-link:hover{text-decoration:underline;}
 .pkg-detail-notes{margin-top:10px;font-size:12px;color:var(--ink-muted);font-style:italic;}
 
-/* Standalone articles table */
 .articles-table{width:100%;border-collapse:collapse;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .articles-table th{font-size:10px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;text-align:left;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);}
 .articles-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
 .articles-table tr:last-child td{border-bottom:none;}
 .articles-table .article-inactive{opacity:0.55;}
-.articles-table .article-inactive .article-title{text-decoration:line-through;}
+.articles-table .article-link{color:var(--accent);text-decoration:none;}
+.articles-table .article-link:hover{text-decoration:underline;}
+.articles-table .article-inactive .article-link{text-decoration:line-through;}
 .articles-totals{font-weight:700;background:var(--surface);}
 
-/* Service card */
 .service-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;}
 .service-name{font-weight:700;font-size:14px;}
 .service-details{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
 
-/* Notes */
 .note-add-box{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
 .note-add-box textarea{width:100%;border:none;outline:none;resize:vertical;font-family:inherit;font-size:13px;color:var(--ink);background:transparent;min-height:50px;}
 .note-add-actions{display:flex;justify-content:flex-end;margin-top:8px;}
@@ -290,7 +290,7 @@ tbody tr:last-child td{border-bottom:none;}
           <th>Packages / Articles</th>
           <th>Monthly</th>
           <th>Renewal</th>
-          <th>Terms</th>
+          <th>Term</th>
           <th></th>
         </tr>
       </thead>
@@ -343,25 +343,29 @@ tbody tr:last-child td{border-bottom:none;}
           </div>
           <div class="form-group">
             <label class="form-label">Campaign Start</label>
-            <input type="date" class="form-input" id="fStart">
+            <input type="date" class="form-input" id="fStart" oninput="recomputeRenewal()">
           </div>
           <div class="form-group">
-            <label class="form-label">Renewal Date</label>
-            <input type="date" class="form-input" id="fRenewal">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Terms</label>
-            <select class="form-select" id="fTerms" onchange="onTermsChange()">
+            <label class="form-label">Term Type</label>
+            <select class="form-select" id="fTermType" onchange="onTermTypeChange()">
               <option value="Monthly Rolling">Monthly Rolling</option>
-              <option value="Quarterly">Quarterly</option>
-              <option value="6-Month Fixed">6-Month Fixed</option>
-              <option value="Annual Fixed">Annual Fixed</option>
-              <option value="Custom">Custom</option>
+              <option value="Quarterly Rolling">Quarterly Rolling</option>
+              <option value="Fixed">Fixed Term</option>
             </select>
           </div>
-          <div class="form-group" id="fCustomTermsGroup" style="display:none;">
-            <label class="form-label">Custom Terms</label>
-            <input type="text" class="form-input" id="fCustomTerms" placeholder="e.g. 18-month with break clause">
+          <div class="form-group" id="fFixedMonthsGroup" style="display:none;">
+            <label class="form-label">Fixed length (months)</label>
+            <input type="number" min="1" step="1" class="form-input" id="fFixedMonths" placeholder="e.g. 12" oninput="recomputeRenewal()">
+          </div>
+          <div class="form-group" id="fRenewalGroup" style="display:none;">
+            <label class="form-label">Renewal Date <span class="form-help" style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-muted);">(auto-computed)</span></label>
+            <input type="date" class="form-input" id="fRenewal" disabled>
+          </div>
+          <div class="form-group full" id="fFixedThenRollingGroup" style="display:none;">
+            <label class="form-checkbox-row">
+              <input type="checkbox" id="fFixedThenRolling">
+              <span>Transitions to monthly rolling after the fixed term</span>
+            </label>
           </div>
         </div>
       </div>
@@ -370,11 +374,15 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="wizard-pane" data-pane="2">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Primary Contact Name</label>
-            <input type="text" class="form-input" id="fPrimaryName" placeholder="Rahul Sharma">
+            <label class="form-label">Primary First Name</label>
+            <input type="text" class="form-input" id="fPrimaryFirst" placeholder="Rahul">
           </div>
           <div class="form-group">
-            <label class="form-label">Primary Contact Email</label>
+            <label class="form-label">Primary Last Name</label>
+            <input type="text" class="form-input" id="fPrimaryLast" placeholder="Sharma">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Primary Email</label>
             <input type="email" class="form-input" id="fPrimaryEmail" placeholder="rahul@advertiser.com">
           </div>
         </div>
@@ -396,7 +404,7 @@ tbody tr:last-child td{border-bottom:none;}
           <div class="dyn-block-header">
             <div>
               <div class="dyn-block-title">Packages</div>
-              <div class="dyn-block-sub">Bundle multiple articles under one monthly price (e.g. "Q2 Tier 1")</div>
+              <div class="dyn-block-sub">Bundle multiple articles under one monthly price (name optional)</div>
             </div>
             <button class="btn btn-sm" onclick="addPackage()">+ Add Package</button>
           </div>
@@ -407,7 +415,7 @@ tbody tr:last-child td{border-bottom:none;}
           <div class="dyn-block-header">
             <div>
               <div class="dyn-block-title">Standalone articles</div>
-              <div class="dyn-block-sub">Articles not in any package — each priced individually</div>
+              <div class="dyn-block-sub">Articles outside any package — each priced individually</div>
             </div>
             <button class="btn btn-sm" onclick="addStandaloneArticle()">+ Add Article</button>
           </div>
@@ -447,7 +455,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <div class="footer">
   <div class="footer-left">Expert Insights &middot; Accounts</div>
-  <div class="footer-right">v2.1.0</div>
+  <div class="footer-right">v2.2.0</div>
 </div>
 
 <script>
@@ -469,6 +477,8 @@ function fmtTime(d){if(!d)return"";const dt=new Date(d);if(isNaN(dt))return Stri
 function genId(p){return p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function isTrue(v){return v && String(v).toUpperCase()==="TRUE";}
 function daysUntil(d){const s=fmtDate(d);if(!s)return null;const dt=new Date(s);if(isNaN(dt))return null;return Math.ceil((dt-new Date())/(1000*60*60*24));}
+function fullName(first,last){return [first,last].filter(Boolean).join(" ");}
+function urlLabel(u){if(!u)return"(no URL)";try{const url=new URL(u);const slug=url.pathname.split("/").filter(Boolean).pop();return slug?slug.replace(/-/g," "):url.hostname;}catch(e){return u;}}
 
 // ── Loading ──
 function loadSheet(sheetName){
@@ -520,7 +530,7 @@ async function reload(){
     renderTable();
     if (currentDrawerId) openDrawer(currentDrawerId, true);
   } catch(e) {
-    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="8" class="error-msg">Failed to load: ${esc(e.message)}. Make sure the sheet is shared and the Apps Script is deployed.</td></tr>`;
+    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="8" class="error-msg">Failed to load: ${esc(e.message)}.</td></tr>`;
   }
 }
 
@@ -548,6 +558,8 @@ function indexChildren(){
       }
       return isTrue(x.active);
     }).length;
+
+    a._primaryName = fullName(a.primary_contact_first_name, a.primary_contact_last_name);
   });
 }
 
@@ -557,6 +569,7 @@ function renderKpis(){
   const totalRevenue = active.reduce((s, a) => s + a._monthlyRevenue, 0);
   const totalArticles = advertisers.reduce((s, a) => s + a._totalActiveArticles, 0);
   const renewing = advertisers.filter(a => {
+    if (a.term_type !== "Fixed") return false;
     const d = daysUntil(a.renewal_date);
     return d !== null && d >= 0 && d <= 30;
   }).length;
@@ -565,11 +578,22 @@ function renderKpis(){
       <div class="kpi-card teal"><div class="kpi-label">Active Advertisers</div><div class="kpi-value">${active.length}</div><div class="kpi-sub">of ${advertisers.length} total</div></div>
       <div class="kpi-card green"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">${fmtMoney(totalRevenue)}</div><div class="kpi-sub">packages + standalone articles</div></div>
       <div class="kpi-card accent"><div class="kpi-label">Articles Sponsored</div><div class="kpi-value">${totalArticles}</div><div class="kpi-sub">across active campaigns</div></div>
-      <div class="kpi-card amber"><div class="kpi-label">Renewals (30 days)</div><div class="kpi-value">${renewing}</div><div class="kpi-sub">renewal date in range</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Renewals (30 days)</div><div class="kpi-value">${renewing}</div><div class="kpi-sub">fixed-term campaigns ending</div></div>
     </div>`;
 }
 
 // ── Table ──
+function termSummary(a){
+  if (a.term_type === "Monthly Rolling") return "Monthly Rolling";
+  if (a.term_type === "Quarterly Rolling") return "Quarterly Rolling";
+  if (a.term_type === "Fixed") {
+    const m = parseInt(a.fixed_months) || 0;
+    const base = m ? `${m}-month fixed` : "Fixed";
+    return isTrue(a.fixed_then_rolling) ? `${base} → rolling` : base;
+  }
+  return a.term_type || "—";
+}
+
 function renderTable(){
   const search = document.getElementById("filterSearch").value.toLowerCase().trim();
   const status = document.getElementById("filterStatus").value;
@@ -579,11 +603,11 @@ function renderTable(){
     if (search) {
       const hay = [
         a.name||"",
-        a.primary_contact_name||"",
+        a._primaryName||"",
         a.primary_contact_email||"",
-        ...(a._contacts||[]).map(c => c.name+" "+c.email),
+        ...(a._contacts||[]).map(c => fullName(c.first_name,c.last_name)+" "+c.email),
         ...(a._packages||[]).map(pk => pk.name||""),
-        ...(a._articles||[]).map(x => x.title||"")
+        ...(a._articles||[]).map(x => x.url||"")
       ].join(" ").toLowerCase();
       if (!hay.includes(search)) return false;
     }
@@ -604,8 +628,9 @@ function renderTable(){
   }
 
   tbody.innerHTML = filtered.map(a => {
-    const renewalDays = daysUntil(a.renewal_date);
-    let renewalCell = a.renewal_date ? fmtDateLong(a.renewal_date) : "—";
+    const isFixed = a.term_type === "Fixed";
+    const renewalDays = isFixed ? daysUntil(a.renewal_date) : null;
+    let renewalCell = isFixed && a.renewal_date ? fmtDateLong(a.renewal_date) : "—";
     if (renewalDays !== null && renewalDays >= 0 && renewalDays <= 30) renewalCell += ` <span style="color:var(--amber);font-weight:600;">(${renewalDays}d)</span>`;
     else if (renewalDays !== null && renewalDays < 0) renewalCell += ` <span style="color:var(--red);font-weight:600;">overdue</span>`;
     const pkgCount = a._activePackages.length;
@@ -618,14 +643,14 @@ function renderTable(){
       <tr onclick="openDrawer('${esc(a.id)}')">
         <td>
           <div class="adv-cell-name">${esc(a.name||"(unnamed)")}</div>
-          ${a.primary_contact_name ? `<div class="adv-cell-contact">${esc(a.primary_contact_name)}${a.primary_contact_email ? " · "+esc(a.primary_contact_email) : ""}</div>` : ""}
+          ${a._primaryName ? `<div class="adv-cell-contact">${esc(a._primaryName)}${a.primary_contact_email ? " · "+esc(a.primary_contact_email) : ""}</div>` : ""}
         </td>
         <td>${statusBadge(a.status)}</td>
         <td>${parBadge(a.par_live)}</td>
         <td><strong>${a._totalActiveArticles}</strong> <span style="color:var(--ink-muted);font-size:11px;">articles</span><div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">${breakdown}</div></td>
         <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${a._monthlyRevenue ? fmtMoney(a._monthlyRevenue) : "—"}</td>
         <td style="font-size:12px;">${renewalCell}</td>
-        <td><span style="font-size:12px;color:var(--ink-muted);">${esc(a.terms||"—")}</span></td>
+        <td><span style="font-size:12px;color:var(--ink-muted);">${esc(termSummary(a))}</span></td>
         <td onclick="event.stopPropagation();"><button class="btn btn-sm" onclick="openWizard('${esc(a.id)}')">Edit</button></td>
       </tr>`;
   }).join("");
@@ -638,6 +663,31 @@ function statusBadge(s){
 function parBadge(v){ return v==="Yes" ? `<span class="badge badge-yes">Yes</span>` : `<span class="badge badge-no">No</span>`; }
 
 // ── Wizard ──
+function onTermTypeChange(){
+  const t = document.getElementById("fTermType").value;
+  const isFixed = t === "Fixed";
+  document.getElementById("fFixedMonthsGroup").style.display = isFixed ? "" : "none";
+  document.getElementById("fRenewalGroup").style.display = isFixed ? "" : "none";
+  document.getElementById("fFixedThenRollingGroup").style.display = isFixed ? "" : "none";
+  if (!isFixed) {
+    document.getElementById("fRenewal").value = "";
+    document.getElementById("fFixedMonths").value = "";
+    document.getElementById("fFixedThenRolling").checked = false;
+  } else {
+    recomputeRenewal();
+  }
+}
+
+function recomputeRenewal(){
+  if (document.getElementById("fTermType").value !== "Fixed") return;
+  const start = document.getElementById("fStart").value;
+  const months = parseInt(document.getElementById("fFixedMonths").value) || 0;
+  if (!start || !months) { document.getElementById("fRenewal").value = ""; return; }
+  const d = new Date(start);
+  d.setMonth(d.getMonth() + months);
+  document.getElementById("fRenewal").value = d.toISOString().slice(0, 10);
+}
+
 function openWizard(id){
   wizard.mode = id ? 'edit' : 'new';
   wizard.editingId = id || null;
@@ -652,18 +702,20 @@ function openWizard(id){
   document.getElementById("fStatus").value = a ? (a.status||"Active") : "Active";
   document.getElementById("fPAR").value = a ? (a.par_live||"No") : "No";
   document.getElementById("fStart").value = a ? fmtDate(a.start_date) : "";
+  document.getElementById("fTermType").value = a ? (a.term_type||"Monthly Rolling") : "Monthly Rolling";
+  document.getElementById("fFixedMonths").value = a ? (a.fixed_months||"") : "";
+  document.getElementById("fFixedThenRolling").checked = a ? isTrue(a.fixed_then_rolling) : false;
   document.getElementById("fRenewal").value = a ? fmtDate(a.renewal_date) : "";
-  document.getElementById("fTerms").value = a ? (a.terms||"Monthly Rolling") : "Monthly Rolling";
-  document.getElementById("fCustomTerms").value = a ? (a.custom_terms||"") : "";
-  onTermsChange();
+  onTermTypeChange();
 
   // Step 2
-  document.getElementById("fPrimaryName").value = a ? (a.primary_contact_name||"") : "";
+  document.getElementById("fPrimaryFirst").value = a ? (a.primary_contact_first_name||"") : "";
+  document.getElementById("fPrimaryLast").value = a ? (a.primary_contact_last_name||"") : "";
   document.getElementById("fPrimaryEmail").value = a ? (a.primary_contact_email||"") : "";
-  wizard.contacts = a ? a._contacts.map(c => ({id: c.id || genId("con"), name: c.name||"", email: c.email||""})) : [];
+  wizard.contacts = a ? a._contacts.map(c => ({id: c.id || genId("con"), first_name: c.first_name||"", last_name: c.last_name||"", email: c.email||""})) : [];
   renderContactsList();
 
-  // Step 3 — load packages with their articles, plus standalone articles
+  // Step 3
   if (a) {
     wizard.packages = a._packages.map(pk => ({
       id: pk.id || genId("pkg"),
@@ -674,12 +726,12 @@ function openWizard(id){
       _articles: a._articles
         .filter(x => x.package_id === pk.id)
         .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
-        .map(x => ({ id: x.id || genId("art"), title: x.title||"", position: String(x.position||"1") }))
+        .map(x => ({ id: x.id || genId("art"), url: x.url||"", position: String(x.position||"1") }))
     }));
     wizard.standaloneArticles = a._articles
       .filter(x => !x.package_id)
       .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
-      .map(x => ({ id: x.id || genId("art"), title: x.title||"", position: String(x.position||"1"), monthly_price: x.monthly_price||"", active: isTrue(x.active) ? "TRUE" : "FALSE" }));
+      .map(x => ({ id: x.id || genId("art"), url: x.url||"", position: String(x.position||"1"), monthly_price: x.monthly_price||"", active: isTrue(x.active) ? "TRUE" : "FALSE" }));
     wizard.services = a._services.map(s => ({ id: s.id || genId("svc"), name: s.name||"", details: s.details||"" }));
   } else {
     wizard.packages = [];
@@ -695,9 +747,6 @@ function openWizard(id){
 }
 
 function closeWizard(){ document.getElementById("wizardModal").classList.remove("active"); }
-function onTermsChange(){
-  document.getElementById("fCustomTermsGroup").style.display = document.getElementById("fTerms").value === "Custom" ? "" : "none";
-}
 function showWizardStep(step){
   wizard.step = step;
   document.querySelectorAll(".wizard-step").forEach(el => {
@@ -722,7 +771,7 @@ function wizardNext(){
 function wizardBack(){ if (wizard.step > 1) showWizardStep(wizard.step - 1); }
 
 // ── Wizard: contacts ──
-function addContactRow(){ wizard.contacts.push({ id: genId("con"), name: "", email: "" }); renderContactsList(); }
+function addContactRow(){ wizard.contacts.push({ id: genId("con"), first_name: "", last_name: "", email: "" }); renderContactsList(); }
 function removeContactRow(i){ wizard.contacts.splice(i, 1); renderContactsList(); }
 function updateContactField(i, field, val){ wizard.contacts[i][field] = val; }
 function renderContactsList(){
@@ -730,7 +779,8 @@ function renderContactsList(){
   if (!wizard.contacts.length) { el.innerHTML = `<div class="dyn-empty">No additional contacts yet.</div>`; return; }
   el.innerHTML = wizard.contacts.map((c, i) => `
     <div class="dyn-row contact">
-      <div class="form-group"><label class="form-label">Name</label><input class="form-input" type="text" value="${esc(c.name||"")}" oninput="updateContactField(${i},'name',this.value)" placeholder="Full name"></div>
+      <div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" value="${esc(c.first_name||"")}" oninput="updateContactField(${i},'first_name',this.value)" placeholder="First"></div>
+      <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" value="${esc(c.last_name||"")}" oninput="updateContactField(${i},'last_name',this.value)" placeholder="Last"></div>
       <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" value="${esc(c.email||"")}" oninput="updateContactField(${i},'email',this.value)" placeholder="email@advertiser.com"></div>
       <button class="dyn-remove" onclick="removeContactRow(${i})" title="Remove">×</button>
     </div>`).join("");
@@ -740,7 +790,7 @@ function renderContactsList(){
 function addPackage(){ wizard.packages.push({ id: genId("pkg"), name: "", monthly_price: "", status: "Active", notes: "", _articles: [] }); renderPackagesList(); }
 function removePackage(i){ wizard.packages.splice(i, 1); renderPackagesList(); }
 function updatePackageField(i, field, val){ wizard.packages[i][field] = val; }
-function addPackageArticle(pi){ wizard.packages[pi]._articles.push({ id: genId("art"), title: "", position: "1" }); renderPackagesList(); }
+function addPackageArticle(pi){ wizard.packages[pi]._articles.push({ id: genId("art"), url: "", position: "1" }); renderPackagesList(); }
 function removePackageArticle(pi, ai){ wizard.packages[pi]._articles.splice(ai, 1); renderPackagesList(); }
 function updatePackageArticleField(pi, ai, field, val){ wizard.packages[pi]._articles[ai][field] = val; }
 function renderPackagesList(){
@@ -750,7 +800,7 @@ function renderPackagesList(){
   el.innerHTML = wizard.packages.map((pk, pi) => `
     <div class="pkg-card">
       <div class="pkg-card-header">
-        <div class="form-group"><label class="form-label">Package name</label><input class="form-input" type="text" value="${esc(pk.name||"")}" oninput="updatePackageField(${pi},'name',this.value)" placeholder="e.g. Q2 Tier 1"></div>
+        <div class="form-group"><label class="form-label">Package name <span style="color:var(--ink-muted);text-transform:none;letter-spacing:0;">(optional)</span></label><input class="form-input" type="text" value="${esc(pk.name||"")}" oninput="updatePackageField(${pi},'name',this.value)" placeholder="e.g. Q2 Tier 1"></div>
         <div class="form-group"><label class="form-label">Monthly $</label><input class="form-input" type="number" step="0.01" value="${esc(pk.monthly_price||"")}" oninput="updatePackageField(${pi},'monthly_price',this.value)" placeholder="0.00"></div>
         <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updatePackageField(${pi},'status',this.value)"><option value="Active" ${pk.status==="Active"?"selected":""}>Active</option><option value="Inactive" ${pk.status==="Inactive"?"selected":""}>Inactive</option></select></div>
         <button class="dyn-remove" onclick="removePackage(${pi})" title="Remove package">×</button>
@@ -763,7 +813,7 @@ function renderPackagesList(){
         </div>
         ${pk._articles.length ? pk._articles.map((a, ai) => `
           <div class="dyn-row pkg-article">
-            <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" value="${esc(a.title||"")}" oninput="updatePackageArticleField(${pi},${ai},'title',this.value)" placeholder="Article title"></div>
+            <div class="form-group"><label class="form-label">Article URL</label><input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updatePackageArticleField(${pi},${ai},'url',this.value)" placeholder="https://expertinsights.com/..."></div>
             <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updatePackageArticleField(${pi},${ai},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
             <button class="dyn-remove" onclick="removePackageArticle(${pi},${ai})" title="Remove">×</button>
           </div>`).join("") : `<div class="dyn-empty" style="margin-top:8px;">No articles in this package yet.</div>`}
@@ -772,7 +822,7 @@ function renderPackagesList(){
 }
 
 // ── Wizard: standalone articles ──
-function addStandaloneArticle(){ wizard.standaloneArticles.push({ id: genId("art"), title: "", position: "1", monthly_price: "", active: "TRUE" }); renderStandaloneArticlesList(); }
+function addStandaloneArticle(){ wizard.standaloneArticles.push({ id: genId("art"), url: "", position: "1", monthly_price: "", active: "TRUE" }); renderStandaloneArticlesList(); }
 function removeStandaloneArticle(i){ wizard.standaloneArticles.splice(i, 1); renderStandaloneArticlesList(); }
 function updateStandaloneArticleField(i, field, val){ wizard.standaloneArticles[i][field] = val; }
 function renderStandaloneArticlesList(){
@@ -781,7 +831,7 @@ function renderStandaloneArticlesList(){
   const positions = ["1","2","3","4","5","6","7","8","9","10"];
   el.innerHTML = wizard.standaloneArticles.map((a, i) => `
     <div class="dyn-row standalone">
-      <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" value="${esc(a.title||"")}" oninput="updateStandaloneArticleField(${i},'title',this.value)" placeholder="Article title"></div>
+      <div class="form-group"><label class="form-label">Article URL</label><input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateStandaloneArticleField(${i},'url',this.value)" placeholder="https://expertinsights.com/..."></div>
       <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updateStandaloneArticleField(${i},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
       <div class="form-group"><label class="form-label">Monthly $</label><input class="form-input" type="number" step="0.01" value="${esc(a.monthly_price||"")}" oninput="updateStandaloneArticleField(${i},'monthly_price',this.value)" placeholder="0.00"></div>
       <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updateStandaloneArticleField(${i},'active',this.value)"><option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option><option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option></select></div>
@@ -804,7 +854,7 @@ function renderServicesList(){
     </div>`).join("");
 }
 
-// ── Save bundle ──
+// ── Save ──
 async function saveBundle(){
   const btn = document.getElementById("wizardSaveBtn");
   const name = document.getElementById("fName").value.trim();
@@ -814,20 +864,23 @@ async function saveBundle(){
   const id = wizard.editingId || genId("adv");
   const now = new Date().toISOString().replace("T"," ").slice(0,19);
 
-  // Flatten: package articles get package_id; standalone articles get package_id=""
   const allArticles = [];
   wizard.packages.forEach(pk => {
-    pk._articles.filter(a => a.title).forEach(a => {
-      allArticles.push({ id: a.id, package_id: pk.id, title: a.title, position: a.position, monthly_price: "", active: "TRUE" });
+    pk._articles.filter(a => a.url).forEach(a => {
+      allArticles.push({ id: a.id, package_id: pk.id, url: a.url, position: a.position, monthly_price: "", active: "TRUE" });
     });
   });
-  wizard.standaloneArticles.filter(a => a.title).forEach(a => {
-    allArticles.push({ id: a.id, package_id: "", title: a.title, position: a.position, monthly_price: a.monthly_price, active: a.active });
+  wizard.standaloneArticles.filter(a => a.url).forEach(a => {
+    allArticles.push({ id: a.id, package_id: "", url: a.url, position: a.position, monthly_price: a.monthly_price, active: a.active });
   });
 
-  const cleanPackages = wizard.packages.filter(pk => pk.name).map(pk => ({
+  // Save all packages — name is optional. Caller controls add/remove via wizard.
+  const cleanPackages = wizard.packages.map(pk => ({
     id: pk.id, name: pk.name, monthly_price: pk.monthly_price, status: pk.status, notes: pk.notes
   }));
+
+  const termType = document.getElementById("fTermType").value;
+  const isFixed = termType === "Fixed";
 
   const payload = {
     action: "saveAdvertiserBundle",
@@ -836,14 +889,16 @@ async function saveBundle(){
     status: document.getElementById("fStatus").value,
     par_live: document.getElementById("fPAR").value,
     start_date: document.getElementById("fStart").value,
-    renewal_date: document.getElementById("fRenewal").value,
-    terms: document.getElementById("fTerms").value,
-    custom_terms: document.getElementById("fTerms").value === "Custom" ? document.getElementById("fCustomTerms").value.trim() : "",
-    primary_contact_name: document.getElementById("fPrimaryName").value.trim(),
+    renewal_date: isFixed ? document.getElementById("fRenewal").value : "",
+    term_type: termType,
+    fixed_months: isFixed ? (document.getElementById("fFixedMonths").value || "") : "",
+    fixed_then_rolling: isFixed && document.getElementById("fFixedThenRolling").checked ? "TRUE" : "FALSE",
+    primary_contact_first_name: document.getElementById("fPrimaryFirst").value.trim(),
+    primary_contact_last_name: document.getElementById("fPrimaryLast").value.trim(),
     primary_contact_email: document.getElementById("fPrimaryEmail").value.trim(),
     created_at: wizard.mode === "edit" ? "" : now,
     updated_at: now,
-    contacts_json: JSON.stringify(wizard.contacts.filter(c => c.name || c.email)),
+    contacts_json: JSON.stringify(wizard.contacts.filter(c => c.first_name || c.last_name || c.email)),
     packages_json: JSON.stringify(cleanPackages),
     articles_json: JSON.stringify(allArticles),
     services_json: JSON.stringify(wizard.services.filter(s => s.name))
@@ -894,6 +949,8 @@ function openDrawer(id, refresh){
   if (!a) { closeDrawer(); return; }
   currentDrawerId = id;
 
+  const monthly = a._monthlyRevenue ? `<span style="font-size:12px;color:var(--ink);font-weight:700;font-family:'JetBrains Mono',monospace;">${fmtMoney(a._monthlyRevenue)}/mo</span>` : "";
+
   document.getElementById("drawerHeader").innerHTML = `
     <div class="drawer-title-row">
       <div class="drawer-title">${esc(a.name||"(unnamed)")}</div>
@@ -902,8 +959,8 @@ function openDrawer(id, refresh){
     <div class="drawer-meta">
       ${statusBadge(a.status)}
       <span class="badge ${a.par_live==="Yes"?"badge-yes":"badge-no"}">PAR ${esc(a.par_live||"No")}</span>
-      <span style="font-size:12px;color:var(--ink-muted);">${esc(a.terms||"")}${a.terms==="Custom"&&a.custom_terms?" — "+esc(a.custom_terms):""}</span>
-      ${a._monthlyRevenue ? `<span style="font-size:12px;color:var(--ink);font-weight:700;font-family:'JetBrains Mono',monospace;">${fmtMoney(a._monthlyRevenue)}/mo</span>` : ""}
+      <span style="font-size:12px;color:var(--ink-muted);">${esc(termSummary(a))}</span>
+      ${monthly}
     </div>
     <div class="drawer-actions">
       <button class="btn btn-sm" onclick="openWizard('${esc(a.id)}')">✏ Edit</button>
@@ -911,33 +968,38 @@ function openDrawer(id, refresh){
     </div>
   `;
 
+  const isFixed = a.term_type === "Fixed";
+  const renewalRow = isFixed ? `<div class="detail-item"><div class="detail-label">Renewal Date</div><div class="detail-value">${fmtDateLong(a.renewal_date)}${renewalChip(a.renewal_date)}${isTrue(a.fixed_then_rolling)?` <span class="badge badge-paused" style="margin-left:6px;">then rolling</span>`:""}</div></div>` : "";
+
   const detailHtml = `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Campaign Details</div></div>
       <div class="detail-grid">
         <div class="detail-item"><div class="detail-label">Campaign Start</div><div class="detail-value">${fmtDateLong(a.start_date)}</div></div>
-        <div class="detail-item"><div class="detail-label">Renewal Date</div><div class="detail-value">${fmtDateLong(a.renewal_date)}${renewalChip(a.renewal_date)}</div></div>
-        <div class="detail-item"><div class="detail-label">Terms</div><div class="detail-value">${esc(a.terms||"—")}</div></div>
+        <div class="detail-item"><div class="detail-label">Term</div><div class="detail-value">${esc(termSummary(a))}</div></div>
+        ${renewalRow}
         <div class="detail-item"><div class="detail-label">PAR Live</div><div class="detail-value">${esc(a.par_live||"No")}</div></div>
-        ${a.terms==="Custom"&&a.custom_terms?`<div class="detail-item full"><div class="detail-label">Custom Terms</div><div class="detail-value">${esc(a.custom_terms)}</div></div>`:""}
       </div>
     </div>`;
 
   // Contacts
   const allContacts = [];
-  if (a.primary_contact_name || a.primary_contact_email) allContacts.push({ name: a.primary_contact_name, email: a.primary_contact_email, primary: true });
+  if (a._primaryName || a.primary_contact_email) allContacts.push({ first_name: a.primary_contact_first_name, last_name: a.primary_contact_last_name, email: a.primary_contact_email, primary: true });
   a._contacts.forEach(c => allContacts.push({ ...c, primary: false }));
   const contactsHtml = `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Contacts</div><div class="drawer-section-meta">${allContacts.length}</div></div>
-      ${allContacts.length ? allContacts.map(c => `
+      ${allContacts.length ? allContacts.map(c => {
+        const name = fullName(c.first_name, c.last_name) || "(no name)";
+        return `
         <div class="contact-card ${c.primary?"primary":""}">
           <div>
-            <div class="contact-name">${esc(c.name||"(no name)")}${c.primary?` <span class="contact-tag">primary</span>`:""}</div>
+            <div class="contact-name">${esc(name)}${c.primary?` <span class="contact-tag">primary</span>`:""}</div>
             ${c.email ? `<div class="contact-email">${esc(c.email)}</div>` : ""}
           </div>
           ${c.email ? `<a class="btn btn-sm" href="mailto:${esc(c.email)}">Email</a>` : ""}
-        </div>`).join("") : `<div class="empty">No contacts on file.</div>`}
+        </div>`;
+      }).join("") : `<div class="empty">No contacts on file.</div>`}
     </div>`;
 
   // Packages
@@ -950,37 +1012,38 @@ function openDrawer(id, refresh){
   const packagesHtml = `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Packages</div><div class="drawer-section-meta">${a._activePackages.length} active${a._packages.length>a._activePackages.length?` · ${a._packages.length-a._activePackages.length} inactive`:""}</div></div>
-      ${sortedPackages.length ? sortedPackages.map(pk => {
+      ${sortedPackages.length ? sortedPackages.map((pk, idx) => {
         const arts = a._articles.filter(x => x.package_id === pk.id).sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
         const isActive = (pk.status||"Active") === "Active";
+        const displayName = pk.name || `Package ${idx + 1}`;
         return `
           <div class="pkg-detail ${isActive?"":"inactive"}">
             <div class="pkg-detail-header">
               <div>
-                <div class="pkg-detail-name">${esc(pk.name||"(unnamed)")}</div>
+                <div class="pkg-detail-name">${esc(displayName)}</div>
                 ${!isActive ? `<span class="badge badge-inactive" style="margin-top:4px;display:inline-block;">Inactive</span>` : ""}
               </div>
               <div class="pkg-detail-price">${fmtMoney(pk.monthly_price)}/mo</div>
             </div>
             ${arts.length ? `<div class="pkg-detail-articles">${arts.map(art => `
-              <div class="pkg-detail-article"><span class="pkg-article-pos">#${esc(art.position||"?")}</span><span class="pkg-article-title">${esc(art.title||"")}</span></div>
+              <div class="pkg-detail-article"><span class="pkg-article-pos">#${esc(art.position||"?")}</span><a class="pkg-article-link" href="${esc(art.url||"#")}" target="_blank" rel="noopener">${esc(urlLabel(art.url))}</a></div>
             `).join("")}</div>` : `<div style="font-size:12px;color:var(--ink-muted);font-style:italic;">No articles assigned.</div>`}
             ${pk.notes ? `<div class="pkg-detail-notes">${esc(pk.notes)}</div>` : ""}
           </div>`;
       }).join("") : `<div class="empty">No packages.</div>`}
     </div>`;
 
-  // Standalone articles
+  // Standalone
   const sortedStandalone = [...a._standaloneArticles].sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
   const standaloneHtml = sortedStandalone.length ? `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Standalone Articles</div><div class="drawer-section-meta">${a._activeStandaloneArticles.length} active${a._standaloneArticles.length>a._activeStandaloneArticles.length?` · ${a._standaloneArticles.length-a._activeStandaloneArticles.length} inactive`:""}</div></div>
       <table class="articles-table">
-        <thead><tr><th>Title</th><th>Position</th><th>Monthly</th><th>Status</th></tr></thead>
+        <thead><tr><th>Article</th><th>Position</th><th>Monthly</th><th>Status</th></tr></thead>
         <tbody>
           ${sortedStandalone.map(x => `
             <tr class="${isTrue(x.active)?"":"article-inactive"}">
-              <td><span class="article-title">${esc(x.title||"")}</span></td>
+              <td><a class="article-link" href="${esc(x.url||"#")}" target="_blank" rel="noopener">${esc(urlLabel(x.url))}</a></td>
               <td>#${esc(x.position||"?")}</td>
               <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${fmtMoney(x.monthly_price)}</td>
               <td>${isTrue(x.active)?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
@@ -1090,7 +1153,6 @@ async function deleteNote(noteId){
   }
 }
 
-// ── Init ──
 reload();
 </script>
 </body>
