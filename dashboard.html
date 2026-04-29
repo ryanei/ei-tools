@@ -210,7 +210,7 @@
 <body>
 <script>
 (function(){
-  var s;try{s=JSON.parse(sessionStorage.getItem("eitools_session"))}catch(e){}
+  var s;try{var v=localStorage.getItem("eitools_session")||sessionStorage.getItem("eitools_session");s=v?JSON.parse(v):null;}catch(e){}
   if(!s||!s.username){window.location.href="index.html";return;}
   var EP="https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
   fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=dashboard&type=pageview",{mode:"no-cors"}).catch(function(){});
