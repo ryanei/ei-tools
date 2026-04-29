@@ -422,6 +422,125 @@ body {
 .topbar-env{font-family:var(--mono) !important;font-size:10px !important;font-weight:500 !important;color:#d4f5e1 !important;padding:4px 10px !important;background:rgba(255,255,255,0.08) !important;border-radius:100px !important;text-transform:uppercase;letter-spacing:0.08em;display:inline-flex !important;align-items:center;gap:6px;}
 .topbar-env::before{content:"";width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
 
+
+
+/* ============================================================
+   Proposals — design system rebuild
+   ============================================================ */
+:root{
+  --ei-blue:#012747;--ei-blue-700:#0a3a64;--ei-blue-900:#001a30;
+  --ei-blue-50:#eaf0f6;--ei-blue-100:#d3def0;
+  --paper:#faf9f6;--paper-2:#f3f1ec;--surface:#ffffff;
+  --p-line:#e6e3dc;--p-line-2:#efece6;
+  --p-ink:#131310;--p-ink-2:#2e2d28;--p-soft:#6a6760;--p-mute:#9b988f;
+  --p-green:#2f7d4d;--p-green-bg:#e8f1ea;
+  --p-amber:#a8741f;--p-amber-bg:#f4ecd9;
+  --p-rust:#9b3a1f;--p-rust-bg:#f5e4dc;
+  --p-radius:8px;--p-radius-lg:14px;
+  --p-shadow-1:0 1px 0 rgba(20,20,20,0.04),0 1px 3px rgba(20,20,20,0.04);
+  --p-sans:'Inter Tight',-apple-system,system-ui,sans-serif;
+  --p-serif:'Fraunces','Times New Roman',serif;
+  --p-mono:'JetBrains Mono',ui-monospace,monospace;
+}
+
+/* Dashboard view canvas */
+.prop-canvas{max-width:1240px;margin:0 auto;padding:48px 32px 96px;font-family:var(--p-sans);color:var(--p-ink);letter-spacing:-0.005em;}
+#dashboardView.view-container.active{background:var(--paper);min-height:calc(100vh - 64px);}
+
+/* Screen header */
+.prop-screen-header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding-bottom:32px;margin-bottom:32px;border-bottom:1px solid var(--p-line);}
+.prop-screen-eyebrow{font-family:var(--p-mono);font-size:11px;font-weight:500;color:var(--p-soft);text-transform:uppercase;letter-spacing:0.16em;display:inline-flex;align-items:center;gap:12px;margin-bottom:14px;}
+.prop-screen-eyebrow::before{content:"";width:24px;height:1px;background:var(--ei-blue);}
+.prop-screen-title{font-size:40px;font-weight:500;letter-spacing:-0.028em;line-height:1;color:var(--p-ink);}
+.prop-screen-sub{margin-top:12px;color:var(--p-soft);font-size:15px;max-width:620px;line-height:1.5;}
+.prop-screen-actions{display:flex;align-items:center;gap:10px;}
+
+/* Buttons */
+.prop-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:var(--p-radius);font-size:13.5px;font-weight:500;font-family:var(--p-sans);border:1px solid var(--p-line);background:var(--surface);color:var(--p-ink);cursor:pointer;transition:all 180ms ease;letter-spacing:-0.005em;}
+.prop-btn:hover{border-color:var(--p-ink);}
+.prop-btn-primary{background:var(--ei-blue);color:#fff;border-color:var(--ei-blue);}
+.prop-btn-primary:hover{background:var(--ei-blue-700);border-color:var(--ei-blue-700);color:#fff;}
+.prop-btn svg{width:14px;height:14px;}
+
+/* KPI grid */
+.prop-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px;}
+.prop-kpi{background:var(--surface);border:1px solid var(--p-line);border-radius:var(--p-radius-lg);padding:22px 24px 24px;box-shadow:var(--p-shadow-1);}
+.prop-kpi-label{font-family:var(--p-mono);font-size:10px;font-weight:500;color:var(--p-mute);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:14px;}
+.prop-kpi-value{font-family:var(--p-sans);font-size:36px;font-weight:500;letter-spacing:-0.028em;line-height:1;color:var(--p-ink);font-variant-numeric:tabular-nums;}
+.prop-kpi-foot{font-family:var(--p-mono);font-size:10.5px;color:var(--p-mute);margin-top:14px;letter-spacing:0.04em;font-variant-numeric:tabular-nums;}
+
+/* Table card */
+.prop-table-card{background:var(--surface);border:1px solid var(--p-line);border-radius:var(--p-radius-lg);overflow:hidden;box-shadow:var(--p-shadow-1);}
+.prop-table-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px 14px 22px;border-bottom:1px solid var(--p-line);flex-wrap:wrap;}
+.prop-tabs{display:flex;align-items:center;gap:2px;flex-wrap:wrap;}
+.prop-tab{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:6px;font-size:12.5px;font-weight:500;background:transparent;border:none;color:var(--p-soft);cursor:pointer;transition:all 150ms ease;font-family:inherit;}
+.prop-tab:hover{color:var(--p-ink);background:var(--paper-2);}
+.prop-tab.active{color:var(--ei-blue);background:var(--ei-blue-50);}
+.prop-tab-count{font-family:var(--p-mono);font-size:10px;color:var(--p-mute);background:var(--paper-2);padding:1px 6px;border-radius:3px;letter-spacing:0.02em;font-variant-numeric:tabular-nums;}
+.prop-tab.active .prop-tab-count{background:rgba(255,255,255,0.6);color:var(--ei-blue);}
+
+.prop-table-controls{display:flex;align-items:center;gap:10px;}
+.prop-search{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:var(--p-radius);background:var(--paper-2);border:1px solid var(--p-line);}
+.prop-search svg{width:13px;height:13px;color:var(--p-mute);}
+.prop-search input{background:none;border:none;outline:none;font-size:12.5px;width:200px;color:var(--p-ink);font-family:inherit;}
+.prop-search input::placeholder{color:var(--p-mute);}
+.prop-select{padding:6px 10px;border:1px solid var(--p-line);border-radius:var(--p-radius);font-size:12.5px;font-family:inherit;color:var(--p-ink);background:var(--surface);cursor:pointer;}
+
+/* Table rows */
+.prop-row{display:grid;grid-template-columns:2.4fr 1.2fr 1fr 0.9fr 1.3fr 0.9fr 80px;gap:14px;align-items:center;padding:12px 22px;border-bottom:1px solid var(--p-line-2);font-size:13px;color:var(--p-ink-2);}
+.prop-row:last-child{border-bottom:none;}
+.prop-row:hover{background:var(--paper);}
+.prop-row.prop-row-head{font-family:var(--p-mono);font-size:10px;color:var(--p-mute);text-transform:uppercase;letter-spacing:0.12em;font-weight:500;border-bottom:1px solid var(--p-line);background:transparent;padding-top:14px;padding-bottom:14px;}
+.prop-row.prop-row-head:hover{background:transparent;}
+.prop-row .num{text-align:right;}
+.prop-row .prop-mono{font-family:var(--p-mono);font-variant-numeric:tabular-nums;}
+
+.prop-cell-client{display:flex;align-items:center;gap:12px;min-width:0;}
+.prop-mono-mark{width:30px;height:30px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--p-mono);font-size:10.5px;font-weight:500;background:var(--paper-2);color:var(--p-soft);letter-spacing:0.04em;flex-shrink:0;}
+.prop-client-text{min-width:0;}
+.prop-client-name{font-size:13.5px;font-weight:500;color:var(--p-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prop-campaign{font-size:11.5px;color:var(--p-mute);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.prop-stage{font-size:12.5px;color:var(--p-soft);}
+.prop-muted{color:var(--p-mute);}
+.prop-value{font-size:13px;color:var(--p-ink);font-weight:500;}
+
+.prop-owner{display:inline-flex;align-items:center;gap:8px;min-width:0;}
+.prop-owner-init{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:var(--p-mono);font-size:9.5px;font-weight:500;background:var(--ei-blue-50);color:var(--ei-blue);letter-spacing:0.02em;flex-shrink:0;}
+.prop-owner-name{color:var(--p-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prop-updated{font-size:11px;color:var(--p-mute);}
+
+/* Status badges */
+.prop-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--p-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.08em;font-weight:500;padding:3px 9px;border-radius:4px;}
+.prop-badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;}
+.prop-badge-draft{color:var(--p-amber);background:var(--p-amber-bg);}
+.prop-badge-sent{color:var(--ei-blue);background:var(--ei-blue-50);}
+.prop-badge-accepted{color:var(--p-green);background:var(--p-green-bg);}
+.prop-badge-rejected{color:var(--p-rust);background:var(--p-rust-bg);}
+
+/* Row actions */
+.prop-row-actions{display:flex;justify-content:flex-end;gap:4px;position:relative;}
+.prop-row-btn{width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--p-mute);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 150ms ease;}
+.prop-row-btn:hover{color:var(--ei-blue);border-color:var(--p-line);background:var(--paper-2);}
+.prop-row-btn svg{width:14px;height:14px;}
+
+/* Loading + empty */
+.prop-loading{padding:80px 32px;text-align:center;color:var(--p-mute);font-size:14px;}
+.prop-empty{padding:60px 32px;text-align:center;color:var(--p-mute);}
+.prop-empty p{margin:6px 0;}
+.prop-empty strong{color:var(--p-ink);font-weight:600;font-size:15px;}
+
+/* Hide the old nav-tabs strip when using the new dashboard */
+#dashboardView.view-container.active ~ * .nav-tabs{display:flex;}
+
+@media (max-width:960px){
+  .prop-kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .prop-row,.prop-row.prop-row-head{grid-template-columns:1.6fr 1fr 1fr 80px;}
+  .prop-row > div:nth-child(3),
+  .prop-row > div:nth-child(5),
+  .prop-row > div:nth-child(6){display:none;}
+}
+
 </style>
 </head>
 <body>
@@ -479,6 +598,16 @@ body {
           <input type="text" id="customTerm" placeholder="e.g. 3 Months" style="display:none;margin-top:6px">
         </div>
         <div class="field"><label>Start Date</label><input type="date" id="startDate"></div>
+        <div class="field"><label>Stage</label>
+          <select id="proposalStage">
+            <option value="">—</option>
+            <option value="Discovery">Discovery</option>
+            <option value="Proposal">Proposal</option>
+            <option value="Negotiation">Negotiation</option>
+            <option value="Closed Won">Closed Won</option>
+            <option value="Closed Lost">Closed Lost</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -555,30 +684,70 @@ body {
 </div>
 
 <div id="dashboardView" class="view-container">
-  <div class="dashboard-container">
-    <div class="dash-header">
-      <h2>Proposals Dashboard</h2>
-      <div class="dash-filters">
-        <input type="text" id="dashSearch" placeholder="Search vendor..." oninput="renderDashTable()" style="padding:6px 12px;border:1px solid #E5E7EB;border-radius:20px;font-size:13px;font-family:inherit;width:160px;">
-        <select id="dashManagerFilter" onchange="renderDashTable()" style="padding:6px 12px;border:1px solid #E5E7EB;border-radius:20px;font-size:13px;font-family:inherit;background:#fff;cursor:pointer;">
-          <option value="">All Managers</option>
-          <option value="Ryan Elliott">Ryan</option>
-          <option value="Joshua Perry">Josh</option>
-        </select>
-        <button class="dash-filter-btn active" onclick="filterDash('all')">All</button>
-        <button class="dash-filter-btn" onclick="filterDash('Draft')">Draft</button>
-        <button class="dash-filter-btn" onclick="filterDash('Sent')">Sent</button>
-        <button class="dash-filter-btn" onclick="filterDash('Accepted')">Accepted</button>
-        <button class="dash-filter-btn" onclick="filterDash('Rejected')">Rejected</button>
+  <main class="prop-canvas">
+    <header class="prop-screen-header">
+      <div>
+        <div class="prop-screen-eyebrow">Sales toolkit · proposals</div>
+        <h1 class="prop-screen-title">Proposal Manager</h1>
+        <p class="prop-screen-sub">Build campaign proposals, generate insertion orders, and track active deals.</p>
       </div>
+      <div class="prop-screen-actions">
+        <button class="prop-btn prop-btn-primary" onclick="switchView('builder');clearEditing();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          New proposal
+        </button>
+      </div>
+    </header>
+
+    <div class="prop-kpi-grid">
+      <div class="prop-kpi"><div class="prop-kpi-label">In flight</div><div class="prop-kpi-value" id="kpiInflightVal">0</div><div class="prop-kpi-foot" id="kpiInflightFoot">$0 total value</div></div>
+      <div class="prop-kpi"><div class="prop-kpi-label">Drafting</div><div class="prop-kpi-value" id="kpiDraftVal">0</div><div class="prop-kpi-foot" id="kpiDraftFoot">$0 in progress</div></div>
+      <div class="prop-kpi"><div class="prop-kpi-label">Sent</div><div class="prop-kpi-value" id="kpiSentVal">0</div><div class="prop-kpi-foot" id="kpiSentFoot">$0 awaiting response</div></div>
+      <div class="prop-kpi"><div class="prop-kpi-label">Accepted</div><div class="prop-kpi-value" id="kpiAcceptedVal">0</div><div class="prop-kpi-foot" id="kpiAcceptedFoot">$0 closed won</div></div>
     </div>
 
-    <div class="dash-stats" id="dashStats">
-      <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" id="statTotal">0</div></div>
-      <div class="stat-card"><div class="stat-label">Draft</div><div class="stat-value amber" id="statDraft">0</div></div>
-      <div class="stat-card"><div class="stat-label">Sent</div><div class="stat-value blue" id="statSent">0</div></div>
-      <div class="stat-card"><div class="stat-label">Accepted</div><div class="stat-value green" id="statAccepted">0</div></div>
+    <div class="prop-table-card">
+      <div class="prop-table-head">
+        <div class="prop-tabs">
+          <button class="prop-tab active" data-status="all" onclick="filterDash('all')">All <span class="prop-tab-count" id="tabCountAll">0</span></button>
+          <button class="prop-tab" data-status="Draft" onclick="filterDash('Draft')">Draft <span class="prop-tab-count" id="tabCountDraft">0</span></button>
+          <button class="prop-tab" data-status="Sent" onclick="filterDash('Sent')">Sent <span class="prop-tab-count" id="tabCountSent">0</span></button>
+          <button class="prop-tab" data-status="Accepted" onclick="filterDash('Accepted')">Accepted <span class="prop-tab-count" id="tabCountAccepted">0</span></button>
+          <button class="prop-tab" data-status="Rejected" onclick="filterDash('Rejected')">Rejected <span class="prop-tab-count" id="tabCountRejected">0</span></button>
+        </div>
+        <div class="prop-table-controls">
+          <div class="prop-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="dashSearch" placeholder="Search vendor or campaign..." oninput="renderDashTable()">
+          </div>
+          <select id="dashManagerFilter" class="prop-select" onchange="renderDashTable()">
+            <option value="">All managers</option>
+            <option value="Ryan Elliott">Ryan</option>
+            <option value="Joshua Perry">Josh</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="dashLoading" class="prop-loading">Loading proposals…</div>
+      <div id="dashContent" style="display:none;">
+        <div class="prop-row prop-row-head">
+          <div>Client / Campaign</div>
+          <div>Status</div>
+          <div>Stage</div>
+          <div class="num">Value</div>
+          <div>Owner</div>
+          <div>Updated</div>
+          <div></div>
+        </div>
+        <div id="dashBody"></div>
+      </div>
+      <div id="dashEmpty" class="prop-empty" style="display:none;">
+        <p><strong>No proposals match.</strong></p>
+        <p>Adjust the filter or search, or create a new proposal.</p>
+      </div>
     </div>
+  </main>
+</div>
 
     <div class="dash-table">
       <div id="dashLoading" class="dash-loading">Loading proposals...</div>
@@ -1769,17 +1938,49 @@ function loadProposals() {
 
 // ═══ DASHBOARD STATS ═══
 function updateDashStats() {
-  document.getElementById('statTotal').textContent = allProposals.length;
-  document.getElementById('statDraft').textContent = allProposals.filter(p => p.status === 'Draft').length;
-  document.getElementById('statSent').textContent = allProposals.filter(p => p.status === 'Sent').length;
-  document.getElementById('statAccepted').textContent = allProposals.filter(p => p.status === 'Accepted').length;
+  var fmtMoney = function(n){ return '$' + Math.round(Number(n)||0).toLocaleString('en-US'); };
+  var sumValue = function(arr){
+    var t = 0;
+    arr.forEach(function(p){
+      var v = Number(p.monthlyTotal)||0;
+      var d = Number(p.discount)||0;
+      t += v * (1 - d/100);
+    });
+    return t;
+  };
+  var byStatus = function(s){ return allProposals.filter(function(p){return (p.status||'')===s;}); };
+  var draft    = byStatus('Draft');
+  var sent     = byStatus('Sent');
+  var accepted = byStatus('Accepted');
+  var rejected = byStatus('Rejected');
+  var inflight = draft.concat(sent);
+
+  var setText = function(id, v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+  setText('kpiInflightVal', inflight.length);
+  setText('kpiInflightFoot', fmtMoney(sumValue(inflight)) + ' total value');
+  setText('kpiDraftVal', draft.length);
+  setText('kpiDraftFoot', fmtMoney(sumValue(draft)) + ' in progress');
+  setText('kpiSentVal', sent.length);
+  setText('kpiSentFoot', fmtMoney(sumValue(sent)) + ' awaiting response');
+  setText('kpiAcceptedVal', accepted.length);
+  setText('kpiAcceptedFoot', fmtMoney(sumValue(accepted)) + ' closed won');
+
+  setText('tabCountAll', allProposals.length);
+  setText('tabCountDraft', draft.length);
+  setText('tabCountSent', sent.length);
+  setText('tabCountAccepted', accepted.length);
+  setText('tabCountRejected', rejected.length);
+
+  var pc = document.getElementById('proposalCount');
+  if (pc) pc.textContent = allProposals.length;
 }
 
 // ═══ DASHBOARD FILTER ═══
 function filterDash(status) {
   dashFilter = status;
-  document.querySelectorAll('.dash-filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  document.querySelectorAll('.prop-tab').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-status') === status);
+  });
   renderDashTable();
 }
 
@@ -1794,25 +1995,22 @@ function renderDashTable() {
   const content = document.getElementById('dashContent');
   const empty = document.getElementById('dashEmpty');
   const tbody = document.getElementById('dashBody');
+  const loading = document.getElementById('dashLoading');
   const search = (document.getElementById('dashSearch').value || '').toLowerCase();
 
-  var filtered = dashFilter === 'all' ? allProposals : allProposals.filter(p => p.status === dashFilter);
-  if (search) filtered = filtered.filter(p => (p.vendor || '').toLowerCase().includes(search));
-  var managerFilter = (document.getElementById('dashManagerFilter').value || '');
-  if (managerFilter) filtered = filtered.filter(p => (p.accountManager || '') === managerFilter);
+  if (loading) loading.style.display = 'none';
 
-  // Sort
-  filtered = filtered.slice().sort(function(a, b) {
-    var va, vb;
-    if (dashSort.col === 'vendor') { va = (a.vendor||'').toLowerCase(); vb = (b.vendor||'').toLowerCase(); }
-    else if (dashSort.col === 'date') { va = a.dateCreated||''; vb = b.dateCreated||''; }
-    else if (dashSort.col === 'articles') { var pa = parseProposalData(a.articlesJson); var pb = parseProposalData(b.articlesJson); va = pa.articles.length + (pa.pars?pa.pars.length:0) + (pa.addons?pa.addons.filter(function(x){return x.name;}).length:0); vb = pb.articles.length + (pb.pars?pb.pars.length:0) + (pb.addons?pb.addons.filter(function(x){return x.name;}).length:0); }
-    else if (dashSort.col === 'total') { va = a.monthlyTotal||0; vb = b.monthlyTotal||0; }
-    else if (dashSort.col === 'status') { va = a.status||''; vb = b.status||''; }
-    else { va = ''; vb = ''; }
-    if (va < vb) return dashSort.dir === 'asc' ? -1 : 1;
-    if (va > vb) return dashSort.dir === 'asc' ? 1 : -1;
-    return 0;
+  var filtered = (dashFilter === 'all') ? allProposals : allProposals.filter(function(p){return p.status === dashFilter;});
+  if (search) filtered = filtered.filter(function(p){
+    var hay = ((p.vendor||'') + ' ' + (p.customerName||'') + ' ' + (p.notes||'')).toLowerCase();
+    return hay.indexOf(search) >= 0;
+  });
+  var managerFilter = (document.getElementById('dashManagerFilter').value || '');
+  if (managerFilter) filtered = filtered.filter(function(p){return (p.accountManager||'') === managerFilter;});
+
+  // Default sort: newest first
+  filtered = filtered.slice().sort(function(a,b){
+    return String(b.dateCreated||'').localeCompare(String(a.dateCreated||''));
   });
 
   if (filtered.length === 0) {
@@ -1820,84 +2018,80 @@ function renderDashTable() {
     empty.style.display = 'block';
     return;
   }
-
   content.style.display = 'block';
   empty.style.display = 'none';
 
-  tbody.innerHTML = filtered.map(p => {
-    const pData = parseProposalData(p.articlesJson);
-    const articles = pData.articles;
-    const total = p.monthlyTotal || 0;
-    const discount = p.discount || 0;
-    const displayTotal = discount > 0 ? '$' + ((total * (1 - discount/100))).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '$' + Number(total).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-    const statusClass = (p.status || 'Draft').toLowerCase();
-    const dateStr = p.dateCreated ? new Date(p.dateCreated).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : '';
+  var fmtMoney = function(n){
+    var v = Number(n) || 0;
+    return '$' + v.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  };
+  var initials = function(name){
+    if (!name) return '·';
+    return name.split(/\s+/).filter(Boolean).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+  };
+  var relativeDate = function(d){
+    if (!d) return '—';
+    var dt = new Date(d);
+    if (isNaN(dt)) return String(d).slice(0,10);
+    var diffMs = Date.now() - dt.getTime();
+    var diffDays = Math.floor(diffMs / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return '1d ago';
+    if (diffDays < 30) return diffDays + 'd ago';
+    return dt.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+  };
 
-    const parsCount = (pData.pars && pData.pars.length) || 0;
-    const addonsCount = (pData.addons ? pData.addons.filter(a => a.name).length : 0);
-    const itemCount = articles.length + parsCount + addonsCount;
+  tbody.innerHTML = filtered.map(function(p){
+    var pData = parseProposalData(p.articlesJson);
+    var total = Number(p.monthlyTotal) || 0;
+    var disc = Number(p.discount) || 0;
+    var displayTotal = total * (1 - disc/100);
+    var statusKey = (p.status || 'Draft').toLowerCase();
+    var stage = p.stage || '';
+    var amInit = initials(p.accountManager);
 
-    return `<tr>
-      <td><strong>${p.vendor || 'Unnamed'}</strong>${p.customerName ? '<br><span style="font-size:11px;color:#6B7280;font-weight:normal">' + p.customerName + '</span>' : ''}</td>
-      <td>${dateStr}</td>
-      <td>${p.accountManager || ''}</td>
-      <td>${itemCount} item${itemCount !== 1 ? 's' : ''}</td>
-      <td>${displayTotal}/mo</td>
-      <td>
-        <select class="status-select" onchange="updateStatus('${p.id}', this.value)" style="background:${statusClass==='draft'?'#F3F4F6':statusClass==='sent'?'#DBEAFE':statusClass==='accepted'?'#D1FAE5':'#FEE2E2'}">
-          <option value="Draft" ${p.status==='Draft'?'selected':''}>Draft</option>
-          <option value="Sent" ${p.status==='Sent'?'selected':''}>Sent</option>
-          <option value="Accepted" ${p.status==='Accepted'?'selected':''}>Accepted</option>
-          <option value="Rejected" ${p.status==='Rejected'?'selected':''}>Rejected</option>
-        </select>
-      </td>
-      <td>
-        <div class="dash-actions">
-          <button class="dash-icon-btn" onclick="editProposal('${p.id}')" title="Edit proposal">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM2 17a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z"/></svg>
-          </button>
-          <button class="dash-menu-btn" onclick="toggleActionMenu(event, '${p.id}')" id="menubtn-${p.id}">
-            Actions
-            <svg viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l4 4 4-4"/></svg>
-          </button>
-          <div class="dash-menu" id="menu-${p.id}">
-            <button class="dash-menu-item" onclick="editProposal('${p.id}');closeActionMenus();">
-              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM2 17a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z"/></svg>
-              Edit proposal
-            </button>
-            <button class="dash-menu-item" onclick="duplicateProposal('${p.id}');closeActionMenus();">
-              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 011-1h9a1 1 0 011 1v12a1 1 0 01-1 1H8a1 1 0 01-1-1V3zm-3 4a1 1 0 011-1h1v10a2 2 0 002 2h7v1a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z"/></svg>
-              Duplicate
-            </button>
-            <button class="dash-menu-item" onclick="setCustomerName('${p.id}');closeActionMenus();">
-              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/></svg>
-              Set customer name
-            </button>
-            <div class="dash-menu-divider"></div>
-            <div class="dash-menu-label">Proposal</div>
-            <button class="dash-menu-item" onclick="exportProposalPDF('${p.id}');closeActionMenus();">
-              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-1 1v7.5l-1.793-1.793a1 1 0 00-1.414 1.414l3.5 3.5a1 1 0 001.414 0l3.5-3.5a1 1 0 10-1.414-1.414L10 10.5V3a1 1 0 00-1-1zm-5 14a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/></svg>
-              Export PDF
-            </button>
-            <div class="dash-menu-divider"></div>
-            <div class="dash-menu-label">Insertion Order</div>
-            <button class="dash-menu-item" onclick="openIOTermsModal('${p.id}', 'pdf');closeActionMenus();">
-              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 3a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h3a1 1 0 100-2H7z"/></svg>
-              Generate IO (PDF)
-            </button>
-            <button class="dash-menu-item" onclick="openIOTermsModal('${p.id}', 'word');closeActionMenus();">
-              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 3a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h6a1 1 0 100-2H7zm0 4a1 1 0 100 2h3a1 1 0 100-2H7z"/></svg>
-              Generate IO (Word)
-            </button>
-            <div class="dash-menu-divider"></div>
-            <button class="dash-menu-item danger" onclick="deleteProposal('${p.id}');closeActionMenus();">
-              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"/></svg>
-              Delete
-            </button>
-          </div>
-        </div>
-      </td>
-    </tr>`;
+    return '<div class="prop-row" data-id="'+p.id+'">' +
+      '<div class="prop-cell-client">' +
+        '<span class="prop-mono-mark">'+initials(p.vendor)+'</span>' +
+        '<div class="prop-client-text">' +
+          '<div class="prop-client-name">'+(p.vendor||'Unnamed')+'</div>' +
+          (p.customerName ? '<div class="prop-campaign">'+p.customerName+'</div>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div><span class="prop-badge prop-badge-'+statusKey+'">'+(p.status||'Draft')+'</span></div>' +
+      '<div class="prop-stage">'+(stage || '<span class="prop-muted">—</span>')+'</div>' +
+      '<div class="num prop-mono prop-value">'+fmtMoney(displayTotal)+'</div>' +
+      '<div class="prop-owner"><span class="prop-owner-init">'+amInit+'</span><span class="prop-owner-name">'+(p.accountManager||'')+'</span></div>' +
+      '<div class="prop-mono prop-updated">'+relativeDate(p.dateCreated)+'</div>' +
+      '<div class="prop-row-actions">' +
+        '<button class="prop-row-btn" onclick="editProposal(\''+p.id+'\')" title="Edit">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>' +
+        '</button>' +
+        '<button class="prop-row-btn" onclick="toggleActionMenu(event, \''+p.id+'\')" id="menubtn-'+p.id+'" title="Actions">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>' +
+        '</button>' +
+        '<div class="dash-menu" id="menu-'+p.id+'">' +
+          '<button class="dash-menu-item" onclick="editProposal(\''+p.id+'\');closeActionMenus();">Edit proposal</button>' +
+          '<button class="dash-menu-item" onclick="duplicateProposal(\''+p.id+'\');closeActionMenus();">Duplicate</button>' +
+          '<button class="dash-menu-item" onclick="setCustomerName(\''+p.id+'\');closeActionMenus();">Set customer name</button>' +
+          '<div class="dash-menu-divider"></div>' +
+          '<div class="dash-menu-label">Status</div>' +
+          '<button class="dash-menu-item" onclick="updateStatus(\''+p.id+'\', \'Draft\');closeActionMenus();">Mark as Draft</button>' +
+          '<button class="dash-menu-item" onclick="updateStatus(\''+p.id+'\', \'Sent\');closeActionMenus();">Mark as Sent</button>' +
+          '<button class="dash-menu-item" onclick="updateStatus(\''+p.id+'\', \'Accepted\');closeActionMenus();">Mark as Accepted</button>' +
+          '<button class="dash-menu-item" onclick="updateStatus(\''+p.id+'\', \'Rejected\');closeActionMenus();">Mark as Rejected</button>' +
+          '<div class="dash-menu-divider"></div>' +
+          '<div class="dash-menu-label">Proposal</div>' +
+          '<button class="dash-menu-item" onclick="exportProposalPDF(\''+p.id+'\');closeActionMenus();">Export PDF</button>' +
+          '<div class="dash-menu-divider"></div>' +
+          '<div class="dash-menu-label">Insertion Order</div>' +
+          '<button class="dash-menu-item" onclick="openIOTermsModal(\''+p.id+'\', \'pdf\');closeActionMenus();">Generate IO (PDF)</button>' +
+          '<button class="dash-menu-item" onclick="openIOTermsModal(\''+p.id+'\', \'word\');closeActionMenus();">Generate IO (Word)</button>' +
+          '<div class="dash-menu-divider"></div>' +
+          '<button class="dash-menu-item danger" onclick="deleteProposal(\''+p.id+'\');closeActionMenus();">Delete</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
@@ -1947,6 +2141,7 @@ function saveProposal(thenGeneratePDF) {
     status: editingProposalId ? undefined : 'Draft',
     notes: document.getElementById('proposalNotes').value || '',
     advertiser_id: document.getElementById('advertiserId').value || '',
+    stage: document.getElementById('proposalStage').value || '',
   };
 
   const onDone = function() {
@@ -2031,6 +2226,7 @@ function editProposal(id) {
   // Fill form fields
   document.getElementById('vendorName').value = p.vendor || '';
   document.getElementById('advertiserId').value = p.advertiser_id || '';
+  document.getElementById('proposalStage').value = p.stage || '';
   var editBadge = document.getElementById('advertiserLinkBadge');
   if (editBadge) editBadge.style.display = p.advertiser_id ? 'inline' : 'none';
   if (p.startDate) document.getElementById('startDate').value = p.startDate;
@@ -2108,6 +2304,7 @@ function clearEditing() {
   // Clear form
   document.getElementById('vendorName').value = '';
   document.getElementById('advertiserId').value = '';
+  var st=document.getElementById('proposalStage');if(st)st.value='';
   var clrBadge = document.getElementById('advertiserLinkBadge');
   if (clrBadge) clrBadge.style.display = 'none';
   document.getElementById('contractTerm').value = 'Monthly Rolling';
