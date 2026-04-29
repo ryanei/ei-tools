@@ -402,6 +402,26 @@ body {
 .addon-row input[type="number"] { width:90px; padding:6px 10px; border:1px solid #D1D5DB; border-radius:6px; font-size:13px; font-family:inherit; }
 .addon-remove { padding:4px 8px; border:none; background:none; color:#EF4444; cursor:pointer; font-size:16px; font-weight:bold; }
 
+
+
+/* ── Unified topbar (EI Blue design system, overrides any prior rules) ── */
+.topbar{position:sticky !important;top:0;z-index:50;height:64px !important;display:flex;align-items:center;justify-content:space-between;padding:0 32px !important;background:var(--ei-blue) !important;background-image:none !important;color:#fff;border-bottom:1px solid var(--ei-blue-900) !important;box-shadow:0 1px 0 rgba(255,255,255,0.04) inset,0 8px 24px -16px rgba(1,39,71,0.5) !important;}
+.topbar-brand{display:flex !important;align-items:center !important;gap:14px !important;}
+.topbar-brand .ei-mark{width:28px;height:28px;display:block;flex-shrink:0;}
+.topbar-title{font-size:13px !important;font-weight:500 !important;color:rgba(255,255,255,0.78) !important;display:flex;align-items:center;gap:10px;padding-left:16px;margin-left:4px;border-left:1px solid rgba(255,255,255,0.18);height:28px;line-height:28px;letter-spacing:0 !important;}
+.topbar-title .crumb{color:rgba(255,255,255,0.6);font-weight:500;}
+.topbar-title a.crumb{color:rgba(255,255,255,0.6);text-decoration:none;}
+.topbar-title a.crumb:hover{color:#fff;}
+.topbar-title .crumb.active{color:#fff !important;}
+.topbar-title .sep{color:rgba(255,255,255,0.35);}
+.topbar-nav{display:flex;align-items:center;gap:4px;flex:1;justify-content:center;}
+.topbar-nav a{font-size:13px;font-weight:500;color:rgba(255,255,255,0.65) !important;padding:6px 14px;border-radius:100px;text-decoration:none;transition:color 180ms ease,background 180ms ease;background:transparent !important;}
+.topbar-nav a:hover{color:#fff !important;background:rgba(255,255,255,0.08) !important;}
+.topbar-nav a.active{color:var(--ei-blue) !important;background:#fff !important;}
+.topbar-right{display:flex !important;align-items:center !important;gap:10px !important;}
+.topbar-env{font-family:var(--mono) !important;font-size:10px !important;font-weight:500 !important;color:#d4f5e1 !important;padding:4px 10px !important;background:rgba(255,255,255,0.08) !important;border-radius:100px !important;text-transform:uppercase;letter-spacing:0.08em;display:inline-flex !important;align-items:center;gap:6px;}
+.topbar-env::before{content:"";width:5px;height:5px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
+
 </style>
 </head>
 <body>
