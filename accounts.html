@@ -92,7 +92,7 @@ tbody tr:last-child td{border-bottom:none;}
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .modal-overlay.active{display:flex;}
-.modal{background:var(--surface-raised);border-radius:var(--radius);width:840px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:0;display:flex;flex-direction:column;}
+.modal{background:var(--surface-raised);border-radius:var(--radius);width:880px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:0;display:flex;flex-direction:column;}
 .modal-header{padding:24px 32px 16px;border-bottom:1px solid var(--border);}
 .modal-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;justify-content:space-between;}
 .modal-close-x{background:none;border:none;font-size:22px;color:var(--ink-muted);cursor:pointer;padding:4px 10px;border-radius:6px;}
@@ -131,22 +131,24 @@ tbody tr:last-child td{border-bottom:none;}
 .dyn-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .dyn-block-title{font-size:13px;font-weight:700;color:var(--ink);}
 .dyn-block-sub{font-size:12px;color:var(--ink-muted);font-weight:500;}
+.dyn-empty{padding:14px;text-align:center;color:var(--ink-muted);font-size:12px;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--surface);}
+
 .dyn-row{display:grid;gap:10px;align-items:end;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:10px;position:relative;}
 .dyn-row.contact{grid-template-columns:1fr 1fr 1.4fr 36px;}
-.dyn-row.standalone{grid-template-columns:1.6fr 80px 100px 100px 36px;}
 .dyn-row.service{grid-template-columns:1fr 2fr 36px;}
-.dyn-row.pkg-article{grid-template-columns:1fr 80px 36px;}
 .dyn-row .form-input,.dyn-row .form-select{padding:8px 10px;font-size:13px;}
 .dyn-row .form-label{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;}
 .dyn-remove{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
 .dyn-remove:hover{background:var(--red-soft);border-color:rgba(220,38,38,0.3);}
-.dyn-empty{padding:18px;text-align:center;color:var(--ink-muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--surface);}
 
-.pkg-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
-.pkg-card-header{display:grid;grid-template-columns:1fr 130px 110px 36px;gap:10px;align-items:end;margin-bottom:14px;}
-.pkg-card-articles{margin-top:10px;padding-top:14px;border-top:1px dashed var(--border);}
-.pkg-card-articles-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.pkg-card-articles-title{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;}
+/* Article card (two-row layout) */
+.article-card{padding:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:10px;}
+.article-card-row1{display:grid;grid-template-columns:1fr 36px;gap:10px;align-items:end;margin-bottom:10px;}
+.article-card-row2{display:grid;grid-template-columns:80px 1fr 110px 110px;gap:10px;align-items:end;}
+.article-card .form-input,.article-card .form-select{padding:8px 10px;font-size:13px;}
+.article-card .form-label{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;}
+.article-card-hint{font-size:11px;color:var(--ink-muted);margin-top:6px;font-style:italic;}
+.article-card.in-package{border-left:3px solid var(--purple);}
 
 /* Drawer */
 .drawer-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.4);z-index:90;display:none;backdrop-filter:blur(4px);}
@@ -189,7 +191,6 @@ tbody tr:last-child td{border-bottom:none;}
 .pkg-article-pos{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);font-weight:600;min-width:24px;}
 .pkg-article-link{flex:1;color:var(--accent);text-decoration:none;word-break:break-all;}
 .pkg-article-link:hover{text-decoration:underline;}
-.pkg-detail-notes{margin-top:10px;font-size:12px;color:var(--ink-muted);font-style:italic;}
 
 .articles-table{width:100%;border-collapse:collapse;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .articles-table th{font-size:10px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;text-align:left;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);}
@@ -287,7 +288,7 @@ tbody tr:last-child td{border-bottom:none;}
           <th>Advertiser</th>
           <th>Status</th>
           <th>PAR</th>
-          <th>Packages / Articles</th>
+          <th>Articles</th>
           <th>Monthly</th>
           <th>Renewal</th>
           <th>Term</th>
@@ -400,26 +401,15 @@ tbody tr:last-child td{border-bottom:none;}
 
       <!-- STEP 3 -->
       <div class="wizard-pane" data-pane="3">
-        <div class="dyn-block">
+        <div class="dyn-block" style="margin-top:0;">
           <div class="dyn-block-header">
             <div>
-              <div class="dyn-block-title">Packages</div>
-              <div class="dyn-block-sub">Bundle multiple articles under one monthly price (name optional)</div>
+              <div class="dyn-block-title">Articles</div>
+              <div class="dyn-block-sub">URL, position, and price. Bundle multiple articles by giving them the same Package name — they'll share one monthly price.</div>
             </div>
-            <button class="btn btn-sm" onclick="addPackage()">+ Add Package</button>
+            <button class="btn btn-sm" onclick="addArticle()">+ Add Article</button>
           </div>
-          <div id="packagesList"></div>
-        </div>
-
-        <div class="dyn-block">
-          <div class="dyn-block-header">
-            <div>
-              <div class="dyn-block-title">Standalone articles</div>
-              <div class="dyn-block-sub">Articles outside any package — each priced individually</div>
-            </div>
-            <button class="btn btn-sm" onclick="addStandaloneArticle()">+ Add Article</button>
-          </div>
-          <div id="standaloneArticlesList"></div>
+          <div id="articlesList"></div>
         </div>
 
         <div class="dyn-block">
@@ -455,7 +445,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <div class="footer">
   <div class="footer-left">Expert Insights &middot; Accounts</div>
-  <div class="footer-right">v2.2.0</div>
+  <div class="footer-right">v2.3.0</div>
 </div>
 
 <script>
@@ -466,7 +456,12 @@ const ACCOUNTS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcwZhAgCsZ
 // ── State ──
 let advertisers = [], contacts = [], packages = [], articles = [], services = [], notes = [];
 let currentDrawerId = null;
-let wizard = { mode: 'new', step: 1, editingId: null, contacts: [], packages: [], standaloneArticles: [], services: [] };
+let wizard = {
+  mode: 'new', step: 1, editingId: null,
+  contacts: [], articles: [], services: [],
+  _packageIdByTag: {},  // existing package name (lowercased) -> id, for ID stability on edit
+  _packageNotesByTag: {}  // existing package name -> notes, to preserve across saves
+};
 
 // ── Helpers ──
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
@@ -715,31 +710,36 @@ function openWizard(id){
   wizard.contacts = a ? a._contacts.map(c => ({id: c.id || genId("con"), first_name: c.first_name||"", last_name: c.last_name||"", email: c.email||""})) : [];
   renderContactsList();
 
-  // Step 3
+  // Step 3 — flatten articles, derive package_tag from linked package, capture package metadata
+  wizard._packageIdByTag = {};
+  wizard._packageNotesByTag = {};
   if (a) {
-    wizard.packages = a._packages.map(pk => ({
-      id: pk.id || genId("pkg"),
-      name: pk.name || "",
-      monthly_price: pk.monthly_price || "",
-      status: pk.status || "Active",
-      notes: pk.notes || "",
-      _articles: a._articles
-        .filter(x => x.package_id === pk.id)
-        .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
-        .map(x => ({ id: x.id || genId("art"), url: x.url||"", position: String(x.position||"1") }))
-    }));
-    wizard.standaloneArticles = a._articles
-      .filter(x => !x.package_id)
+    a._packages.forEach(pk => {
+      const tag = (pk.name || "").trim().toLowerCase();
+      if (tag) {
+        wizard._packageIdByTag[tag] = pk.id;
+        wizard._packageNotesByTag[tag] = pk.notes || "";
+      }
+    });
+    wizard.articles = a._articles
       .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
-      .map(x => ({ id: x.id || genId("art"), url: x.url||"", position: String(x.position||"1"), monthly_price: x.monthly_price||"", active: isTrue(x.active) ? "TRUE" : "FALSE" }));
+      .map(art => {
+        const pkg = art.package_id ? a._packages.find(p => p.id === art.package_id) : null;
+        return {
+          id: art.id || genId("art"),
+          url: art.url || "",
+          position: String(art.position || "1"),
+          package_tag: pkg ? (pkg.name || "") : "",
+          monthly_price: pkg ? (pkg.monthly_price || "") : (art.monthly_price || ""),
+          active: pkg ? (((pkg.status||"Active") === "Active") ? "TRUE" : "FALSE") : (isTrue(art.active) ? "TRUE" : "FALSE")
+        };
+      });
     wizard.services = a._services.map(s => ({ id: s.id || genId("svc"), name: s.name||"", details: s.details||"" }));
   } else {
-    wizard.packages = [];
-    wizard.standaloneArticles = [];
+    wizard.articles = [];
     wizard.services = [];
   }
-  renderPackagesList();
-  renderStandaloneArticlesList();
+  renderArticlesList();
   renderServicesList();
 
   showWizardStep(1);
@@ -786,57 +786,55 @@ function renderContactsList(){
     </div>`).join("");
 }
 
-// ── Wizard: packages ──
-function addPackage(){ wizard.packages.push({ id: genId("pkg"), name: "", monthly_price: "", status: "Active", notes: "", _articles: [] }); renderPackagesList(); }
-function removePackage(i){ wizard.packages.splice(i, 1); renderPackagesList(); }
-function updatePackageField(i, field, val){ wizard.packages[i][field] = val; }
-function addPackageArticle(pi){ wizard.packages[pi]._articles.push({ id: genId("art"), url: "", position: "1" }); renderPackagesList(); }
-function removePackageArticle(pi, ai){ wizard.packages[pi]._articles.splice(ai, 1); renderPackagesList(); }
-function updatePackageArticleField(pi, ai, field, val){ wizard.packages[pi]._articles[ai][field] = val; }
-function renderPackagesList(){
-  const el = document.getElementById("packagesList");
-  if (!wizard.packages.length) { el.innerHTML = `<div class="dyn-empty">No packages yet.</div>`; return; }
+// ── Wizard: articles ──
+function addArticle(){ wizard.articles.push({ id: genId("art"), url: "", position: "1", package_tag: "", monthly_price: "", active: "TRUE" }); renderArticlesList(); }
+function removeArticle(i){ wizard.articles.splice(i, 1); renderArticlesList(); }
+function updateArticleField(i, field, val){ wizard.articles[i][field] = val; if (field === "package_tag") renderArticlesList(); }
+function renderArticlesList(){
+  const el = document.getElementById("articlesList");
+  if (!wizard.articles.length) { el.innerHTML = `<div class="dyn-empty">Click "+ Add Article" to start.</div>`; return; }
   const positions = ["1","2","3","4","5","6","7","8","9","10"];
-  el.innerHTML = wizard.packages.map((pk, pi) => `
-    <div class="pkg-card">
-      <div class="pkg-card-header">
-        <div class="form-group"><label class="form-label">Package name <span style="color:var(--ink-muted);text-transform:none;letter-spacing:0;">(optional)</span></label><input class="form-input" type="text" value="${esc(pk.name||"")}" oninput="updatePackageField(${pi},'name',this.value)" placeholder="e.g. Q2 Tier 1"></div>
-        <div class="form-group"><label class="form-label">Monthly $</label><input class="form-input" type="number" step="0.01" value="${esc(pk.monthly_price||"")}" oninput="updatePackageField(${pi},'monthly_price',this.value)" placeholder="0.00"></div>
-        <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updatePackageField(${pi},'status',this.value)"><option value="Active" ${pk.status==="Active"?"selected":""}>Active</option><option value="Inactive" ${pk.status==="Inactive"?"selected":""}>Inactive</option></select></div>
-        <button class="dyn-remove" onclick="removePackage(${pi})" title="Remove package">×</button>
-      </div>
-      <div class="form-group full" style="margin-bottom:10px;"><label class="form-label">Notes (optional)</label><input class="form-input" type="text" value="${esc(pk.notes||"")}" oninput="updatePackageField(${pi},'notes',this.value)" placeholder="Anything to remember about this package"></div>
-      <div class="pkg-card-articles">
-        <div class="pkg-card-articles-header">
-          <div class="pkg-card-articles-title">Articles in this package</div>
-          <button class="btn btn-sm" onclick="addPackageArticle(${pi})">+ Add Article</button>
-        </div>
-        ${pk._articles.length ? pk._articles.map((a, ai) => `
-          <div class="dyn-row pkg-article">
-            <div class="form-group"><label class="form-label">Article URL</label><input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updatePackageArticleField(${pi},${ai},'url',this.value)" placeholder="https://expertinsights.com/..."></div>
-            <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updatePackageArticleField(${pi},${ai},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
-            <button class="dyn-remove" onclick="removePackageArticle(${pi},${ai})" title="Remove">×</button>
-          </div>`).join("") : `<div class="dyn-empty" style="margin-top:8px;">No articles in this package yet.</div>`}
-      </div>
-    </div>`).join("");
-}
 
-// ── Wizard: standalone articles ──
-function addStandaloneArticle(){ wizard.standaloneArticles.push({ id: genId("art"), url: "", position: "1", monthly_price: "", active: "TRUE" }); renderStandaloneArticlesList(); }
-function removeStandaloneArticle(i){ wizard.standaloneArticles.splice(i, 1); renderStandaloneArticlesList(); }
-function updateStandaloneArticleField(i, field, val){ wizard.standaloneArticles[i][field] = val; }
-function renderStandaloneArticlesList(){
-  const el = document.getElementById("standaloneArticlesList");
-  if (!wizard.standaloneArticles.length) { el.innerHTML = `<div class="dyn-empty">No standalone articles yet.</div>`; return; }
-  const positions = ["1","2","3","4","5","6","7","8","9","10"];
-  el.innerHTML = wizard.standaloneArticles.map((a, i) => `
-    <div class="dyn-row standalone">
-      <div class="form-group"><label class="form-label">Article URL</label><input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateStandaloneArticleField(${i},'url',this.value)" placeholder="https://expertinsights.com/..."></div>
-      <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updateStandaloneArticleField(${i},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
-      <div class="form-group"><label class="form-label">Monthly $</label><input class="form-input" type="number" step="0.01" value="${esc(a.monthly_price||"")}" oninput="updateStandaloneArticleField(${i},'monthly_price',this.value)" placeholder="0.00"></div>
-      <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updateStandaloneArticleField(${i},'active',this.value)"><option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option><option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option></select></div>
-      <button class="dyn-remove" onclick="removeStandaloneArticle(${i})" title="Remove">×</button>
-    </div>`).join("");
+  // Track first occurrence of each package tag, for "shared price" handling
+  const tagFirstSeen = {};
+  wizard.articles.forEach((a, i) => {
+    const tag = (a.package_tag||"").trim().toLowerCase();
+    if (tag && !(tag in tagFirstSeen)) tagFirstSeen[tag] = i;
+  });
+
+  // Datalist of all currently-typed package tags
+  const tagOptions = [...new Set(wizard.articles.map(a => (a.package_tag||"").trim()).filter(Boolean))];
+  const datalistHtml = `<datalist id="packageTagOptions">${tagOptions.map(t => `<option value="${esc(t)}">`).join("")}</datalist>`;
+
+  const rowsHtml = wizard.articles.map((a, i) => {
+    const tag = (a.package_tag||"").trim().toLowerCase();
+    const inPackage = !!tag;
+    const isPrimaryInPackage = inPackage && tagFirstSeen[tag] === i;
+    const isSecondaryInPackage = inPackage && tagFirstSeen[tag] !== i;
+    const priceDisabled = isSecondaryInPackage;
+    const priceValue = isSecondaryInPackage ? (wizard.articles[tagFirstSeen[tag]].monthly_price || "") : (a.monthly_price || "");
+    const sharedCount = inPackage ? wizard.articles.filter(x => (x.package_tag||"").trim().toLowerCase() === tag).length : 0;
+    const hint = isSecondaryInPackage
+      ? `Price set on the first article in package "${esc(wizard.articles[tagFirstSeen[tag]].package_tag)}".`
+      : (isPrimaryInPackage && sharedCount > 1 ? `Package total — shared across ${sharedCount} articles.` : "");
+
+    return `
+      <div class="article-card ${inPackage?"in-package":""}">
+        <div class="article-card-row1">
+          <div class="form-group"><label class="form-label">Article URL</label><input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateArticleField(${i},'url',this.value)" placeholder="https://expertinsights.com/..."></div>
+          <button class="dyn-remove" onclick="removeArticle(${i})" title="Remove">×</button>
+        </div>
+        <div class="article-card-row2">
+          <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updateArticleField(${i},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
+          <div class="form-group"><label class="form-label">Package <span style="color:var(--ink-muted);text-transform:none;letter-spacing:0;">(optional)</span></label><input class="form-input" list="packageTagOptions" type="text" value="${esc(a.package_tag||"")}" oninput="updateArticleField(${i},'package_tag',this.value)" placeholder="e.g. Tier 1"></div>
+          <div class="form-group"><label class="form-label">${inPackage?"Pkg Monthly $":"Monthly $"}</label><input class="form-input" type="number" step="0.01" value="${esc(priceValue)}" ${priceDisabled?"disabled":""} oninput="updateArticleField(${i},'monthly_price',this.value)" placeholder="0.00"></div>
+          <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updateArticleField(${i},'active',this.value)"><option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option><option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option></select></div>
+        </div>
+        ${hint ? `<div class="article-card-hint">${hint}</div>` : ""}
+      </div>`;
+  }).join("");
+
+  el.innerHTML = datalistHtml + rowsHtml;
 }
 
 // ── Wizard: services ──
@@ -864,20 +862,44 @@ async function saveBundle(){
   const id = wizard.editingId || genId("adv");
   const now = new Date().toISOString().replace("T"," ").slice(0,19);
 
-  const allArticles = [];
-  wizard.packages.forEach(pk => {
-    pk._articles.filter(a => a.url).forEach(a => {
-      allArticles.push({ id: a.id, package_id: pk.id, url: a.url, position: a.position, monthly_price: "", active: "TRUE" });
-    });
-  });
-  wizard.standaloneArticles.filter(a => a.url).forEach(a => {
-    allArticles.push({ id: a.id, package_id: "", url: a.url, position: a.position, monthly_price: a.monthly_price, active: a.active });
+  // Build packages from unique non-empty package_tags
+  const tagToPackage = new Map();
+  wizard.articles.forEach(a => {
+    if (!a.url) return;
+    const tag = (a.package_tag||"").trim();
+    if (!tag) return;
+    const key = tag.toLowerCase();
+    if (!tagToPackage.has(key)) {
+      const existingId = wizard._packageIdByTag[key];
+      const existingNotes = wizard._packageNotesByTag[key] || "";
+      tagToPackage.set(key, {
+        id: existingId || genId("pkg"),
+        name: tag,
+        monthly_price: a.monthly_price || "",
+        status: a.active === "TRUE" ? "Active" : "Inactive",
+        notes: existingNotes
+      });
+    } else {
+      const ex = tagToPackage.get(key);
+      if (!ex.monthly_price && a.monthly_price) ex.monthly_price = a.monthly_price;
+      if (a.active === "TRUE") ex.status = "Active";  // any active article makes package active
+    }
   });
 
-  // Save all packages — name is optional. Caller controls add/remove via wizard.
-  const cleanPackages = wizard.packages.map(pk => ({
-    id: pk.id, name: pk.name, monthly_price: pk.monthly_price, status: pk.status, notes: pk.notes
-  }));
+  const cleanPackages = Array.from(tagToPackage.values());
+
+  const allArticles = wizard.articles.filter(a => a.url).map(a => {
+    const tag = (a.package_tag||"").trim().toLowerCase();
+    const pkg = tag ? tagToPackage.get(tag) : null;
+    return {
+      id: a.id,
+      package_id: pkg ? pkg.id : "",
+      url: a.url,
+      position: a.position,
+      monthly_price: pkg ? "" : a.monthly_price,
+      active: a.active
+    };
+  });
 
   const termType = document.getElementById("fTermType").value;
   const isFixed = termType === "Fixed";
@@ -1009,10 +1031,10 @@ function openDrawer(id, refresh){
     if (xa !== ya) return xa - ya;
     return (x.name||"").localeCompare(y.name||"");
   });
-  const packagesHtml = `
+  const packagesHtml = sortedPackages.length ? `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Packages</div><div class="drawer-section-meta">${a._activePackages.length} active${a._packages.length>a._activePackages.length?` · ${a._packages.length-a._activePackages.length} inactive`:""}</div></div>
-      ${sortedPackages.length ? sortedPackages.map((pk, idx) => {
+      ${sortedPackages.map((pk, idx) => {
         const arts = a._articles.filter(x => x.package_id === pk.id).sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
         const isActive = (pk.status||"Active") === "Active";
         const displayName = pk.name || `Package ${idx + 1}`;
@@ -1028,10 +1050,9 @@ function openDrawer(id, refresh){
             ${arts.length ? `<div class="pkg-detail-articles">${arts.map(art => `
               <div class="pkg-detail-article"><span class="pkg-article-pos">#${esc(art.position||"?")}</span><a class="pkg-article-link" href="${esc(art.url||"#")}" target="_blank" rel="noopener">${esc(urlLabel(art.url))}</a></div>
             `).join("")}</div>` : `<div style="font-size:12px;color:var(--ink-muted);font-style:italic;">No articles assigned.</div>`}
-            ${pk.notes ? `<div class="pkg-detail-notes">${esc(pk.notes)}</div>` : ""}
           </div>`;
-      }).join("") : `<div class="empty">No packages.</div>`}
-    </div>`;
+      }).join("")}
+    </div>` : "";
 
   // Standalone
   const sortedStandalone = [...a._standaloneArticles].sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
@@ -1056,7 +1077,9 @@ function openDrawer(id, refresh){
       </table>
     </div>` : "";
 
-  // Services
+  const noItems = !sortedPackages.length && !sortedStandalone.length;
+  const itemsEmpty = noItems ? `<div class="drawer-section"><div class="drawer-section-header"><div class="drawer-section-title">Articles</div></div><div class="empty">No articles or packages yet — click Edit to add some.</div></div>` : "";
+
   const servicesHtml = `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Additional Services</div><div class="drawer-section-meta">${a._services.length}</div></div>
@@ -1067,7 +1090,6 @@ function openDrawer(id, refresh){
         </div>`).join("") : `<div class="empty">No additional services.</div>`}
     </div>`;
 
-  // Notes
   const notesHtml = `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Notes & Activity</div><div class="drawer-section-meta">${a._notes.length}</div></div>
@@ -1088,7 +1110,7 @@ function openDrawer(id, refresh){
         </div>`).join("") : `<div class="empty">No notes yet — add one above.</div>`}
     </div>`;
 
-  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + servicesHtml + notesHtml;
+  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + itemsEmpty + servicesHtml + notesHtml;
 
   if (!refresh) {
     document.getElementById("drawerOverlay").classList.add("active");
