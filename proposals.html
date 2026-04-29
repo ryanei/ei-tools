@@ -8,11 +8,25 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563EB'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='800' font-size='14'%3EEI%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 <style>
+:root {
+  --ei-blue:#012747; --ei-blue-700:#0a3a64; --ei-blue-900:#001a30;
+  --ei-blue-50:#eaf0f6; --ei-blue-100:#d3def0;
+  --paper:#faf9f6; --paper-2:#f3f1ec; --line:#e6e3dc; --line-2:#efece6;
+  --ink:#131310; --ink-2:#2e2d28; --soft:#6a6760; --mute:#9b988f;
+  --green:#2f7d4d; --green-bg:#e8f1ea;
+  --amber:#a8741f; --amber-bg:#f4ecd9;
+  --rust:#9b3a1f; --rust-bg:#f5e4dc;
+  --radius:8px; --radius-sm:4px; --radius-lg:14px;
+  --sans:'Inter Tight',-apple-system,system-ui,sans-serif;
+  --serif:'Fraunces','Times New Roman',serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+
 :root {
   --navy: #0B1D3A;
   --blue: #2563EB;
@@ -44,7 +58,7 @@ body {
 }
 
 /* ── Shared topbar (matches hub) ── */
-.topbar { background: linear-gradient(135deg, #0C1222 0%, #162040 50%, #1a2d5a 100%); padding: 0 40px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.topbar{position:sticky;top:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:var(--ei-blue);color:#fff;border-bottom:1px solid var(--ei-blue-900);}
 .topbar-brand { display: flex; align-items: center; gap: 12px; }
 .topbar-logo img { height: 22px; width: auto; }
 .topbar-title { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
@@ -394,18 +408,18 @@ body {
 
 <div class="topbar">
   <div class="topbar-brand">
-    <div class="topbar-logo"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563EB'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='800' font-size='14'%3EEI%3C/text%3E%3C/svg%3E" alt="EI" style="height:22px;width:auto;"></div>
-    <div class="topbar-title"><a href="index.html">Tools</a> <span>/ Proposal Manager</span></div>
+    <svg class="ei-mark" viewBox="0 0 40 40" aria-label="Expert Insights"><circle cx="20" cy="20" r="20" fill="rgba(255,255,255,0.12)"/><circle cx="17" cy="17" r="8" fill="none" stroke="#fff" stroke-width="2.4"/><line x1="23" y1="23" x2="30" y2="30" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <div class="topbar-title"><a href="index.html" class="crumb">Tools</a><span class="sep">/</span><span class="crumb active">Proposal Manager</span></div>
   </div>
-  <nav class="topbar-tools">
-    <a href="dashboard.html" class="topbar-tool">Dashboard</a>
-    <a href="pipeline.html" class="topbar-tool">Pipeline</a>
-    <a href="proposals.html" class="topbar-tool active">Proposals</a>
-    <a href="accounts.html" class="topbar-tool">Accounts</a>
+  <nav class="topbar-nav">
+    <a href="index.html">Hub</a>
+    <a href="proposals.html" class="active">Proposals</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="accounts.html">Accounts</a>
+    <a href="pipeline.html">Pipeline</a>
   </nav>
   <div class="topbar-right">
-    <div class="topbar-env">LIVE</div>
-    <a href="index.html" class="back-link">&#x2190; Hub</a>
+    <span class="topbar-env">Live</span>
   </div>
 </div>
 
