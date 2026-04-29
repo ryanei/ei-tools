@@ -473,6 +473,9 @@ tbody tr:last-child td{border-bottom:none;}
 // ── Config ──
 const ACCOUNTS_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
 const ACCOUNTS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcwZhAgCsZxFQ-dl7gKv6StZC2en_QVzgtrp5aBHYPg4In-9A9Zk4iv7C_lxGZ_SvY/exec";
+const PROPOSALS_SHEET_ID = "12JC_3Y52i1qrMcKtXk7dYvzhqyU6RijB6ybq0wNP18M";
+
+let proposalsByAdvertiser = null; // populated lazily on first drawer open
 
 // ── State ──
 let advertisers = [], contacts = [], packages = [], articles = [], services = [], notes = [];
@@ -495,6 +498,87 @@ function daysUntil(d){const s=fmtDate(d);if(!s)return null;const dt=new Date(s);
 function fullName(first,last){return [first,last].filter(Boolean).join(" ");}
 function urlLabel(u){if(!u)return"(no URL)";try{const url=new URL(u);const slug=url.pathname.split("/").filter(Boolean).pop();return slug?slug.replace(/-/g," "):url.hostname;}catch(e){return u;}}
 function tagKey(t){return (t||"").trim().toLowerCase();}
+
+// ── Proposals (cross-tool linkage) ──
+function loadProposalsSheet(){
+  const cb = "_propCb_" + Date.now() + Math.floor(Math.random()*1000);
+  const url = `https://docs.google.com/spreadsheets/d/${PROPOSALS_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=Proposals&headers=1`;
+  return new Promise((resolve) => {
+    window[cb] = function(data){
+      try {
+        if (!data || !data.table) { resolve({}); return; }
+        const cols = data.table.cols.map(c => (c.label || c.id || "").toString());
+        const colIdx = {};
+        cols.forEach((label, i) => { colIdx[label.toLowerCase().replace(/\s+/g,"_")] = i; });
+        const idIdx = colIdx["proposal_id"] !== undefined ? colIdx["proposal_id"] : colIdx["id"];
+        const vendorIdx = colIdx["vendor"];
+        const dateIdx = colIdx["date_created"];
+        const totalIdx = colIdx["monthly_total"];
+        const statusIdx = colIdx["status"];
+        const advIdx = colIdx["advertiser_id"];
+        if (advIdx === undefined) { resolve({}); return; }
+        const map = {};
+        (data.table.rows || []).forEach(r => {
+          const cell = (i) => (i !== undefined && r.c[i]) ? r.c[i].v : "";
+          const advId = String(cell(advIdx) || "").trim();
+          if (!advId) return;
+          (map[advId] = map[advId] || []).push({
+            id: String(cell(idIdx) || ""),
+            vendor: String(cell(vendorIdx) || ""),
+            date: String(cell(dateIdx) || ""),
+            monthly_total: Number(cell(totalIdx)) || 0,
+            status: String(cell(statusIdx) || "")
+          });
+        });
+        // Newest first within each advertiser
+        Object.keys(map).forEach(k => map[k].sort((a,b) => String(b.date).localeCompare(String(a.date))));
+        resolve(map);
+      } catch(e) { resolve({}); }
+      delete window[cb];
+      document.getElementById("_sc_" + cb)?.remove();
+    };
+    const script = document.createElement("script");
+    script.id = "_sc_" + cb;
+    script.src = url;
+    script.onerror = () => { resolve({}); };
+    document.body.appendChild(script);
+  });
+}
+
+function proposalStatusBadge(status){
+  const s = (status||"").toLowerCase();
+  let cls = "badge-prospect";
+  if (s === "accepted") cls = "badge-active";
+  else if (s === "sent") cls = "badge-negotiation";
+  else if (s === "rejected") cls = "badge-churned";
+  return `<span class="badge ${cls}">${esc(status||"Draft")}</span>`;
+}
+
+async function refreshDrawerProposals(advertiserId){
+  const section = document.getElementById("drawerProposalsSection");
+  if (!section) return;
+  if (!proposalsByAdvertiser) {
+    proposalsByAdvertiser = await loadProposalsSheet();
+  }
+  const list = proposalsByAdvertiser[advertiserId] || [];
+  const body = document.getElementById("drawerProposalsBody");
+  const meta = document.getElementById("drawerProposalsMeta");
+  if (meta) meta.textContent = list.length;
+  if (!body) return;
+  if (!list.length) {
+    body.innerHTML = `<div class="empty">No proposals linked yet. Create one in the Proposals tool and pick this advertiser from the dropdown.</div>`;
+    return;
+  }
+  body.innerHTML = list.map(p => `
+    <div class="service-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="min-width:0;flex:1;">
+        <a href="proposals.html?edit=${encodeURIComponent(p.id)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:700;font-size:14px;">${esc(p.vendor || "(no vendor)")}</a>
+        <div class="service-details">${esc(fmtDateLong(p.date))} · ${fmtMoney(p.monthly_total)}/mo</div>
+      </div>
+      <div style="flex-shrink:0;">${proposalStatusBadge(p.status)}</div>
+    </div>
+  `).join("");
+}
 
 // ── Loading ──
 function loadSheet(sheetName){
@@ -1275,12 +1359,20 @@ function openDrawer(id, refresh){
         </div>`).join("") : `<div class="empty">No notes yet — add one above.</div>`}
     </div>`;
 
-  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + itemsEmpty + servicesHtml + notesHtml;
+  const proposalsHtml = `
+    <div class="drawer-section" id="drawerProposalsSection">
+      <div class="drawer-section-header"><div class="drawer-section-title">Proposals</div><div class="drawer-section-meta" id="drawerProposalsMeta">…</div></div>
+      <div id="drawerProposalsBody"><div class="empty">Loading proposals…</div></div>
+    </div>`;
+
+  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + itemsEmpty + servicesHtml + proposalsHtml + notesHtml;
 
   if (!refresh) {
     document.getElementById("drawerOverlay").classList.add("active");
     document.getElementById("drawer").classList.add("active");
   }
+
+  refreshDrawerProposals(a.id);
 }
 
 function renewalChip(d){

@@ -429,7 +429,12 @@ body {
     <div class="card">
       <div class="card-header"><div class="icon icon-blue">&#x1f4cb;</div><h2>Deal Details</h2></div>
       <div class="card-body">
-        <div class="field"><label>Vendor / Client Name</label><input type="text" id="vendorName" placeholder="e.g. Material Security"></div>
+        <div class="field">
+          <label>Vendor / Client Name <span id="advertiserLinkBadge" style="display:none;font-size:11px;color:#2563EB;font-weight:500;margin-left:6px;">&#x1f517; Linked to Accounts</span></label>
+          <input type="text" id="vendorName" placeholder="Start typing to search Accounts..." list="advertiserList" oninput="onVendorInput()" autocomplete="off">
+          <datalist id="advertiserList"></datalist>
+          <input type="hidden" id="advertiserId">
+        </div>
         <div class="field"><label>Contract Term</label>
           <select id="contractTerm" onchange="toggleCustomTerm()">
             <option value="Monthly Rolling">Monthly Rolling</option>
@@ -622,6 +627,67 @@ let ARTICLES = [];
 
 const MASTER_SHEET_ID = '12JC_3Y52i1qrMcKtXk7dYvzhqyU6RijB6ybq0wNP18M';
 const MASTER_GID = '463047260';
+const ACCOUNTS_SHEET_ID = '1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4';
+
+let ADVERTISERS = [];
+let advertiserByName = {};
+
+function loadAdvertisersFromSheet() {
+  const cb = 'advCb_' + Date.now();
+  const url = 'https://docs.google.com/spreadsheets/d/' + ACCOUNTS_SHEET_ID + '/gviz/tq?tqx=out:json;responseHandler:' + cb + '&sheet=Advertisers&headers=1';
+  const s = document.createElement('script');
+  window[cb] = function(response) {
+    delete window[cb];
+    if (s.parentNode) s.parentNode.removeChild(s);
+    try {
+      if (!response || response.status === 'error') return;
+      const table = response.table;
+      const colMap = {};
+      table.cols.forEach(function(c, i) { if (c.label) colMap[c.label.toLowerCase().replace(/\s+/g,'_')] = i; });
+      const idIdx = colMap.id;
+      const nameIdx = colMap.name;
+      if (idIdx === undefined || nameIdx === undefined) return;
+      const list = [];
+      const map = {};
+      table.rows.forEach(function(row) {
+        if (!row.c[idIdx] || !row.c[nameIdx]) return;
+        const id = String(row.c[idIdx].v || '').trim();
+        const name = String(row.c[nameIdx].v || '').trim();
+        if (!id || !name) return;
+        list.push({ id: id, name: name });
+        map[name.toLowerCase()] = id;
+      });
+      list.sort(function(a,b){ return a.name.localeCompare(b.name); });
+      ADVERTISERS = list;
+      advertiserByName = map;
+      renderAdvertiserList();
+      // Re-check current input in case user already typed something matching
+      onVendorInput();
+    } catch(e) {}
+  };
+  s.src = url;
+  s.onerror = function(){ delete window[cb]; };
+  document.body.appendChild(s);
+}
+
+function renderAdvertiserList() {
+  const dl = document.getElementById('advertiserList');
+  if (!dl) return;
+  dl.innerHTML = ADVERTISERS.map(function(a){
+    return '<option value="' + String(a.name).replace(/"/g,'&quot;') + '">';
+  }).join('');
+}
+
+function onVendorInput() {
+  const el = document.getElementById('vendorName');
+  if (!el) return;
+  const name = (el.value || '').trim();
+  const id = advertiserByName[name.toLowerCase()] || '';
+  const hidden = document.getElementById('advertiserId');
+  if (hidden) hidden.value = id;
+  const badge = document.getElementById('advertiserLinkBadge');
+  if (badge) badge.style.display = id ? 'inline' : 'none';
+}
 
 function loadArticlesFromSheet() {
   const callbackName = 'sheetCallback_' + Date.now();
@@ -720,7 +786,7 @@ let selectedArticles = [];
 let activeCategory = null;
 let categories = [];
 
-function init() { renderCategoryFilters(); renderArticleList(); loadArticlesFromSheet(); }
+function init() { renderCategoryFilters(); renderArticleList(); loadArticlesFromSheet(); loadAdvertisersFromSheet(); }
 
 function renderCategoryFilters() {
   const el = document.getElementById('categoryFilters');
@@ -1846,6 +1912,7 @@ function saveProposal(thenGeneratePDF) {
     discount: window.globalDiscount || 0,
     status: editingProposalId ? undefined : 'Draft',
     notes: document.getElementById('proposalNotes').value || '',
+    advertiser_id: document.getElementById('advertiserId').value || '',
   };
 
   const onDone = function() {
@@ -1929,6 +1996,9 @@ function editProposal(id) {
 
   // Fill form fields
   document.getElementById('vendorName').value = p.vendor || '';
+  document.getElementById('advertiserId').value = p.advertiser_id || '';
+  var editBadge = document.getElementById('advertiserLinkBadge');
+  if (editBadge) editBadge.style.display = p.advertiser_id ? 'inline' : 'none';
   if (p.startDate) document.getElementById('startDate').value = p.startDate;
 
   // Contract term
@@ -2003,6 +2073,9 @@ function clearEditing() {
   document.getElementById('editingIndicator').style.display = 'none';
   // Clear form
   document.getElementById('vendorName').value = '';
+  document.getElementById('advertiserId').value = '';
+  var clrBadge = document.getElementById('advertiserLinkBadge');
+  if (clrBadge) clrBadge.style.display = 'none';
   document.getElementById('contractTerm').value = 'Monthly Rolling';
   document.getElementById('customTerm').style.display = 'none';
   document.getElementById('contactSelect').value = '';
@@ -3479,6 +3552,13 @@ function initDashCount() {
   apiGet('list').then(data => {
     allProposals = data.proposals || [];
     document.getElementById('proposalCount').textContent = allProposals.length;
+    // Deep link: ?edit=PROP-ID opens that proposal in the builder
+    var params = new URLSearchParams(window.location.search);
+    var editId = params.get('edit');
+    if (editId) {
+      var match = allProposals.find(function(x){ return x.id === editId; });
+      if (match) editProposal(editId);
+    }
   }).catch(() => {});
 }
 
