@@ -487,7 +487,7 @@ body {
       </div>
     </div>
 
-    <div id="parSection" class="par-section" style="display:none;">
+    <div id="parSection" class="par-section">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <span class="par-label">Product Analysis Reports (PARs)</span>
         <button class="addon-add-btn" onclick="addPAR()">+ Add PAR</button>
@@ -852,9 +852,7 @@ function hideTooltip(el) {
 
 function renderSelected() {
   const el = document.getElementById('selectedBody');
-  const parSec = document.getElementById('parSection');
-  if (selectedArticles.length === 0) { el.innerHTML = '<div class="empty-state">No articles selected yet.</div>'; parSec.style.display='none'; return; }
-  parSec.style.display = 'block';
+  if (selectedArticles.length === 0) { el.innerHTML = '<div class="empty-state">No articles selected yet.</div>'; return; }
 
   const rows = selectedArticles.map(a => {
     const pos = getAvailablePositions(a);
