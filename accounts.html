@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Advertiser campaign database — sponsored articles, contacts, contracts, and account history.">
+<meta name="description" content="Advertiser campaign database — packages, sponsored articles, contacts, contracts, and account history.">
 <title>Accounts · EI Tools</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563EB'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='800' font-size='14'%3EEI%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,7 +79,7 @@ tbody tr:last-child td{border-bottom:none;}
 .adv-cell-name{font-weight:700;color:var(--ink);}
 .adv-cell-contact{font-size:12px;color:var(--ink-muted);margin-top:2px;}
 
-/* Status badges */
+/* Badges */
 .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
 .badge-active{background:var(--green-soft);color:var(--green);}
 .badge-negotiation{background:var(--amber-soft);color:var(--amber);}
@@ -92,7 +92,7 @@ tbody tr:last-child td{border-bottom:none;}
 /* Modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .modal-overlay.active{display:flex;}
-.modal{background:var(--surface-raised);border-radius:var(--radius);width:760px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:0;display:flex;flex-direction:column;}
+.modal{background:var(--surface-raised);border-radius:var(--radius);width:820px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:0;display:flex;flex-direction:column;}
 .modal-header{padding:24px 32px 16px;border-bottom:1px solid var(--border);}
 .modal-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;justify-content:space-between;}
 .modal-close-x{background:none;border:none;font-size:22px;color:var(--ink-muted);cursor:pointer;padding:4px 10px;border-radius:6px;}
@@ -120,28 +120,36 @@ tbody tr:last-child td{border-bottom:none;}
 .form-label .req{color:var(--red);}
 .form-input,.form-select,.form-textarea{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;transition:border-color 0.15s;}
 .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
-.form-textarea{resize:vertical;min-height:70px;}
+.form-textarea{resize:vertical;min-height:60px;}
 .form-help{font-size:11px;color:var(--ink-muted);}
 
-/* Dynamic rows in wizard */
+/* Dynamic blocks */
 .dyn-block{margin-top:18px;}
 .dyn-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .dyn-block-title{font-size:13px;font-weight:700;color:var(--ink);}
 .dyn-block-sub{font-size:12px;color:var(--ink-muted);font-weight:500;}
 .dyn-row{display:grid;gap:10px;align-items:end;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:10px;position:relative;}
 .dyn-row.contact{grid-template-columns:1fr 1fr 36px;}
-.dyn-row.article{grid-template-columns:1fr 90px 110px 110px 36px;}
+.dyn-row.standalone{grid-template-columns:1fr 90px 110px 110px 36px;}
 .dyn-row.service{grid-template-columns:1fr 2fr 36px;}
+.dyn-row.pkg-article{grid-template-columns:1fr 90px 36px;}
 .dyn-row .form-input,.dyn-row .form-select{padding:8px 10px;font-size:13px;}
 .dyn-row .form-label{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;}
 .dyn-remove{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
 .dyn-remove:hover{background:var(--red-soft);border-color:rgba(220,38,38,0.3);}
 .dyn-empty{padding:18px;text-align:center;color:var(--ink-muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--surface);}
 
+/* Package card in wizard */
+.pkg-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+.pkg-card-header{display:grid;grid-template-columns:1fr 130px 110px 36px;gap:10px;align-items:end;margin-bottom:14px;}
+.pkg-card-articles{margin-top:10px;padding-top:14px;border-top:1px dashed var(--border);}
+.pkg-card-articles-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.pkg-card-articles-title{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;}
+
 /* Slide-over drawer */
 .drawer-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.4);z-index:90;display:none;backdrop-filter:blur(4px);}
 .drawer-overlay.active{display:block;}
-.drawer{position:fixed;top:0;right:0;width:720px;max-width:100vw;height:100vh;background:var(--surface);box-shadow:-8px 0 32px rgba(12,18,34,0.12);z-index:91;transform:translateX(100%);transition:transform 0.25s ease;display:flex;flex-direction:column;overflow:hidden;}
+.drawer{position:fixed;top:0;right:0;width:760px;max-width:100vw;height:100vh;background:var(--surface);box-shadow:-8px 0 32px rgba(12,18,34,0.12);z-index:91;transform:translateX(100%);transition:transform 0.25s ease;display:flex;flex-direction:column;overflow:hidden;}
 .drawer.active{transform:translateX(0);}
 .drawer-header{padding:24px 28px;border-bottom:1px solid var(--border);background:var(--surface-raised);}
 .drawer-title-row{display:flex;align-items:center;justify-content:space-between;gap:16px;}
@@ -169,7 +177,20 @@ tbody tr:last-child td{border-bottom:none;}
 .contact-email{font-size:12px;color:var(--ink-muted);font-family:'JetBrains Mono',monospace;}
 .contact-tag{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;}
 
-/* Articles table */
+/* Detail packages */
+.pkg-detail{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;}
+.pkg-detail.inactive{opacity:0.6;}
+.pkg-detail-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.pkg-detail-name{font-weight:700;font-size:15px;}
+.pkg-detail-price{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--ink);}
+.pkg-detail-articles{margin-top:8px;}
+.pkg-detail-article{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px dashed var(--border);font-size:13px;}
+.pkg-detail-article:first-child{border-top:none;}
+.pkg-article-pos{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);font-weight:600;min-width:24px;}
+.pkg-article-title{flex:1;}
+.pkg-detail-notes{margin-top:10px;font-size:12px;color:var(--ink-muted);font-style:italic;}
+
+/* Standalone articles table */
 .articles-table{width:100%;border-collapse:collapse;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .articles-table th{font-size:10px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;text-align:left;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);}
 .articles-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
@@ -183,11 +204,10 @@ tbody tr:last-child td{border-bottom:none;}
 .service-name{font-weight:700;font-size:14px;}
 .service-details{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
 
-/* Notes timeline */
+/* Notes */
 .note-add-box{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
 .note-add-box textarea{width:100%;border:none;outline:none;resize:vertical;font-family:inherit;font-size:13px;color:var(--ink);background:transparent;min-height:50px;}
 .note-add-actions{display:flex;justify-content:flex-end;margin-top:8px;}
-
 .note-item{padding:14px 18px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;position:relative;}
 .note-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-muted);margin-bottom:6px;}
 .note-time{font-family:'JetBrains Mono',monospace;}
@@ -197,11 +217,10 @@ tbody tr:last-child td{border-bottom:none;}
 .note-item:hover .note-delete{opacity:1;}
 .note-delete:hover{background:var(--red-soft);color:var(--red);}
 
-.empty{padding:30px;text-align:center;color:var(--ink-muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius);background:var(--surface-raised);}
+.empty{padding:24px;text-align:center;color:var(--ink-muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius);background:var(--surface-raised);}
 .loading{text-align:center;padding:60px 20px;color:var(--ink-muted);font-size:14px;}
 .error-msg{text-align:center;padding:40px;color:var(--red);}
 
-/* Footer */
 .footer{max-width:1320px;margin:0 auto;padding:20px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .footer-left{font-size:12px;color:var(--ink-muted);}
 .footer-right{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);}
@@ -250,7 +269,7 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 
   <div class="filters">
-    <input type="text" class="filter-search" id="filterSearch" placeholder="Search advertisers, contacts, or articles…" oninput="renderTable()">
+    <input type="text" class="filter-search" id="filterSearch" placeholder="Search advertisers, contacts, packages, or articles…" oninput="renderTable()">
     <select class="filter-select" id="filterStatus" onchange="renderTable()">
       <option value="">All statuses</option>
       <option value="Active">Active</option>
@@ -268,7 +287,7 @@ tbody tr:last-child td{border-bottom:none;}
           <th>Advertiser</th>
           <th>Status</th>
           <th>PAR</th>
-          <th>Articles</th>
+          <th>Packages / Articles</th>
           <th>Monthly</th>
           <th>Renewal</th>
           <th>Terms</th>
@@ -299,7 +318,7 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
     </div>
     <div class="modal-body">
-      <!-- STEP 1: Details -->
+      <!-- STEP 1 -->
       <div class="wizard-pane active" data-pane="1">
         <div class="form-row">
           <div class="form-group full">
@@ -347,7 +366,7 @@ tbody tr:last-child td{border-bottom:none;}
         </div>
       </div>
 
-      <!-- STEP 2: Contacts -->
+      <!-- STEP 2 -->
       <div class="wizard-pane" data-pane="2">
         <div class="form-row">
           <div class="form-group">
@@ -371,18 +390,30 @@ tbody tr:last-child td{border-bottom:none;}
         </div>
       </div>
 
-      <!-- STEP 3: Campaign Items -->
+      <!-- STEP 3 -->
       <div class="wizard-pane" data-pane="3">
         <div class="dyn-block">
           <div class="dyn-block-header">
             <div>
-              <div class="dyn-block-title">Sponsored articles</div>
-              <div class="dyn-block-sub">Mark old ones inactive instead of removing — keeps history</div>
+              <div class="dyn-block-title">Packages</div>
+              <div class="dyn-block-sub">Bundle multiple articles under one monthly price (e.g. "Q2 Tier 1")</div>
             </div>
-            <button class="btn btn-sm" onclick="addArticleRow()">+ Add Article</button>
+            <button class="btn btn-sm" onclick="addPackage()">+ Add Package</button>
           </div>
-          <div id="articlesList"></div>
+          <div id="packagesList"></div>
         </div>
+
+        <div class="dyn-block">
+          <div class="dyn-block-header">
+            <div>
+              <div class="dyn-block-title">Standalone articles</div>
+              <div class="dyn-block-sub">Articles not in any package — each priced individually</div>
+            </div>
+            <button class="btn btn-sm" onclick="addStandaloneArticle()">+ Add Article</button>
+          </div>
+          <div id="standaloneArticlesList"></div>
+        </div>
+
         <div class="dyn-block">
           <div class="dyn-block-header">
             <div>
@@ -416,7 +447,7 @@ tbody tr:last-child td{border-bottom:none;}
 
 <div class="footer">
   <div class="footer-left">Expert Insights &middot; Accounts</div>
-  <div class="footer-right">v2.0.0</div>
+  <div class="footer-right">v2.1.0</div>
 </div>
 
 <script>
@@ -425,14 +456,13 @@ const ACCOUNTS_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
 const ACCOUNTS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcwZhAgCsZxFQ-dl7gKv6StZC2en_QVzgtrp5aBHYPg4In-9A9Zk4iv7C_lxGZ_SvY/exec";
 
 // ── State ──
-let advertisers = [], contacts = [], articles = [], services = [], notes = [];
+let advertisers = [], contacts = [], packages = [], articles = [], services = [], notes = [];
 let currentDrawerId = null;
-let wizard = { mode: 'new', step: 1, editingId: null, contacts: [], articles: [], services: [] };
+let wizard = { mode: 'new', step: 1, editingId: null, contacts: [], packages: [], standaloneArticles: [], services: [] };
 
 // ── Helpers ──
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 function fmtMoney(n){return "$" + (Math.round((parseFloat(n)||0)*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
-function fmtMoneyShort(n){const v=parseFloat(n)||0;return v>=10000?"$"+(Math.round(v/100)/10).toLocaleString()+"k":"$"+Math.round(v).toLocaleString();}
 function fmtDate(d){if(!d)return"";if(typeof d==="string"&&d.startsWith("Date(")){const m=d.match(/Date\((\d+),(\d+),(\d+)/);if(m)return `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;}const dt=new Date(d);if(isNaN(dt))return String(d);return dt.toISOString().slice(0,10);}
 function fmtDateLong(d){const s=fmtDate(d);if(!s)return"—";const dt=new Date(s);if(isNaN(dt))return s;return dt.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
 function fmtTime(d){if(!d)return"";const dt=new Date(d);if(isNaN(dt))return String(d);return dt.toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});}
@@ -440,7 +470,7 @@ function genId(p){return p+"_"+Date.now().toString(36)+Math.random().toString(36
 function isTrue(v){return v && String(v).toUpperCase()==="TRUE";}
 function daysUntil(d){const s=fmtDate(d);if(!s)return null;const dt=new Date(s);if(isNaN(dt))return null;return Math.ceil((dt-new Date())/(1000*60*60*24));}
 
-// ── Loading via gviz JSONP ──
+// ── Loading ──
 function loadSheet(sheetName){
   const cb = "_acctCb_" + sheetName.replace(/\W/g,"") + "_" + Date.now() + Math.floor(Math.random()*1000);
   const url = `https://docs.google.com/spreadsheets/d/${ACCOUNTS_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&headers=1`;
@@ -480,28 +510,44 @@ function loadSheet(sheetName){
 async function reload(){
   document.getElementById("advertisersBody").innerHTML = '<tr><td colspan="8" class="loading">Loading…</td></tr>';
   try {
-    const [a, c, ar, sv, n] = await Promise.all([
-      loadSheet("Advertisers"), loadSheet("Contacts"), loadSheet("Articles"),
-      loadSheet("Services"), loadSheet("Notes")
+    const [a, c, pk, ar, sv, n] = await Promise.all([
+      loadSheet("Advertisers"), loadSheet("Contacts"), loadSheet("Packages"),
+      loadSheet("Articles"), loadSheet("Services"), loadSheet("Notes")
     ]);
-    advertisers = a; contacts = c; articles = ar; services = sv; notes = n;
+    advertisers = a; contacts = c; packages = pk; articles = ar; services = sv; notes = n;
     indexChildren();
     renderKpis();
     renderTable();
     if (currentDrawerId) openDrawer(currentDrawerId, true);
   } catch(e) {
-    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="8" class="error-msg">Failed to load: ${esc(e.message)}. Make sure the sheet is shared as "Anyone with link – Viewer" and the Apps Script is deployed.</td></tr>`;
+    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="8" class="error-msg">Failed to load: ${esc(e.message)}. Make sure the sheet is shared and the Apps Script is deployed.</td></tr>`;
   }
 }
 
 function indexChildren(){
   advertisers.forEach(a => {
     a._contacts = contacts.filter(c => c.advertiser_id === a.id);
+    a._packages = packages.filter(pk => pk.advertiser_id === a.id);
     a._articles = articles.filter(x => x.advertiser_id === a.id);
     a._services = services.filter(s => s.advertiser_id === a.id);
-    a._notes = notes.filter(n => n.advertiser_id === a.id).sort((x, y) => String(y.timestamp||"").localeCompare(String(x.timestamp||"")));
-    a._activeArticles = a._articles.filter(x => isTrue(x.active));
-    a._monthlyRevenue = a._activeArticles.reduce((s, x) => s + (parseFloat(x.monthly_price)||0), 0);
+    a._notes = notes.filter(nn => nn.advertiser_id === a.id).sort((x, y) => String(y.timestamp||"").localeCompare(String(x.timestamp||"")));
+
+    a._activePackages = a._packages.filter(pk => (pk.status||"Active") === "Active");
+    a._packageRevenue = a._activePackages.reduce((s, pk) => s + (parseFloat(pk.monthly_price)||0), 0);
+
+    a._standaloneArticles = a._articles.filter(x => !x.package_id);
+    a._activeStandaloneArticles = a._standaloneArticles.filter(x => isTrue(x.active));
+    a._standaloneRevenue = a._activeStandaloneArticles.reduce((s, x) => s + (parseFloat(x.monthly_price)||0), 0);
+
+    a._monthlyRevenue = a._packageRevenue + a._standaloneRevenue;
+
+    a._totalActiveArticles = a._articles.filter(x => {
+      if (x.package_id) {
+        const pk = a._packages.find(p => p.id === x.package_id);
+        return pk && (pk.status||"Active") === "Active";
+      }
+      return isTrue(x.active);
+    }).length;
   });
 }
 
@@ -509,7 +555,7 @@ function indexChildren(){
 function renderKpis(){
   const active = advertisers.filter(a => a.status === "Active");
   const totalRevenue = active.reduce((s, a) => s + a._monthlyRevenue, 0);
-  const totalArticles = articles.filter(a => isTrue(a.active)).length;
+  const totalArticles = advertisers.reduce((s, a) => s + a._totalActiveArticles, 0);
   const renewing = advertisers.filter(a => {
     const d = daysUntil(a.renewal_date);
     return d !== null && d >= 0 && d <= 30;
@@ -517,8 +563,8 @@ function renderKpis(){
   document.getElementById("kpis").innerHTML = `
     <div class="kpi-row">
       <div class="kpi-card teal"><div class="kpi-label">Active Advertisers</div><div class="kpi-value">${active.length}</div><div class="kpi-sub">of ${advertisers.length} total</div></div>
-      <div class="kpi-card green"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">${fmtMoney(totalRevenue)}</div><div class="kpi-sub">from active sponsored articles</div></div>
-      <div class="kpi-card accent"><div class="kpi-label">Articles Sponsored</div><div class="kpi-value">${totalArticles}</div><div class="kpi-sub">currently active</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">${fmtMoney(totalRevenue)}</div><div class="kpi-sub">packages + standalone articles</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">Articles Sponsored</div><div class="kpi-value">${totalArticles}</div><div class="kpi-sub">across active campaigns</div></div>
       <div class="kpi-card amber"><div class="kpi-label">Renewals (30 days)</div><div class="kpi-value">${renewing}</div><div class="kpi-sub">renewal date in range</div></div>
     </div>`;
 }
@@ -536,6 +582,7 @@ function renderTable(){
         a.primary_contact_name||"",
         a.primary_contact_email||"",
         ...(a._contacts||[]).map(c => c.name+" "+c.email),
+        ...(a._packages||[]).map(pk => pk.name||""),
         ...(a._articles||[]).map(x => x.title||"")
       ].join(" ").toLowerCase();
       if (!hay.includes(search)) return false;
@@ -561,6 +608,12 @@ function renderTable(){
     let renewalCell = a.renewal_date ? fmtDateLong(a.renewal_date) : "—";
     if (renewalDays !== null && renewalDays >= 0 && renewalDays <= 30) renewalCell += ` <span style="color:var(--amber);font-weight:600;">(${renewalDays}d)</span>`;
     else if (renewalDays !== null && renewalDays < 0) renewalCell += ` <span style="color:var(--red);font-weight:600;">overdue</span>`;
+    const pkgCount = a._activePackages.length;
+    const standCount = a._activeStandaloneArticles.length;
+    const breakdownParts = [];
+    if (pkgCount) breakdownParts.push(`${pkgCount} pkg${pkgCount>1?"s":""}`);
+    if (standCount) breakdownParts.push(`${standCount} standalone`);
+    const breakdown = breakdownParts.join(" · ") || "—";
     return `
       <tr onclick="openDrawer('${esc(a.id)}')">
         <td>
@@ -569,7 +622,7 @@ function renderTable(){
         </td>
         <td>${statusBadge(a.status)}</td>
         <td>${parBadge(a.par_live)}</td>
-        <td><strong>${a._activeArticles.length}</strong> <span style="color:var(--ink-muted);font-size:11px;">${a._articles.length>a._activeArticles.length?"("+(a._articles.length-a._activeArticles.length)+" inactive)":""}</span></td>
+        <td><strong>${a._totalActiveArticles}</strong> <span style="color:var(--ink-muted);font-size:11px;">articles</span><div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">${breakdown}</div></td>
         <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${a._monthlyRevenue ? fmtMoney(a._monthlyRevenue) : "—"}</td>
         <td style="font-size:12px;">${renewalCell}</td>
         <td><span style="font-size:12px;color:var(--ink-muted);">${esc(a.terms||"—")}</span></td>
@@ -582,9 +635,7 @@ function statusBadge(s){
   const cls = {"Active":"badge-active","In Negotiation":"badge-negotiation","Paused":"badge-paused","Churned":"badge-churned"};
   return `<span class="badge ${cls[s]||""}">${esc(s||"—")}</span>`;
 }
-function parBadge(v){
-  return v==="Yes" ? `<span class="badge badge-yes">Yes</span>` : `<span class="badge badge-no">No</span>`;
-}
+function parBadge(v){ return v==="Yes" ? `<span class="badge badge-yes">Yes</span>` : `<span class="badge badge-no">No</span>`; }
 
 // ── Wizard ──
 function openWizard(id){
@@ -609,28 +660,44 @@ function openWizard(id){
   // Step 2
   document.getElementById("fPrimaryName").value = a ? (a.primary_contact_name||"") : "";
   document.getElementById("fPrimaryEmail").value = a ? (a.primary_contact_email||"") : "";
-  wizard.contacts = a ? a._contacts.map(c => ({...c})) : [];
+  wizard.contacts = a ? a._contacts.map(c => ({id: c.id || genId("con"), name: c.name||"", email: c.email||""})) : [];
   renderContactsList();
 
-  // Step 3
-  wizard.articles = a ? a._articles.map(x => ({...x, active: isTrue(x.active) ? "TRUE" : "FALSE"})) : [];
-  wizard.services = a ? a._services.map(x => ({...x})) : [];
-  renderArticlesList();
+  // Step 3 — load packages with their articles, plus standalone articles
+  if (a) {
+    wizard.packages = a._packages.map(pk => ({
+      id: pk.id || genId("pkg"),
+      name: pk.name || "",
+      monthly_price: pk.monthly_price || "",
+      status: pk.status || "Active",
+      notes: pk.notes || "",
+      _articles: a._articles
+        .filter(x => x.package_id === pk.id)
+        .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
+        .map(x => ({ id: x.id || genId("art"), title: x.title||"", position: String(x.position||"1") }))
+    }));
+    wizard.standaloneArticles = a._articles
+      .filter(x => !x.package_id)
+      .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
+      .map(x => ({ id: x.id || genId("art"), title: x.title||"", position: String(x.position||"1"), monthly_price: x.monthly_price||"", active: isTrue(x.active) ? "TRUE" : "FALSE" }));
+    wizard.services = a._services.map(s => ({ id: s.id || genId("svc"), name: s.name||"", details: s.details||"" }));
+  } else {
+    wizard.packages = [];
+    wizard.standaloneArticles = [];
+    wizard.services = [];
+  }
+  renderPackagesList();
+  renderStandaloneArticlesList();
   renderServicesList();
 
   showWizardStep(1);
   document.getElementById("wizardModal").classList.add("active");
 }
 
-function closeWizard(){
-  document.getElementById("wizardModal").classList.remove("active");
-}
-
+function closeWizard(){ document.getElementById("wizardModal").classList.remove("active"); }
 function onTermsChange(){
-  const isCustom = document.getElementById("fTerms").value === "Custom";
-  document.getElementById("fCustomTermsGroup").style.display = isCustom ? "" : "none";
+  document.getElementById("fCustomTermsGroup").style.display = document.getElementById("fTerms").value === "Custom" ? "" : "none";
 }
-
 function showWizardStep(step){
   wizard.step = step;
   document.querySelectorAll(".wizard-step").forEach(el => {
@@ -645,7 +712,6 @@ function showWizardStep(step){
   document.getElementById("wizardNextBtn").style.display = step < 3 ? "" : "none";
   document.getElementById("wizardSaveBtn").style.display = step === 3 ? "" : "none";
 }
-
 function wizardNext(){
   if (wizard.step === 1) {
     const name = document.getElementById("fName").value.trim();
@@ -655,7 +721,7 @@ function wizardNext(){
 }
 function wizardBack(){ if (wizard.step > 1) showWizardStep(wizard.step - 1); }
 
-// ── Wizard dynamic rows ──
+// ── Wizard: contacts ──
 function addContactRow(){ wizard.contacts.push({ id: genId("con"), name: "", email: "" }); renderContactsList(); }
 function removeContactRow(i){ wizard.contacts.splice(i, 1); renderContactsList(); }
 function updateContactField(i, field, val){ wizard.contacts[i][field] = val; }
@@ -670,23 +736,60 @@ function renderContactsList(){
     </div>`).join("");
 }
 
-function addArticleRow(){ wizard.articles.push({ id: genId("art"), title: "", position: "1", monthly_price: "", active: "TRUE" }); renderArticlesList(); }
-function removeArticleRow(i){ wizard.articles.splice(i, 1); renderArticlesList(); }
-function updateArticleField(i, field, val){ wizard.articles[i][field] = val; }
-function renderArticlesList(){
-  const el = document.getElementById("articlesList");
-  if (!wizard.articles.length) { el.innerHTML = `<div class="dyn-empty">No articles yet.</div>`; return; }
+// ── Wizard: packages ──
+function addPackage(){ wizard.packages.push({ id: genId("pkg"), name: "", monthly_price: "", status: "Active", notes: "", _articles: [] }); renderPackagesList(); }
+function removePackage(i){ wizard.packages.splice(i, 1); renderPackagesList(); }
+function updatePackageField(i, field, val){ wizard.packages[i][field] = val; }
+function addPackageArticle(pi){ wizard.packages[pi]._articles.push({ id: genId("art"), title: "", position: "1" }); renderPackagesList(); }
+function removePackageArticle(pi, ai){ wizard.packages[pi]._articles.splice(ai, 1); renderPackagesList(); }
+function updatePackageArticleField(pi, ai, field, val){ wizard.packages[pi]._articles[ai][field] = val; }
+function renderPackagesList(){
+  const el = document.getElementById("packagesList");
+  if (!wizard.packages.length) { el.innerHTML = `<div class="dyn-empty">No packages yet.</div>`; return; }
   const positions = ["1","2","3","4","5","6","7","8","9","10"];
-  el.innerHTML = wizard.articles.map((a, i) => `
-    <div class="dyn-row article">
-      <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" value="${esc(a.title||"")}" oninput="updateArticleField(${i},'title',this.value)" placeholder="Article title"></div>
-      <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updateArticleField(${i},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
-      <div class="form-group"><label class="form-label">Monthly $</label><input class="form-input" type="number" step="0.01" value="${esc(a.monthly_price||"")}" oninput="updateArticleField(${i},'monthly_price',this.value)" placeholder="0.00"></div>
-      <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updateArticleField(${i},'active',this.value)"><option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option><option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option></select></div>
-      <button class="dyn-remove" onclick="removeArticleRow(${i})" title="Remove">×</button>
+  el.innerHTML = wizard.packages.map((pk, pi) => `
+    <div class="pkg-card">
+      <div class="pkg-card-header">
+        <div class="form-group"><label class="form-label">Package name</label><input class="form-input" type="text" value="${esc(pk.name||"")}" oninput="updatePackageField(${pi},'name',this.value)" placeholder="e.g. Q2 Tier 1"></div>
+        <div class="form-group"><label class="form-label">Monthly $</label><input class="form-input" type="number" step="0.01" value="${esc(pk.monthly_price||"")}" oninput="updatePackageField(${pi},'monthly_price',this.value)" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updatePackageField(${pi},'status',this.value)"><option value="Active" ${pk.status==="Active"?"selected":""}>Active</option><option value="Inactive" ${pk.status==="Inactive"?"selected":""}>Inactive</option></select></div>
+        <button class="dyn-remove" onclick="removePackage(${pi})" title="Remove package">×</button>
+      </div>
+      <div class="form-group full" style="margin-bottom:10px;"><label class="form-label">Notes (optional)</label><input class="form-input" type="text" value="${esc(pk.notes||"")}" oninput="updatePackageField(${pi},'notes',this.value)" placeholder="Anything to remember about this package"></div>
+      <div class="pkg-card-articles">
+        <div class="pkg-card-articles-header">
+          <div class="pkg-card-articles-title">Articles in this package</div>
+          <button class="btn btn-sm" onclick="addPackageArticle(${pi})">+ Add Article</button>
+        </div>
+        ${pk._articles.length ? pk._articles.map((a, ai) => `
+          <div class="dyn-row pkg-article">
+            <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" value="${esc(a.title||"")}" oninput="updatePackageArticleField(${pi},${ai},'title',this.value)" placeholder="Article title"></div>
+            <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updatePackageArticleField(${pi},${ai},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
+            <button class="dyn-remove" onclick="removePackageArticle(${pi},${ai})" title="Remove">×</button>
+          </div>`).join("") : `<div class="dyn-empty" style="margin-top:8px;">No articles in this package yet.</div>`}
+      </div>
     </div>`).join("");
 }
 
+// ── Wizard: standalone articles ──
+function addStandaloneArticle(){ wizard.standaloneArticles.push({ id: genId("art"), title: "", position: "1", monthly_price: "", active: "TRUE" }); renderStandaloneArticlesList(); }
+function removeStandaloneArticle(i){ wizard.standaloneArticles.splice(i, 1); renderStandaloneArticlesList(); }
+function updateStandaloneArticleField(i, field, val){ wizard.standaloneArticles[i][field] = val; }
+function renderStandaloneArticlesList(){
+  const el = document.getElementById("standaloneArticlesList");
+  if (!wizard.standaloneArticles.length) { el.innerHTML = `<div class="dyn-empty">No standalone articles yet.</div>`; return; }
+  const positions = ["1","2","3","4","5","6","7","8","9","10"];
+  el.innerHTML = wizard.standaloneArticles.map((a, i) => `
+    <div class="dyn-row standalone">
+      <div class="form-group"><label class="form-label">Title</label><input class="form-input" type="text" value="${esc(a.title||"")}" oninput="updateStandaloneArticleField(${i},'title',this.value)" placeholder="Article title"></div>
+      <div class="form-group"><label class="form-label">Position</label><select class="form-select" onchange="updateStandaloneArticleField(${i},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select></div>
+      <div class="form-group"><label class="form-label">Monthly $</label><input class="form-input" type="number" step="0.01" value="${esc(a.monthly_price||"")}" oninput="updateStandaloneArticleField(${i},'monthly_price',this.value)" placeholder="0.00"></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-select" onchange="updateStandaloneArticleField(${i},'active',this.value)"><option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option><option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option></select></div>
+      <button class="dyn-remove" onclick="removeStandaloneArticle(${i})" title="Remove">×</button>
+    </div>`).join("");
+}
+
+// ── Wizard: services ──
 function addServiceRow(){ wizard.services.push({ id: genId("svc"), name: "", details: "" }); renderServicesList(); }
 function removeServiceRow(i){ wizard.services.splice(i, 1); renderServicesList(); }
 function updateServiceField(i, field, val){ wizard.services[i][field] = val; }
@@ -711,6 +814,21 @@ async function saveBundle(){
   const id = wizard.editingId || genId("adv");
   const now = new Date().toISOString().replace("T"," ").slice(0,19);
 
+  // Flatten: package articles get package_id; standalone articles get package_id=""
+  const allArticles = [];
+  wizard.packages.forEach(pk => {
+    pk._articles.filter(a => a.title).forEach(a => {
+      allArticles.push({ id: a.id, package_id: pk.id, title: a.title, position: a.position, monthly_price: "", active: "TRUE" });
+    });
+  });
+  wizard.standaloneArticles.filter(a => a.title).forEach(a => {
+    allArticles.push({ id: a.id, package_id: "", title: a.title, position: a.position, monthly_price: a.monthly_price, active: a.active });
+  });
+
+  const cleanPackages = wizard.packages.filter(pk => pk.name).map(pk => ({
+    id: pk.id, name: pk.name, monthly_price: pk.monthly_price, status: pk.status, notes: pk.notes
+  }));
+
   const payload = {
     action: "saveAdvertiserBundle",
     id: id,
@@ -726,7 +844,8 @@ async function saveBundle(){
     created_at: wizard.mode === "edit" ? "" : now,
     updated_at: now,
     contacts_json: JSON.stringify(wizard.contacts.filter(c => c.name || c.email)),
-    articles_json: JSON.stringify(wizard.articles.filter(a => a.title)),
+    packages_json: JSON.stringify(cleanPackages),
+    articles_json: JSON.stringify(allArticles),
     services_json: JSON.stringify(wizard.services.filter(s => s.name))
   };
 
@@ -752,7 +871,7 @@ async function deleteAdvertiser(){
   const id = wizard.editingId;
   if (!id) return;
   const a = advertisers.find(x => x.id === id);
-  const childCount = (a?._contacts.length||0) + (a?._articles.length||0) + (a?._services.length||0) + (a?._notes.length||0);
+  const childCount = (a?._contacts.length||0) + (a?._packages.length||0) + (a?._articles.length||0) + (a?._services.length||0) + (a?._notes.length||0);
   const msg = childCount ? `Delete this advertiser and ${childCount} associated record${childCount>1?"s":""}? This cannot be undone.` : "Delete this advertiser? This cannot be undone.";
   if (!confirm(msg)) return;
   const btn = document.getElementById("wizardDeleteBtn");
@@ -769,7 +888,7 @@ async function deleteAdvertiser(){
   }
 }
 
-// ── Drawer (slide-over detail) ──
+// ── Drawer ──
 function openDrawer(id, refresh){
   const a = advertisers.find(x => x.id === id);
   if (!a) { closeDrawer(); return; }
@@ -792,7 +911,6 @@ function openDrawer(id, refresh){
     </div>
   `;
 
-  // Sections
   const detailHtml = `
     <div class="drawer-section">
       <div class="drawer-section-header"><div class="drawer-section-title">Campaign Details</div></div>
@@ -822,30 +940,58 @@ function openDrawer(id, refresh){
         </div>`).join("") : `<div class="empty">No contacts on file.</div>`}
     </div>`;
 
-  // Articles
-  const sortedArts = [...a._articles].sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
-  const articlesHtml = `
+  // Packages
+  const sortedPackages = [...a._packages].sort((x, y) => {
+    const xa = (x.status||"Active") === "Active" ? 0 : 1;
+    const ya = (y.status||"Active") === "Active" ? 0 : 1;
+    if (xa !== ya) return xa - ya;
+    return (x.name||"").localeCompare(y.name||"");
+  });
+  const packagesHtml = `
     <div class="drawer-section">
-      <div class="drawer-section-header"><div class="drawer-section-title">Sponsored Articles</div><div class="drawer-section-meta">${a._activeArticles.length} active${a._articles.length>a._activeArticles.length?` · ${a._articles.length-a._activeArticles.length} inactive`:""}</div></div>
-      ${sortedArts.length ? `
-        <table class="articles-table">
-          <thead><tr><th>Title</th><th>Position</th><th>Monthly</th><th>Status</th></tr></thead>
-          <tbody>
-            ${sortedArts.map(x => `
-              <tr class="${isTrue(x.active)?"":"article-inactive"}">
-                <td><span class="article-title">${esc(x.title||"")}</span></td>
-                <td>#${esc(x.position||"?")}</td>
-                <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${fmtMoney(x.monthly_price)}</td>
-                <td>${isTrue(x.active)?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
-              </tr>`).join("")}
-            <tr class="articles-totals">
-              <td colspan="2" style="text-align:right;">Active monthly total</td>
-              <td colspan="2" style="font-family:'JetBrains Mono',monospace;">${fmtMoney(a._monthlyRevenue)}</td>
-            </tr>
-          </tbody>
-        </table>
-      ` : `<div class="empty">No sponsored articles yet.</div>`}
+      <div class="drawer-section-header"><div class="drawer-section-title">Packages</div><div class="drawer-section-meta">${a._activePackages.length} active${a._packages.length>a._activePackages.length?` · ${a._packages.length-a._activePackages.length} inactive`:""}</div></div>
+      ${sortedPackages.length ? sortedPackages.map(pk => {
+        const arts = a._articles.filter(x => x.package_id === pk.id).sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
+        const isActive = (pk.status||"Active") === "Active";
+        return `
+          <div class="pkg-detail ${isActive?"":"inactive"}">
+            <div class="pkg-detail-header">
+              <div>
+                <div class="pkg-detail-name">${esc(pk.name||"(unnamed)")}</div>
+                ${!isActive ? `<span class="badge badge-inactive" style="margin-top:4px;display:inline-block;">Inactive</span>` : ""}
+              </div>
+              <div class="pkg-detail-price">${fmtMoney(pk.monthly_price)}/mo</div>
+            </div>
+            ${arts.length ? `<div class="pkg-detail-articles">${arts.map(art => `
+              <div class="pkg-detail-article"><span class="pkg-article-pos">#${esc(art.position||"?")}</span><span class="pkg-article-title">${esc(art.title||"")}</span></div>
+            `).join("")}</div>` : `<div style="font-size:12px;color:var(--ink-muted);font-style:italic;">No articles assigned.</div>`}
+            ${pk.notes ? `<div class="pkg-detail-notes">${esc(pk.notes)}</div>` : ""}
+          </div>`;
+      }).join("") : `<div class="empty">No packages.</div>`}
     </div>`;
+
+  // Standalone articles
+  const sortedStandalone = [...a._standaloneArticles].sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
+  const standaloneHtml = sortedStandalone.length ? `
+    <div class="drawer-section">
+      <div class="drawer-section-header"><div class="drawer-section-title">Standalone Articles</div><div class="drawer-section-meta">${a._activeStandaloneArticles.length} active${a._standaloneArticles.length>a._activeStandaloneArticles.length?` · ${a._standaloneArticles.length-a._activeStandaloneArticles.length} inactive`:""}</div></div>
+      <table class="articles-table">
+        <thead><tr><th>Title</th><th>Position</th><th>Monthly</th><th>Status</th></tr></thead>
+        <tbody>
+          ${sortedStandalone.map(x => `
+            <tr class="${isTrue(x.active)?"":"article-inactive"}">
+              <td><span class="article-title">${esc(x.title||"")}</span></td>
+              <td>#${esc(x.position||"?")}</td>
+              <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${fmtMoney(x.monthly_price)}</td>
+              <td>${isTrue(x.active)?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+            </tr>`).join("")}
+          <tr class="articles-totals">
+            <td colspan="2" style="text-align:right;">Active monthly</td>
+            <td colspan="2" style="font-family:'JetBrains Mono',monospace;">${fmtMoney(a._standaloneRevenue)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>` : "";
 
   // Services
   const servicesHtml = `
@@ -879,7 +1025,7 @@ function openDrawer(id, refresh){
         </div>`).join("") : `<div class="empty">No notes yet — add one above.</div>`}
     </div>`;
 
-  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + articlesHtml + servicesHtml + notesHtml;
+  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + servicesHtml + notesHtml;
 
   if (!refresh) {
     document.getElementById("drawerOverlay").classList.add("active");
@@ -904,7 +1050,7 @@ function closeDrawer(){
 async function quickDeleteAdvertiser(id){
   const a = advertisers.find(x => x.id === id);
   if (!a) return;
-  const childCount = (a._contacts.length||0) + (a._articles.length||0) + (a._services.length||0) + (a._notes.length||0);
+  const childCount = (a._contacts.length||0) + (a._packages.length||0) + (a._articles.length||0) + (a._services.length||0) + (a._notes.length||0);
   const msg = childCount ? `Delete "${a.name}" and ${childCount} associated record${childCount>1?"s":""}? This cannot be undone.` : `Delete "${a.name}"? This cannot be undone.`;
   if (!confirm(msg)) return;
   try {
