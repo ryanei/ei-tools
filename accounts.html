@@ -116,7 +116,12 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 /* Table */
 .table-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-1);}
 table{width:100%;border-collapse:collapse;font-size:13px;}
-thead th{text-align:left;padding:14px 20px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--soft);text-transform:uppercase;letter-spacing:0.14em;border-bottom:1px solid var(--line);background:var(--paper-2);position:sticky;top:0;}
+thead th{text-align:left;padding:14px 20px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--soft);text-transform:uppercase;letter-spacing:0.14em;border-bottom:1px solid var(--line);background:var(--paper-2);position:sticky;top:0;user-select:none;}
+thead th.sortable{cursor:pointer;transition:color 180ms ease;}
+thead th.sortable:hover{color:var(--ink);}
+thead th.sortable.active{color:var(--ei-blue);}
+thead th.sortable .sort-ind{display:inline-block;margin-left:5px;opacity:0.45;font-family:var(--mono);font-size:9px;letter-spacing:0;}
+thead th.sortable.active .sort-ind{opacity:1;}
 tbody td{padding:18px 20px;border-bottom:1px solid var(--line-2);vertical-align:middle;color:var(--ink-2);}
 tbody tr{cursor:pointer;transition:background 120ms ease;}
 tbody tr:hover{background:var(--paper-2);}
@@ -383,14 +388,14 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="table-wrap">
     <table>
       <thead>
-        <tr>
-          <th>Advertiser</th>
-          <th>Status</th>
-          <th>PAR</th>
-          <th>Articles</th>
-          <th>Monthly</th>
-          <th>Renewal</th>
-          <th>Term</th>
+        <tr id="advertisersHead">
+          <th class="sortable" data-sort="name">Advertiser</th>
+          <th class="sortable" data-sort="status">Status</th>
+          <th class="sortable" data-sort="par">PAR</th>
+          <th class="sortable" data-sort="articles">Articles</th>
+          <th class="sortable" data-sort="monthly">Monthly</th>
+          <th class="sortable" data-sort="renewal">Renewal</th>
+          <th class="sortable" data-sort="term">Term</th>
           <th></th>
         </tr>
       </thead>
@@ -558,6 +563,7 @@ let proposalsByAdvertiser = null; // populated lazily on first drawer open
 // ── State ──
 let advertisers = [], contacts = [], packages = [], articles = [], services = [], notes = [];
 let currentDrawerId = null;
+let sortState = { column: 'status', dir: 'asc' };  // default: status asc (Active first)
 let wizard = {
   mode: 'new', step: 1, editingId: null,
   contacts: [], articles: [], services: [],
@@ -772,6 +778,79 @@ function termSummary(a){
   return a.term_type || "—";
 }
 
+// ── Sort ──
+const STATUS_ORDER = {"Active":0,"In Negotiation":1,"Paused":2,"Churned":3};
+function makeSortComparator(){
+  const col = sortState.column;
+  const sign = sortState.dir === 'desc' ? -1 : 1;
+  const nameTie = (a,b) => (a.name||"").localeCompare(b.name||"");
+  return (a, b) => {
+    let cmp = 0;
+    if (col === 'name') {
+      cmp = (a.name||"").localeCompare(b.name||"");
+    } else if (col === 'status') {
+      const oa = STATUS_ORDER[a.status] ?? 4, ob = STATUS_ORDER[b.status] ?? 4;
+      cmp = oa - ob;
+      if (cmp === 0) cmp = nameTie(a,b);
+    } else if (col === 'par') {
+      cmp = (a.par_live === 'Yes' ? 0 : 1) - (b.par_live === 'Yes' ? 0 : 1);
+      if (cmp === 0) cmp = nameTie(a,b);
+    } else if (col === 'articles') {
+      cmp = (a._totalActiveArticles||0) - (b._totalActiveArticles||0);
+      if (cmp === 0) cmp = nameTie(a,b);
+    } else if (col === 'monthly') {
+      cmp = (a._monthlyRevenue||0) - (b._monthlyRevenue||0);
+      if (cmp === 0) cmp = nameTie(a,b);
+    } else if (col === 'renewal') {
+      // Empty renewals sort to the end regardless of direction
+      const ad = a.term_type === 'Fixed' ? fmtDate(a.renewal_date) : '';
+      const bd = b.term_type === 'Fixed' ? fmtDate(b.renewal_date) : '';
+      if (!ad && !bd) cmp = nameTie(a,b);
+      else if (!ad) return 1;
+      else if (!bd) return -1;
+      else { cmp = ad.localeCompare(bd); if (cmp === 0) cmp = nameTie(a,b); }
+    } else if (col === 'term') {
+      cmp = (a.term_type||"").localeCompare(b.term_type||"");
+      if (cmp === 0) cmp = nameTie(a,b);
+    }
+    return cmp * sign;
+  };
+}
+function updateSortIndicators(){
+  const ths = document.querySelectorAll('#advertisersHead th.sortable');
+  ths.forEach(th => {
+    const col = th.dataset.sort;
+    const ind = th.querySelector('.sort-ind');
+    if (col === sortState.column) {
+      th.classList.add('active');
+      if (ind) ind.textContent = sortState.dir === 'asc' ? '↑' : '↓';
+    } else {
+      th.classList.remove('active');
+      if (ind) ind.textContent = '↕';
+    }
+  });
+}
+function setupSortHandlers(){
+  document.querySelectorAll('#advertisersHead th.sortable').forEach(th => {
+    if (!th.querySelector('.sort-ind')) {
+      const ind = document.createElement('span');
+      ind.className = 'sort-ind';
+      ind.textContent = '↕';
+      th.appendChild(ind);
+    }
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (sortState.column === col) {
+        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.column = col;
+        sortState.dir = 'asc';
+      }
+      renderTable();
+    });
+  });
+}
+
 function renderTable(){
   const search = document.getElementById("filterSearch").value.toLowerCase().trim();
   const status = document.getElementById("filterStatus").value;
@@ -790,12 +869,8 @@ function renderTable(){
     return true;
   });
 
-  filtered.sort((a, b) => {
-    const order = {"Active":0,"In Negotiation":1,"Paused":2,"Churned":3};
-    const oa = order[a.status] ?? 4, ob = order[b.status] ?? 4;
-    if (oa !== ob) return oa - ob;
-    return (a.name||"").localeCompare(b.name||"");
-  });
+  filtered.sort(makeSortComparator());
+  updateSortIndicators();
 
   const tbody = document.getElementById("advertisersBody");
   if (!filtered.length){
@@ -1298,7 +1373,17 @@ function openDrawer(id, refresh){
   if (!a) { closeDrawer(); return; }
   currentDrawerId = id;
 
+  // Sync URL so the drawer is shareable (?id=adv_xxx)
+  if (!refresh) {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('id') !== id) {
+      url.searchParams.set('id', id);
+      history.pushState({ drawerId: id }, '', url.toString());
+    }
+  }
+
   const monthly = a._monthlyRevenue ? `<span style="font-size:12px;color:var(--ink);font-weight:700;font-family:'JetBrains Mono',monospace;">${fmtMoney(a._monthlyRevenue)}/mo</span>` : "";
+  const newPropUrl = `proposals.html?new=1&advertiser_id=${encodeURIComponent(a.id)}&advertiser=${encodeURIComponent(a.name||"")}`;
 
   document.getElementById("drawerHeader").innerHTML = `
     <div class="drawer-title-row">
@@ -1312,6 +1397,7 @@ function openDrawer(id, refresh){
       ${monthly}
     </div>
     <div class="drawer-actions">
+      <a class="btn btn-sm btn-primary" href="${newPropUrl}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">+ New proposal</a>
       <button class="btn btn-sm" onclick="openWizard('${esc(a.id)}')">✏ Edit</button>
       <button class="btn btn-sm btn-danger" onclick="quickDeleteAdvertiser('${esc(a.id)}')">Delete</button>
     </div>
@@ -1461,10 +1547,18 @@ function renewalChip(d){
   return "";
 }
 
-function closeDrawer(){
+function closeDrawer(silent){
   currentDrawerId = null;
   document.getElementById("drawerOverlay").classList.remove("active");
   document.getElementById("drawer").classList.remove("active");
+  if (!silent) {
+    // Strip ?id= from the URL when user-initiated close
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('id')) {
+      url.searchParams.delete('id');
+      history.pushState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
+    }
+  }
 }
 
 async function quickDeleteAdvertiser(id){
@@ -1510,7 +1604,20 @@ async function deleteNote(noteId){
   }
 }
 
-reload();
+setupSortHandlers();
+reload().then(() => { handleInitialDeepLink(); });
+
+// Browser back/forward closes/opens the drawer to match the URL
+window.addEventListener('popstate', () => {
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (id) openDrawer(id);
+  else if (currentDrawerId) closeDrawer(true);
+});
+
+function handleInitialDeepLink(){
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (id && advertisers.find(a => a.id === id)) openDrawer(id);
+}
 </script>
 </body>
 </html>

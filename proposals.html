@@ -1912,11 +1912,36 @@ function loadProposals() {
     allProposals = data.proposals || [];
     updateDashStats();
     renderDashTable();
+    handleDeepLinkParams();
   }).catch(err => {
     loading.style.display = 'none';
     loading.textContent = 'Failed to load proposals. Check your connection.';
     loading.style.display = 'block';
   });
+}
+
+// Deep link handlers: ?edit=PROP-ID opens that proposal in builder;
+// ?new=1&advertiser_id=ADV&advertiser=NAME opens fresh builder prefilled with advertiser.
+function handleDeepLinkParams() {
+  var params = new URLSearchParams(window.location.search);
+  var editId = params.get('edit');
+  if (editId) {
+    var match = allProposals.find(function(x){ return x.id === editId; });
+    if (match) editProposal(editId);
+    return;
+  }
+  if (params.get('new') === '1') {
+    switchView('builder');
+    clearEditing();
+    var advId = params.get('advertiser_id') || '';
+    var advName = params.get('advertiser') || '';
+    if (advName) document.getElementById('vendorName').value = advName;
+    if (advId) document.getElementById('advertiserId').value = advId;
+    if (advId) {
+      var badge = document.getElementById('advertiserLinkBadge');
+      if (badge) badge.style.display = '';
+    }
+  }
 }
 
 // ═══ DASHBOARD STATS ═══
