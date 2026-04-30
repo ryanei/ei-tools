@@ -87,6 +87,29 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .section-eyebrow .section-meta:not(:empty){margin-left:-6px;}
 .section-eyebrow::after{content:"";flex:1;height:1px;background:var(--line);}
 
+/* Bulk action bar */
+.bulk-bar{display:flex;align-items:center;gap:14px;padding:12px 18px;background:var(--ei-blue);color:#fff;border-radius:var(--radius-sm);margin-bottom:14px;box-shadow:var(--shadow-1);}
+.bulk-bar .bulk-count{font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.12em;flex:1;}
+.bulk-bar .bulk-status{padding:8px 12px;border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius-sm);font-size:13px;font-family:var(--sans);background:rgba(255,255,255,0.15);color:#fff;outline:none;cursor:pointer;}
+.bulk-bar .bulk-status option{background:#fff;color:var(--ink);}
+.bulk-bar .btn{background:#fff;color:var(--ei-blue);border-color:#fff;font-weight:500;}
+.bulk-bar .btn:hover{background:rgba(255,255,255,0.92);border-color:#fff;}
+.bulk-bar .btn-ghost{background:transparent;color:rgba(255,255,255,0.85);border-color:transparent;}
+.bulk-bar .btn-ghost:hover{background:rgba(255,255,255,0.1);color:#fff;}
+
+/* Inline-edit overlay select on table cells */
+.editable-cell{position:relative;}
+.editable-cell:hover{background:var(--paper-2);cursor:pointer;}
+.editable-cell .inline-select-overlay{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:1;border:none;background:transparent;width:100%;height:100%;font-size:13px;font-family:var(--sans);}
+.editable-cell::after{content:"\25BE";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--mute);font-size:10px;opacity:0;transition:opacity 180ms ease;pointer-events:none;}
+.editable-cell:hover::after{opacity:1;}
+
+/* Select-all + row checkbox column */
+.select-cell{width:36px;padding-left:18px;padding-right:0;}
+.select-cell input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--ei-blue);}
+.select-all-cell{width:36px;padding-left:18px;padding-right:0;}
+.select-all-cell input[type="checkbox"]{width:15px;height:15px;cursor:pointer;accent-color:var(--ei-blue);}
+
 /* Renewal radar */
 .renewal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:36px;}
 .renewal-card{background:#fff;border:1px solid var(--line);border-left:2px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color 180ms ease,transform 180ms ease;}
@@ -410,10 +433,24 @@ tbody tr:last-child td{border-bottom:none;}
     </select>
   </div>
 
+  <div id="bulkBar" class="bulk-bar" style="display:none;">
+    <span class="bulk-count" id="bulkCount">0 selected</span>
+    <select class="bulk-status" id="bulkStatusSelect">
+      <option value="">Set status…</option>
+      <option value="Active">Active</option>
+      <option value="In Negotiation">In Negotiation</option>
+      <option value="Paused">Paused</option>
+      <option value="Churned">Churned</option>
+    </select>
+    <button class="btn btn-sm" onclick="bulkExportCSV()">Export CSV</button>
+    <button class="btn btn-sm btn-ghost" onclick="clearSelection()">Cancel</button>
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
         <tr id="advertisersHead">
+          <th class="select-all-cell"><input type="checkbox" id="selectAllCheckbox" onclick="event.stopPropagation();selectAllVisible(this.checked)"></th>
           <th class="sortable" data-sort="name">Advertiser</th>
           <th class="sortable" data-sort="status">Status</th>
           <th class="sortable" data-sort="par">PAR</th>
@@ -425,7 +462,7 @@ tbody tr:last-child td{border-bottom:none;}
         </tr>
       </thead>
       <tbody id="advertisersBody">
-        <tr><td colspan="8" class="loading">Loading…</td></tr>
+        <tr><td colspan="9" class="loading">Loading…</td></tr>
       </tbody>
     </table>
   </div>
@@ -589,6 +626,7 @@ let proposalsByAdvertiser = null; // populated lazily on first drawer open
 let advertisers = [], contacts = [], packages = [], articles = [], services = [], notes = [];
 let currentDrawerId = null;
 let sortState = { column: 'status', dir: 'asc' };  // default: status asc (Active first)
+let selectedIds = new Set();
 let wizard = {
   mode: 'new', step: 1, editingId: null,
   contacts: [], articles: [], services: [],
@@ -727,7 +765,7 @@ function loadSheet(sheetName){
 }
 
 async function reload(){
-  document.getElementById("advertisersBody").innerHTML = '<tr><td colspan="8" class="loading">Loading…</td></tr>';
+  document.getElementById("advertisersBody").innerHTML = '<tr><td colspan="9" class="loading">Loading…</td></tr>';
   try {
     const [a, c, pk, ar, sv, n] = await Promise.all([
       loadSheet("Advertisers"), loadSheet("Contacts"), loadSheet("Packages"),
@@ -740,7 +778,7 @@ async function reload(){
     renderTable();
     if (currentDrawerId) openDrawer(currentDrawerId, true);
   } catch(e) {
-    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="8" class="error-msg">Failed to load: ${esc(e.message)}.</td></tr>`;
+    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="9" class="error-msg">Failed to load: ${esc(e.message)}.</td></tr>`;
   }
 }
 
@@ -860,6 +898,138 @@ function termSummary(a){
   return a.term_type || "—";
 }
 
+// ── Bulk select ──
+function toggleSelect(id, on){
+  if (on) selectedIds.add(id); else selectedIds.delete(id);
+  renderBulkBar();
+  updateSelectAllState();
+}
+function clearSelection(){
+  selectedIds.clear();
+  renderTable();
+  renderBulkBar();
+}
+function selectAllVisible(on){
+  const visibleIds = [...document.querySelectorAll('#advertisersBody tr[data-adv-id]')].map(tr => tr.dataset.advId);
+  if (on) visibleIds.forEach(id => selectedIds.add(id));
+  else visibleIds.forEach(id => selectedIds.delete(id));
+  renderTable();
+  renderBulkBar();
+}
+function updateSelectAllState(){
+  const cb = document.getElementById('selectAllCheckbox');
+  if (!cb) return;
+  const visibleIds = [...document.querySelectorAll('#advertisersBody tr[data-adv-id]')].map(tr => tr.dataset.advId);
+  if (!visibleIds.length) { cb.checked = false; cb.indeterminate = false; return; }
+  const sel = visibleIds.filter(id => selectedIds.has(id));
+  cb.checked = sel.length === visibleIds.length;
+  cb.indeterminate = sel.length > 0 && sel.length < visibleIds.length;
+}
+function renderBulkBar(){
+  const bar = document.getElementById('bulkBar');
+  if (!bar) return;
+  const n = selectedIds.size;
+  bar.style.display = n ? 'flex' : 'none';
+  const counter = document.getElementById('bulkCount');
+  if (counter) counter.textContent = n + (n === 1 ? ' selected' : ' selected');
+}
+
+// ── Inline cell edit ──
+async function inlineEditField(advId, field, newValue){
+  const a = advertisers.find(x => x.id === advId);
+  if (!a) return;
+  const oldValue = a[field];
+  if (newValue === oldValue) return;
+  // Optimistic
+  a[field] = newValue;
+  renderTable();
+  renderRenewalRadar();
+  try {
+    await fetch(ACCOUNTS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        action: 'patchAdvertiser',
+        id: advId,
+        fields_json: JSON.stringify({ [field]: newValue })
+      }).toString()
+    });
+    await new Promise(r => setTimeout(r, 700));
+    await reload();
+  } catch(e) {
+    // Revert on error
+    a[field] = oldValue;
+    renderTable();
+    alert('Save failed: ' + e.message);
+  }
+}
+
+// ── Bulk actions ──
+async function bulkSetStatus(newStatus){
+  if (!selectedIds.size) return;
+  const ids = [...selectedIds];
+  if (!confirm(`Set status to "${newStatus}" for ${ids.length} advertiser${ids.length>1?'s':''}?`)) return;
+  // Optimistic
+  ids.forEach(id => { const a = advertisers.find(x => x.id === id); if (a) a.status = newStatus; });
+  renderTable();
+  try {
+    await fetch(ACCOUNTS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        action: 'patchAdvertiser',
+        ids_json: JSON.stringify(ids),
+        fields_json: JSON.stringify({ status: newStatus })
+      }).toString()
+    });
+    await new Promise(r => setTimeout(r, 800));
+    selectedIds.clear();
+    renderBulkBar();
+    await reload();
+  } catch(e) {
+    alert('Bulk update failed: ' + e.message);
+    await reload();
+  }
+}
+function bulkExportCSV(){
+  if (!selectedIds.size) return;
+  const rows = advertisers.filter(a => selectedIds.has(a.id));
+  const cols = [
+    { key: 'id', label: 'ID' },
+    { key: 'name', label: 'Name' },
+    { key: 'status', label: 'Status' },
+    { key: 'par_live', label: 'PAR Live' },
+    { key: 'term_type', label: 'Term Type' },
+    { key: 'fixed_months', label: 'Fixed Months' },
+    { key: 'fixed_then_rolling', label: 'Then Rolling' },
+    { key: 'start_date', label: 'Start Date' },
+    { key: 'renewal_date', label: 'Renewal Date' },
+    { key: 'primary_contact_first_name', label: 'Primary First' },
+    { key: 'primary_contact_last_name', label: 'Primary Last' },
+    { key: 'primary_contact_email', label: 'Primary Email' },
+    { key: '_monthlyRevenue', label: 'Monthly Revenue' },
+    { key: '_totalActiveArticles', label: 'Active Articles' }
+  ];
+  const escCsv = v => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [cols.map(c => c.label).join(',')];
+  rows.forEach(r => lines.push(cols.map(c => escCsv(c.key === 'start_date' || c.key === 'renewal_date' ? fmtDate(r[c.key]) : r[c.key])).join(',')));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `advertisers_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // ── Sort ──
 const STATUS_ORDER = {"Active":0,"In Negotiation":1,"Paused":2,"Churned":3};
 function makeSortComparator(){
@@ -956,9 +1126,13 @@ function renderTable(){
 
   const tbody = document.getElementById("advertisersBody");
   if (!filtered.length){
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--ink-muted);">No advertisers found. Click "+ New Advertiser" to add one.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--ink-muted);">No advertisers found. Click "+ New Advertiser" to add one.</td></tr>`;
     return;
   }
+
+  // Cull selectedIds for advertisers no longer present
+  const allFilteredIds = new Set(filtered.map(x => x.id));
+  [...selectedIds].forEach(id => { if (!advertisers.find(x => x.id === id)) selectedIds.delete(id); });
 
   tbody.innerHTML = filtered.map(a => {
     const isFixed = a.term_type === "Fixed";
@@ -972,14 +1146,28 @@ function renderTable(){
     if (pkgCount) breakdownParts.push(`${pkgCount} pkg${pkgCount>1?"s":""}`);
     if (standCount) breakdownParts.push(`${standCount} standalone`);
     const breakdown = breakdownParts.join(" · ") || "—";
+    const isChecked = selectedIds.has(a.id);
+    const statusOptions = ['Active','In Negotiation','Paused','Churned'].map(s =>
+      `<option value="${s}" ${a.status===s?'selected':''}>${s}</option>`).join('');
+    const parOptions = ['Yes','No'].map(s =>
+      `<option value="${s}" ${a.par_live===s?'selected':''}>${s}</option>`).join('');
     return `
-      <tr onclick="openDrawer('${esc(a.id)}')">
+      <tr data-adv-id="${esc(a.id)}" onclick="openDrawer('${esc(a.id)}')">
+        <td class="select-cell" onclick="event.stopPropagation()">
+          <input type="checkbox" class="row-checkbox" ${isChecked?'checked':''} onchange="toggleSelect('${esc(a.id)}', this.checked)">
+        </td>
         <td>
           <div class="adv-cell-name">${esc(a.name||"(unnamed)")}</div>
           ${a._primaryName ? `<div class="adv-cell-contact">${esc(a._primaryName)}${a.primary_contact_email ? " · "+esc(a.primary_contact_email) : ""}</div>` : ""}
         </td>
-        <td>${statusBadge(a.status)}</td>
-        <td>${parBadge(a.par_live)}</td>
+        <td class="editable-cell" onclick="event.stopPropagation()">
+          ${statusBadge(a.status)}
+          <select class="inline-select-overlay" onchange="inlineEditField('${esc(a.id)}','status',this.value)">${statusOptions}</select>
+        </td>
+        <td class="editable-cell" onclick="event.stopPropagation()">
+          ${parBadge(a.par_live)}
+          <select class="inline-select-overlay" onchange="inlineEditField('${esc(a.id)}','par_live',this.value)">${parOptions}</select>
+        </td>
         <td><strong>${a._totalActiveArticles}</strong> <span style="color:var(--ink-muted);font-size:11px;">articles</span><div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">${breakdown}</div></td>
         <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${a._monthlyRevenue ? fmtMoney(a._monthlyRevenue) : "—"}</td>
         <td style="font-size:12px;">${renewalCell}</td>
@@ -987,6 +1175,9 @@ function renderTable(){
         <td onclick="event.stopPropagation();"><button class="btn btn-sm" onclick="openWizard('${esc(a.id)}')">Edit</button></td>
       </tr>`;
   }).join("");
+
+  updateSelectAllState();
+  renderBulkBar();
 }
 
 function statusBadge(s){
@@ -1687,6 +1878,13 @@ async function deleteNote(noteId){
 }
 
 setupSortHandlers();
+// Bulk status select wires to bulkSetStatus, then resets the dropdown
+(function(){
+  const sel = document.getElementById('bulkStatusSelect');
+  if (sel) sel.addEventListener('change', function(){
+    if (this.value) { const v = this.value; this.value = ''; bulkSetStatus(v); }
+  });
+})();
 reload().then(() => { handleInitialDeepLink(); });
 
 // Browser back/forward closes/opens the drawer to match the URL
