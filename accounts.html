@@ -83,7 +83,29 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 /* Section eyebrow ("01 / All advertisers") */
 .section-eyebrow{display:flex;align-items:center;gap:14px;margin:0 0 18px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--soft);text-transform:uppercase;letter-spacing:0.16em;}
 .section-eyebrow .num{color:var(--ei-blue);}
+.section-eyebrow .section-meta{color:var(--mute);font-weight:500;letter-spacing:0.08em;}
+.section-eyebrow .section-meta:not(:empty){margin-left:-6px;}
 .section-eyebrow::after{content:"";flex:1;height:1px;background:var(--line);}
+
+/* Renewal radar */
+.renewal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:36px;}
+.renewal-card{background:#fff;border:1px solid var(--line);border-left:2px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-1);display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color 180ms ease,transform 180ms ease;}
+.renewal-card:hover{border-color:var(--mute);}
+.renewal-card.overdue{border-left:2px solid var(--rust);}
+.renewal-card.urgent{border-left:2px solid var(--amber);}
+.renewal-card.soon{border-left:2px solid var(--ei-blue);}
+.renewal-card.future{border-left:2px solid var(--soft);}
+.renewal-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.renewal-name{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--ink);letter-spacing:-0.01em;line-height:1.25;}
+.renewal-days{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:0.1em;font-weight:500;white-space:nowrap;flex-shrink:0;}
+.renewal-days.overdue{color:var(--rust);}
+.renewal-days.urgent{color:var(--amber);}
+.renewal-days.soon{color:var(--ei-blue);}
+.renewal-days.future{color:var(--soft);}
+.renewal-meta{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;color:var(--soft);letter-spacing:0.04em;flex-wrap:wrap;}
+.renewal-meta .dot{color:var(--mute);}
+.renewal-actions{display:flex;gap:6px;margin-top:4px;}
+.renewal-empty{padding:22px;text-align:center;color:var(--soft);font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;border:1px dashed var(--line);border-radius:var(--radius-lg);background:#fff;grid-column:1/-1;}
 
 /* KPI strip — restrained EI Blue */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:36px;}
@@ -372,7 +394,10 @@ tbody tr:last-child td{border-bottom:none;}
 
   <div id="kpis"></div>
 
-  <div class="section-eyebrow"><span class="num">01</span><span>All advertisers</span></div>
+  <div class="section-eyebrow"><span class="num">01</span><span>Renewal radar</span><span class="section-meta" id="renewalCount"></span></div>
+  <div id="renewalRadar" class="renewal-grid"></div>
+
+  <div class="section-eyebrow"><span class="num">02</span><span>All advertisers</span></div>
 
   <div class="filters">
     <input type="text" class="filter-search" id="filterSearch" placeholder="Search advertisers, contacts, packages, or articles…" oninput="renderTable()">
@@ -711,6 +736,7 @@ async function reload(){
     advertisers = a; contacts = c; packages = pk; articles = ar; services = sv; notes = n;
     indexChildren();
     renderKpis();
+    renderRenewalRadar();
     renderTable();
     if (currentDrawerId) openDrawer(currentDrawerId, true);
   } catch(e) {
@@ -745,6 +771,62 @@ function indexChildren(){
 
     a._primaryName = fullName(a.primary_contact_first_name, a.primary_contact_last_name);
   });
+}
+
+// ── Renewal radar ──
+function renewalBucket(days){
+  if (days < 0) return 'overdue';
+  if (days <= 14) return 'urgent';
+  if (days <= 30) return 'soon';
+  return 'future';
+}
+function renewalLabel(days){
+  if (days < 0) return Math.abs(days) + 'd overdue';
+  if (days === 0) return 'today';
+  if (days === 1) return '1d';
+  return days + 'd';
+}
+function renderRenewalRadar(){
+  const upcoming = advertisers.filter(a => {
+    if (a.status === 'Churned') return false;
+    if (a.term_type !== 'Fixed') return false;
+    const d = daysUntil(a.renewal_date);
+    if (d === null) return false;
+    return d <= 90;
+  }).map(a => ({ a, days: daysUntil(a.renewal_date) }))
+    .sort((x, y) => x.days - y.days);
+
+  const meta = document.getElementById('renewalCount');
+  if (meta) meta.textContent = upcoming.length ? `· ${upcoming.length} upcoming` : '';
+
+  const el = document.getElementById('renewalRadar');
+  if (!upcoming.length) {
+    el.innerHTML = `<div class="renewal-empty">No upcoming renewals in the next 90 days</div>`;
+    return;
+  }
+
+  el.innerHTML = upcoming.map(({ a, days }) => {
+    const cls = renewalBucket(days);
+    const label = renewalLabel(days);
+    const newPropUrl = `proposals.html?new=1&advertiser_id=${encodeURIComponent(a.id)}&advertiser=${encodeURIComponent(a.name||'')}`;
+    return `
+      <div class="renewal-card ${cls}" onclick="openDrawer('${esc(a.id)}')">
+        <div class="renewal-row">
+          <div class="renewal-name">${esc(a.name||'(unnamed)')}</div>
+          <span class="renewal-days ${cls}">${label}</span>
+        </div>
+        <div class="renewal-meta">
+          <span>${fmtDateLong(a.renewal_date)}</span>
+          <span class="dot">·</span>
+          <span>${esc(termSummary(a))}</span>
+          ${a._monthlyRevenue ? `<span class="dot">·</span><span>${fmtMoney(a._monthlyRevenue)}/mo</span>` : ''}
+        </div>
+        <div class="renewal-actions" onclick="event.stopPropagation();">
+          <a class="btn btn-sm btn-primary" href="${newPropUrl}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">+ Renewal proposal</a>
+          <button class="btn btn-sm" onclick="openDrawer('${esc(a.id)}')">Open</button>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ── KPIs ──
