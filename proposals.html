@@ -2964,9 +2964,15 @@ function generateIO(id, customerName, termsOverride, monthlyOverride) {
     ['Term', isMonthly ? 'Monthly rolling' : numWord(tM) + ' (' + tM + ') months'],
     ['Billing Schedule', 'Monthly in advance'],
     ['Currency', 'USD'],
-    ['Payment Terms', 'Net 30 days'],
-    ['Total Monthly Fee', fmt$(effM)]
+    ['Payment Terms', 'Net 30 days']
   ];
+  if (discount > 0) {
+    termData.push(['Gross Monthly Fee', fmt$(monthly)]);
+    termData.push(['Discount', discount + '%']);
+    termData.push(['Net Monthly Fee', fmt$(effM)]);
+  } else {
+    termData.push(['Total Monthly Fee', fmt$(effM)]);
+  }
   doc.setFontSize(9);
   var termLabelW = cW * 0.35;
   var termValW = cW * 0.65;
@@ -3054,40 +3060,6 @@ function generateIO(id, customerName, termsOverride, monthlyOverride) {
   y = drawTbl(svcHeaders, svcRows, svcColWidths, y);
   doc.setFontSize(9);
   doc.setFont('Helvetica','normal');
-
-  // Totals reconciliation block — only when a discount is applied,
-  // so the line-item rate-card prices reconcile to the contract total.
-  if (showPricing && discount > 0) {
-    y += 4;
-    var labelX = mL + cW - 50;
-    var valueX = mL + cW - 2;
-    var rowH = 5;
-    doc.setTextColor(0, 0, 0);
-    // Subtotal
-    doc.setFont('Helvetica','normal');
-    doc.setFontSize(9);
-    doc.text('Subtotal:', labelX, y + rowH - 1, { align: 'right' });
-    doc.text(fmt$(monthly), valueX, y + rowH - 1, { align: 'right' });
-    y += rowH;
-    // Discount line
-    doc.setTextColor(120, 120, 120);
-    doc.text('Discount (' + discount + '%):', labelX, y + rowH - 1, { align: 'right' });
-    doc.text('\u2212' + fmt$(monthly - effM), valueX, y + rowH - 1, { align: 'right' });
-    doc.setTextColor(0, 0, 0);
-    y += rowH;
-    // Separator
-    doc.setDrawColor('#CBD5E1');
-    doc.line(labelX - 25, y + 0.5, valueX, y + 0.5);
-    y += 3;
-    // Total Monthly Fee — bold, slightly larger
-    doc.setFontSize(10);
-    doc.setFont('Helvetica','bold');
-    doc.text('Total Monthly Fee:', labelX, y + rowH - 1, { align: 'right' });
-    doc.text(fmt$(effM), valueX, y + rowH - 1, { align: 'right' });
-    y += rowH + 1;
-    doc.setFontSize(9);
-    doc.setFont('Helvetica','normal');
-  }
 
   y += 8;
 
@@ -3541,9 +3513,15 @@ function generateIOWord(id, customerName, termsOverride, monthlyOverride) {
     ['Term', isMonthly ? 'Monthly rolling' : numWord(tM) + ' (' + tM + ') months'],
     ['Billing Schedule', 'Monthly in advance'],
     ['Currency', 'USD'],
-    ['Payment Terms', 'Net 30 days'],
-    ['Total Monthly Fee', fmt$(effM)]
+    ['Payment Terms', 'Net 30 days']
   ];
+  if (discount > 0) {
+    termData.push(['Gross Monthly Fee', fmt$(monthly)]);
+    termData.push(['Discount', discount + '%']);
+    termData.push(['Net Monthly Fee', fmt$(effM)]);
+  } else {
+    termData.push(['Total Monthly Fee', fmt$(effM)]);
+  }
   body.push(new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: outerTblBorders(),
@@ -3630,34 +3608,6 @@ function generateIOWord(id, customerName, termsOverride, monthlyOverride) {
     ));
     rowIdx++;
   });
-
-  // Totals reconciliation rows — only when a discount is applied, so the
-  // line-item rate-card prices reconcile to the contract total.
-  if (showPricing && discount > 0) {
-    function totalsRow(label, value, opts) {
-      opts = opts || {};
-      return new TableRow({
-        children: [
-          cell({
-            colSpan: 2,
-            fill: opts.fill,
-            padT: 140, padB: 140,
-            vAlign: VerticalAlign.CENTER,
-            children: [ para([ run(label, { bold: !!opts.bold, color: opts.color || GREY_900 }) ], { align: AlignmentType.RIGHT }) ]
-          }),
-          cell({
-            fill: opts.fill,
-            padT: 140, padB: 140,
-            vAlign: VerticalAlign.CENTER,
-            children: [ para([ run(value, { bold: !!opts.bold, color: opts.color || GREY_900 }) ], { align: AlignmentType.RIGHT }) ]
-          })
-        ]
-      });
-    }
-    svcRows.push(totalsRow('Subtotal', fmt$(monthly)));
-    svcRows.push(totalsRow('Discount (' + discount + '%)', '\u2212' + fmt$(monthly - effM), { color: GREY_700 }));
-    svcRows.push(totalsRow('Total Monthly Fee', fmt$(effM), { bold: true, fill: GREY_50 }));
-  }
 
   body.push(new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
