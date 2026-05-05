@@ -338,6 +338,30 @@ tbody tr:last-child td{border-bottom:none;}
 .note-delete:hover{background:var(--rust-bg);color:var(--rust);}
 
 .empty{padding:24px;text-align:center;color:var(--soft);font-family:var(--mono);font-size:11px;letter-spacing:0.04em;border:1px dashed var(--line);border-radius:var(--radius-lg);background:#fff;}
+
+/* Activity timeline */
+.activity-timeline{position:relative;padding-left:28px;margin-top:6px;}
+.activity-timeline::before{content:'';position:absolute;left:10px;top:8px;bottom:8px;width:1px;background:var(--line);}
+.timeline-item{position:relative;margin-bottom:20px;padding-right:24px;}
+.timeline-item:last-child{margin-bottom:6px;}
+.timeline-item::before{content:'';position:absolute;left:-23px;top:6px;width:9px;height:9px;border-radius:50%;background:#fff;border:2px solid var(--mute);box-sizing:border-box;z-index:1;}
+.timeline-item.tl-note::before{border-color:var(--ei-blue);background:var(--ei-blue);}
+.timeline-item.tl-proposal-draft::before{border-color:var(--amber);background:var(--amber);}
+.timeline-item.tl-proposal-sent::before{border-color:var(--amber);background:var(--amber);}
+.timeline-item.tl-proposal-accepted::before{border-color:var(--green);background:var(--green);}
+.timeline-item.tl-proposal-rejected::before{border-color:var(--rust);background:var(--rust);}
+.timeline-item.tl-created::before{background:var(--mute);border-color:var(--mute);}
+.timeline-item.tl-updated::before{background:var(--mute);border-color:var(--mute);}
+.timeline-item-time{font-family:var(--mono);font-size:10px;color:var(--soft);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;}
+.timeline-item-label{font-size:13px;color:var(--ink);font-weight:500;letter-spacing:-0.005em;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.timeline-item-body{font-size:13px;color:var(--ink-2);line-height:1.55;white-space:pre-wrap;margin-top:3px;}
+.timeline-item-byline{font-family:var(--mono);font-size:9.5px;color:var(--ei-blue);text-transform:uppercase;letter-spacing:0.12em;font-weight:500;margin-top:8px;}
+.timeline-item-link{font-family:var(--mono);font-size:11px;color:var(--ei-blue);text-decoration:none;letter-spacing:0.02em;display:inline-block;margin-top:6px;}
+.timeline-item-link:hover{text-decoration:underline;text-underline-offset:2px;}
+.timeline-item-delete{position:absolute;top:0;right:0;background:none;border:none;color:var(--soft);cursor:pointer;font-size:14px;padding:2px 8px;border-radius:6px;opacity:0;transition:all 180ms ease;line-height:1;}
+.timeline-item:hover .timeline-item-delete{opacity:1;}
+.timeline-item-delete:hover{background:var(--rust-bg);color:var(--rust);}
+.timeline-loading{font-family:var(--mono);font-size:10px;color:var(--mute);letter-spacing:0.12em;text-transform:uppercase;padding:14px 0;text-align:center;}
 .loading{text-align:center;padding:60px 20px;color:var(--soft);font-family:var(--mono);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;}
 .error-msg{text-align:center;padding:40px;color:var(--rust);}
 
@@ -711,6 +735,8 @@ async function refreshDrawerProposals(advertiserId){
   const body = document.getElementById("drawerProposalsBody");
   const meta = document.getElementById("drawerProposalsMeta");
   if (meta) meta.textContent = list.length;
+  // Re-render timeline now that proposal data is in
+  renderTimeline(advertiserId);
   if (!body) return;
   if (!list.length) {
     body.innerHTML = `<div class="empty">No proposals linked yet. Create one in the Proposals tool and pick this advertiser from the dropdown.</div>`;
@@ -725,6 +751,98 @@ async function refreshDrawerProposals(advertiserId){
       <div style="flex-shrink:0;">${proposalStatusBadge(p.status)}</div>
     </div>
   `).join("");
+}
+
+// ── Activity timeline ──
+function buildTimelineEvents(a){
+  const events = [];
+  // Account created
+  if (a.created_at) {
+    events.push({ type: 'created', timestamp: a.created_at, label: 'Account created' });
+  }
+  // Account updated (only if meaningfully later than created)
+  if (a.updated_at && a.created_at) {
+    const cd = new Date(a.created_at), ud = new Date(a.updated_at);
+    if (!isNaN(cd) && !isNaN(ud) && (ud - cd) > 60_000) {
+      events.push({ type: 'updated', timestamp: a.updated_at, label: 'Account updated' });
+    }
+  } else if (a.updated_at && !a.created_at) {
+    events.push({ type: 'updated', timestamp: a.updated_at, label: 'Account updated' });
+  }
+  // Notes
+  (a._notes || []).forEach(n => {
+    events.push({
+      type: 'note',
+      timestamp: n.timestamp,
+      body: n.body || '',
+      author: n.author || '',
+      noteId: n.id
+    });
+  });
+  // Proposals (if loaded)
+  if (proposalsByAdvertiser) {
+    const props = proposalsByAdvertiser[a.id] || [];
+    props.forEach(p => {
+      const status = (p.status || 'Draft');
+      const sLow = status.toLowerCase();
+      events.push({
+        type: 'proposal-' + sLow,
+        timestamp: p.date,
+        label: 'Proposal · ' + (p.vendor || p.id || 'untitled'),
+        status: status,
+        proposal: p
+      });
+    });
+  }
+  // Sort descending by timestamp; lexical compare works for ISO-ish strings
+  events.sort((x, y) => String(y.timestamp || '').localeCompare(String(x.timestamp || '')));
+  return events;
+}
+
+function timelineStatusBadge(status){
+  const s = (status||'').toLowerCase();
+  let cls = 'badge-paused';
+  if (s === 'accepted') cls = 'badge-active';
+  else if (s === 'sent') cls = 'badge-negotiation';
+  else if (s === 'rejected') cls = 'badge-churned';
+  return `<span class="badge ${cls}">${esc(status||'Draft')}</span>`;
+}
+
+function renderTimeline(advertiserId){
+  const a = advertisers.find(x => x.id === advertiserId);
+  if (!a) return;
+  const container = document.getElementById('timelineList');
+  if (!container) return;
+  const events = buildTimelineEvents(a);
+  const meta = document.getElementById('timelineCountMeta');
+  if (meta) meta.textContent = events.length ? events.length + ' event' + (events.length === 1 ? '' : 's') : '';
+  if (!events.length) {
+    container.innerHTML = `<div class="empty" style="margin-left:-28px;">No activity yet — add a note above.</div>`;
+    return;
+  }
+  container.innerHTML = events.map(e => {
+    const dt = e.timestamp ? fmtTime(e.timestamp) : '';
+    const cls = 'tl-' + e.type;
+    let inner = `<div class="timeline-item-time">${esc(dt)}</div>`;
+    if (e.type === 'note') {
+      inner += `<div class="timeline-item-body">${esc(e.body)}</div>`;
+      if (e.author) inner += `<div class="timeline-item-byline">${esc(e.author)}</div>`;
+      if (e.noteId) inner += `<button class="timeline-item-delete" onclick="deleteNote('${esc(e.noteId)}')" title="Delete note">×</button>`;
+    } else if (e.type.indexOf('proposal-') === 0 && e.proposal) {
+      inner += `<div class="timeline-item-label">${esc(e.label)} ${timelineStatusBadge(e.status)}</div>`;
+      const propMeta = [];
+      if (e.proposal.id) propMeta.push(esc(e.proposal.id));
+      if (e.proposal.monthly_total) propMeta.push('$' + Math.round(e.proposal.monthly_total).toLocaleString() + '/mo');
+      if (e.proposal.id) {
+        inner += `<a class="timeline-item-link" href="proposals.html?edit=${encodeURIComponent(e.proposal.id)}" target="_blank" rel="noopener">${propMeta.join(' · ')} →</a>`;
+      } else if (propMeta.length) {
+        inner += `<div class="timeline-item-byline">${propMeta.join(' · ')}</div>`;
+      }
+    } else {
+      inner += `<div class="timeline-item-label">${esc(e.label || '')}</div>`;
+    }
+    return `<div class="timeline-item ${cls}">${inner}</div>`;
+  }).join('');
 }
 
 // ── Loading ──
@@ -1776,24 +1894,16 @@ function openDrawer(id, refresh){
         </div>`).join("") : `<div class="empty">No additional services.</div>`}
     </div>`;
 
-  const notesHtml = `
+  const timelineHtml = `
     <div class="drawer-section">
-      <div class="drawer-section-header"><div class="drawer-section-title">Notes & Activity</div><div class="drawer-section-meta">${a._notes.length}</div></div>
+      <div class="drawer-section-header"><div class="drawer-section-title">Activity</div><div class="drawer-section-meta" id="timelineCountMeta">…</div></div>
       <div class="note-add-box">
         <textarea id="newNoteBody" placeholder="Add a note (e.g. 'Sent renewal proposal', 'Rahul pushed back on pricing')…"></textarea>
         <div class="note-add-actions">
           <button class="btn btn-primary btn-sm" onclick="addNote('${esc(a.id)}')">Add note</button>
         </div>
       </div>
-      ${a._notes.length ? a._notes.map(n => `
-        <div class="note-item">
-          <div class="note-meta">
-            <span class="note-time">${fmtTime(n.timestamp)}</span>
-            ${n.author ? `<span class="note-author">${esc(n.author)}</span>` : ""}
-          </div>
-          <div class="note-body">${esc(n.body||"")}</div>
-          <button class="note-delete" onclick="deleteNote('${esc(n.id)}')" title="Delete note">×</button>
-        </div>`).join("") : `<div class="empty">No notes yet — add one above.</div>`}
+      <div class="activity-timeline" id="timelineList"><div class="timeline-loading">Loading timeline…</div></div>
     </div>`;
 
   const proposalsHtml = `
@@ -1802,14 +1912,15 @@ function openDrawer(id, refresh){
       <div id="drawerProposalsBody"><div class="empty">Loading proposals…</div></div>
     </div>`;
 
-  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + itemsEmpty + servicesHtml + proposalsHtml + notesHtml;
+  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + itemsEmpty + servicesHtml + proposalsHtml + timelineHtml;
 
   if (!refresh) {
     document.getElementById("drawerOverlay").classList.add("active");
     document.getElementById("drawer").classList.add("active");
   }
 
-  refreshDrawerProposals(a.id);
+  renderTimeline(a.id);  // immediate render with notes + advertiser events
+  refreshDrawerProposals(a.id);  // async — re-renders timeline once proposals load
 }
 
 function renewalChip(d){
