@@ -266,6 +266,25 @@ body {
 }
 .custom-pos-input:focus { outline: none; border-color: var(--blue); }
 
+/* Custom article inline editors (in Selected Articles table) */
+.custom-article-title-input {
+  width: 100%; padding: 5px 8px; border: 1px solid var(--grey-300); border-radius: 6px;
+  font-family: inherit; font-size: 13px; font-weight: 600; color: var(--grey-900);
+  background: white; margin-bottom: 4px;
+}
+.custom-article-title-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+.custom-article-url-input {
+  width: 100%; padding: 4px 8px; border: 1px solid var(--grey-300); border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--blue);
+  background: white;
+}
+.custom-article-url-input:focus { outline: none; border-color: var(--blue); }
+.custom-article-tag {
+  display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  font-weight: 500; letter-spacing: 0.12em; padding: 2px 6px; border-radius: 4px;
+  background: #FEF3C7; color: #92400E; text-transform: uppercase; margin-top: 6px;
+}
+
 .price-cell-wrapper { text-align: center; }
 .discount-row { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
 .discount-input {
@@ -660,6 +679,7 @@ body {
         <div class="filter-row" id="categoryFilters"></div>
         <div class="article-count" id="articleCount"></div>
         <div class="article-list" id="articleList"></div>
+        <button class="addon-add-btn" onclick="addCustomArticle()" style="margin-top:14px;width:100%;padding:8px 12px;">+ Add custom article</button>
       </div>
     </div>
 
@@ -1050,6 +1070,12 @@ function updatePosition(slug, position) {
   const a = selectedArticles.find(x => x.s === slug);
   if (!a) return;
   a.position = position;
+  if (a._isCustom) {
+    // Custom articles keep their user-set price across position changes
+    if (position === 'Custom') a.customPosition = a.customPosition || '';
+    a.isUpgrade = false;
+    return renderSelected();
+  }
   if (position === 'Inclusion') a.currentPrice = a.inc;
   else if (position === 'Position #1') a.currentPrice = a.p1;
   else if (position === 'Position #2') a.currentPrice = a.p2;
@@ -1084,6 +1110,37 @@ function updateCustomPosition(slug, val) {
   if (a) { a.customPosition = val; }
 }
 
+// Custom (one-off) article: not in the catalogue. User fills in title/URL/position/price inline.
+function addCustomArticle() {
+  const slug = 'custom_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 5);
+  selectedArticles.push({
+    s: slug,
+    t: '',
+    url: '',
+    v: [],
+    position: 'Inclusion',
+    currentPrice: 0,
+    inc: 0, p1: 0, p2: 0, p3: 0,
+    _isCustom: true
+  });
+  renderSelected();
+  // Focus the new title input
+  setTimeout(function(){
+    const input = document.querySelector('input[data-cust-title="' + slug + '"]');
+    if (input) input.focus();
+  }, 30);
+}
+
+function updateCustomArticleTitle(slug, val) {
+  const a = selectedArticles.find(x => x.s === slug);
+  if (a) a.t = val;
+}
+
+function updateCustomArticleUrl(slug, val) {
+  const a = selectedArticles.find(x => x.s === slug);
+  if (a) a.url = val;
+}
+
 function updateUpgradeTarget(slug, val) {
   const a = selectedArticles.find(x => x.s === slug);
   if (a) { a.upgradeTarget = val; renderSelected(); }
@@ -1113,25 +1170,52 @@ function renderSelected() {
   const el = document.getElementById('selectedBody');
   if (selectedArticles.length === 0) { el.innerHTML = '<div class="empty-state">No articles selected yet.</div>'; return; }
 
+  const escAttr = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const rows = selectedArticles.map(a => {
+    // Custom (one-off) article — different row template with editable title + URL + free position
+    if (a._isCustom) {
+      const isCustomPos = a.position === 'Custom';
+      const customVal = a.customPosition || '';
+      return `<tr>
+        <td>
+          <input class="custom-article-title-input" type="text" placeholder="Article title (e.g. Top 10 Email Security)" value="${escAttr(a.t)}" data-cust-title="${a.s}" onchange="updateCustomArticleTitle('${a.s}', this.value)">
+          <input class="custom-article-url-input" type="url" placeholder="https://expertinsights.com/..." value="${escAttr(a.url)}" onchange="updateCustomArticleUrl('${a.s}', this.value)">
+          <span class="custom-article-tag">Custom</span>
+        </td>
+        <td>
+          <select class="position-select" onchange="updatePosition('${a.s}',this.value)">
+            <option value="Position #1" ${a.position==='Position #1'?'selected':''}>Position #1</option>
+            <option value="Position #2" ${a.position==='Position #2'?'selected':''}>Position #2</option>
+            <option value="Position #3" ${a.position==='Position #3'?'selected':''}>Position #3</option>
+            <option value="Inclusion" ${a.position==='Inclusion'?'selected':''}>Inclusion</option>
+            <option value="Custom" ${isCustomPos?'selected':''}>Custom...</option>
+          </select>
+          ${isCustomPos ? `<input class="custom-pos-input" type="text" value="${escAttr(customVal)}" placeholder="e.g. Position #5" onchange="updateCustomPosition('${a.s}',this.value)">` : ''}
+        </td>
+        <td class="price-cell"><input class="price-input" type="number" step="0.01" min="0" value="${a.currentPrice}" onchange="updatePrice('${a.s}',this.value)"></td>
+        <td style="text-align:center"><button class="remove-btn" onclick="removeArticle('${a.s}')">&times;</button></td>
+      </tr>`;
+    }
+
+    // Catalogue article — existing template
     const pos = getAvailablePositions(a);
     const vendorLines = a.v.map((v, i) => {
       if (v) return `<div><span class="vt-pos">#${i+1}</span> ${v}</div>`;
       return `<div><span class="vt-pos">#${i+1}</span> <span class="vt-empty">Available</span></div>`;
     }).filter((_, i) => i < 7 || a.v[i]).join('');
-    
+
     const regularOpts = pos.map(p => {
       let label = p.label;
       if (p.value !== 'Inclusion') label += ` ($${p.price})`;
       return `<option value="${p.value}" ${!p.available&&p.value!=='Inclusion'?'disabled':''} ${a.position===p.value?'selected':''}>${label}</option>`;
     }).join('');
     const posOptions = regularOpts;
-    
+
     const isCustom = a.position === 'Custom';
     const isUpgrade = a.position === 'Upgrade';
     const customVal = a.customPosition || '';
     const upgradeTarget = a.upgradeTarget || '#1';
-    
+
     return `<tr>
       <td class="vendor-tooltip-wrapper" onmouseenter="showTooltip(this,event)" onmousemove="moveTooltip(this,event)" onmouseleave="hideTooltip(this)">
         <a href="${a.url}" target="_blank" style="color:var(--blue);text-decoration:none">${a.t}</a>
@@ -1497,9 +1581,10 @@ function generatePDF() {
         doc.setDrawColor(209,213,219); doc.setLineWidth(0.15); doc.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
         doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(17,24,39);
         doc.text(truncateText(doc, addon.name, textMaxW), mx+6, ty+7);
-        const addonPL = addon.price > 0 ? '$'+addon.price.toLocaleString()+'/mo' : 'FOC';
-        doc.text(addonPL, mx+artColW+posColW/2, ty+7, {align:'center'});
-        if (showPricing) doc.text(addonPL, mx+artColW+posColW+priceColW/2, ty+7, {align:'center'});
+        const addonPriceLabel = addon.price > 0 ? '$'+addon.price.toLocaleString()+'/mo' : 'FOC';
+        const addonPosLabel = showPricing ? addonPriceLabel : (addon.price > 0 ? 'Included' : 'FOC');
+        doc.text(addonPosLabel, mx+artColW+posColW/2, ty+7, {align:'center'});
+        if (showPricing) doc.text(addonPriceLabel, mx+artColW+posColW+priceColW/2, ty+7, {align:'center'});
         ty += tableRowH;
       });
     }
@@ -1736,9 +1821,10 @@ function generatePDF() {
         d.setDrawColor(209,213,219); d.setLineWidth(0.15); d.line(mx, ty+tableRowH, mx+cw, ty+tableRowH);
         d.setFont('helvetica','normal'); d.setFontSize(9); d.setTextColor(17,24,39);
         d.text(truncateText(d, addon.name, textMaxW2), mx+6, ty+7);
-        const addonPL = addon.price > 0 ? '$'+addon.price.toLocaleString()+'/mo' : 'FOC';
-        d.text(addonPL, mx+artColW+posColW/2, ty+7, {align:'center'});
-        if (showPricing2) d.text(addonPL, mx+artColW+posColW+priceColW2/2, ty+7, {align:'center'});
+        const addonPriceLabel = addon.price > 0 ? '$'+addon.price.toLocaleString()+'/mo' : 'FOC';
+        const addonPosLabel = showPricing2 ? addonPriceLabel : (addon.price > 0 ? 'Included' : 'FOC');
+        d.text(addonPosLabel, mx+artColW+posColW/2, ty+7, {align:'center'});
+        if (showPricing2) d.text(addonPriceLabel, mx+artColW+posColW+priceColW2/2, ty+7, {align:'center'});
         ty += tableRowH;
       });
     }
