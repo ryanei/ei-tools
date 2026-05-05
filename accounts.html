@@ -2010,5 +2010,253 @@ function handleInitialDeepLink(){
   if (id && advertisers.find(a => a.id === id)) openDrawer(id);
 }
 </script>
+<!-- ═══ Cmd+K command palette ═══ -->
+<div class="cmdk-overlay" id="cmdkOverlay" aria-hidden="true">
+  <div class="cmdk-modal" role="dialog" aria-label="Command palette">
+    <div class="cmdk-input-row">
+      <svg class="cmdk-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="cmdk-input" id="cmdkInput" type="text" placeholder="Search advertisers, proposals, tools…" autocomplete="off" spellcheck="false">
+      <span class="cmdk-kbd">esc</span>
+    </div>
+    <div class="cmdk-results" id="cmdkResults"></div>
+    <div class="cmdk-footer">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>↵</kbd> open</span>
+      <span><kbd>⌘K</kbd> toggle</span>
+    </div>
+  </div>
+</div>
+<style>
+.cmdk-overlay{position:fixed;inset:0;background:rgba(1,26,48,0.55);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;backdrop-filter:blur(8px);}
+.cmdk-overlay.open{display:flex;}
+.cmdk-modal{background:#fff;border:1px solid #e6e3dc;border-radius:14px;width:640px;max-width:92vw;max-height:70vh;display:flex;flex-direction:column;box-shadow:0 20px 60px -10px rgba(1,26,48,0.4);overflow:hidden;font-family:'Inter Tight',-apple-system,system-ui,sans-serif;}
+.cmdk-input-row{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid #efece6;}
+.cmdk-search-icon{width:18px;height:18px;color:#6a6760;flex-shrink:0;}
+.cmdk-input{flex:1;border:none;outline:none;font-family:inherit;font-size:16px;color:#131310;background:transparent;letter-spacing:-0.01em;}
+.cmdk-input::placeholder{color:#9b988f;}
+.cmdk-kbd{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.12em;border:1px solid #e6e3dc;padding:3px 7px;border-radius:4px;background:#f3f1ec;}
+.cmdk-results{flex:1;overflow-y:auto;padding:8px;}
+.cmdk-group-label{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:#9b988f;padding:12px 14px 6px;}
+.cmdk-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;cursor:pointer;transition:background 120ms ease;text-decoration:none;color:#131310;}
+.cmdk-item.active{background:#012747;color:#fff;}
+.cmdk-item.active .cmdk-item-meta{color:rgba(255,255,255,0.7);}
+.cmdk-item.active .cmdk-item-type{background:rgba(255,255,255,0.18);color:#fff;}
+.cmdk-item-type{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#012747;background:#eaf0f6;padding:3px 7px;border-radius:4px;letter-spacing:0.14em;text-transform:uppercase;flex-shrink:0;min-width:38px;text-align:center;}
+.cmdk-item-body{flex:1;min-width:0;}
+.cmdk-item-label{font-size:14px;font-weight:500;letter-spacing:-0.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;}
+.cmdk-item-meta{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#6a6760;letter-spacing:0.04em;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cmdk-empty{padding:50px 20px;text-align:center;color:#9b988f;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;}
+.cmdk-footer{display:flex;gap:18px;padding:10px 18px;border-top:1px solid #efece6;background:#faf9f6;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#6a6760;text-transform:uppercase;letter-spacing:0.1em;align-items:center;}
+.cmdk-footer kbd{font-family:'JetBrains Mono',monospace;font-size:9px;border:1px solid #e6e3dc;padding:2px 5px;border-radius:3px;background:#fff;color:#131310;margin:0 4px 0 0;}
+</style>
+<script>
+(function(){
+  if (window.__cmdkInit) return; window.__cmdkInit = true;
+  var ACCOUNTS_SHEET = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
+  var PROPOSALS_SHEET = "12JC_3Y52i1qrMcKtXk7dYvzhqyU6RijB6ybq0wNP18M";
+  var TOOLS = [
+    { type: 'tool', label: 'Hub',       url: 'index.html',     meta: 'Tools home' },
+    { type: 'tool', label: 'Reports',   url: 'reports.html',   meta: 'Audience analytics' },
+    { type: 'tool', label: 'Proposals', url: 'proposals.html', meta: 'Proposal manager' },
+    { type: 'tool', label: 'Accounts',  url: 'accounts.html',  meta: 'Advertiser database' },
+    { type: 'tool', label: 'Pipeline',  url: 'pipeline.html',  meta: 'Sales pipeline' }
+  ];
+  var state = { open: false, advertisers: null, proposals: null, activeIdx: 0, items: [] };
+
+  function loadGviz(sheetId, sheetName){
+    return new Promise(function(resolve){
+      var cb = "_ck" + Date.now() + Math.floor(Math.random()*1e6);
+      var url = "https://docs.google.com/spreadsheets/d/" + sheetId +
+                "/gviz/tq?tqx=out:json;responseHandler:" + cb +
+                "&sheet=" + encodeURIComponent(sheetName) + "&headers=1";
+      window[cb] = function(data){
+        try {
+          if (!data || !data.table) { resolve([]); return; }
+          var cols = data.table.cols.map(function(c){ return (c.label||c.id||"").toString(); });
+          var rows = (data.table.rows||[]).map(function(r){
+            var o = {};
+            r.c.forEach(function(cell, i){ o[cols[i]] = cell ? (cell.v != null ? String(cell.v) : "") : ""; });
+            return o;
+          });
+          resolve(rows);
+        } catch(e) { resolve([]); }
+        delete window[cb];
+        var s = document.getElementById("_cks"+cb); if (s) s.remove();
+      };
+      var s = document.createElement("script");
+      s.id = "_cks" + cb; s.src = url; s.onerror = function(){ resolve([]); };
+      document.body.appendChild(s);
+    });
+  }
+
+  function loadData(){
+    var jobs = [];
+    if (state.advertisers === null) {
+      jobs.push(loadGviz(ACCOUNTS_SHEET, "Advertisers").then(function(rows){
+        state.advertisers = rows.map(function(r){
+          return {
+            type: 'advertiser', id: r.id || '',
+            label: r.name || '(unnamed)',
+            meta: ([r.primary_contact_first_name, r.primary_contact_last_name].filter(Boolean).join(' ') ||
+                   r.primary_contact_email || '') + (r.status ? ' · ' + r.status : '')
+          };
+        }).filter(function(a){ return a.id && a.label; });
+      }));
+    }
+    if (state.proposals === null) {
+      jobs.push(loadGviz(PROPOSALS_SHEET, "Proposals").then(function(rows){
+        state.proposals = rows.map(function(r){
+          var id = r["Proposal ID"] || r.proposal_id || '';
+          var status = r["Status"] || r.status || '';
+          var monthly = parseFloat(r["Monthly Total"] || r.monthly_total) || 0;
+          return {
+            type: 'proposal', id: id,
+            label: r["Vendor"] || r.vendor || '(no vendor)',
+            meta: (status || 'Draft') + ' · ' + id + (monthly ? ' · $' + Math.round(monthly).toLocaleString() + '/mo' : '')
+          };
+        }).filter(function(p){ return p.id; });
+      }));
+    }
+    return Promise.all(jobs);
+  }
+
+  function fuzzy(needle, haystack){
+    needle = (needle||'').toLowerCase();
+    haystack = (haystack||'').toLowerCase();
+    if (!needle) return true;
+    if (haystack.indexOf(needle) >= 0) return true;
+    var hi = 0;
+    for (var i = 0; i < needle.length; i++) {
+      var idx = haystack.indexOf(needle[i], hi);
+      if (idx < 0) return false;
+      hi = idx + 1;
+    }
+    return true;
+  }
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(m){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+    });
+  }
+
+  function typeLabel(item){
+    if (item.type === 'tool') return 'GO';
+    if (item.type === 'advertiser') return 'ADV';
+    if (item.type === 'proposal') return 'PROP';
+    return '';
+  }
+
+  function itemUrl(item){
+    if (item.type === 'tool') return item.url;
+    if (item.type === 'advertiser') return 'accounts.html?id=' + encodeURIComponent(item.id);
+    if (item.type === 'proposal') return 'proposals.html?edit=' + encodeURIComponent(item.id);
+    return '#';
+  }
+
+  function render(){
+    var input = document.getElementById('cmdkInput');
+    var q = input ? input.value.trim() : '';
+    var results = document.getElementById('cmdkResults');
+    if (!results) return;
+    var advertisers = state.advertisers || [];
+    var proposals = state.proposals || [];
+    var matchedTools, matchedAdv, matchedProp;
+    if (!q) {
+      matchedTools = TOOLS.slice();
+      matchedAdv = advertisers.slice(0, 5);
+      matchedProp = proposals.slice(0, 5);
+    } else {
+      matchedTools = TOOLS.filter(function(t){ return fuzzy(q, t.label) || fuzzy(q, t.meta); });
+      matchedAdv = advertisers.filter(function(a){ return fuzzy(q, a.label) || fuzzy(q, a.meta); }).slice(0, 8);
+      matchedProp = proposals.filter(function(p){ return fuzzy(q, p.label) || fuzzy(q, p.id); }).slice(0, 8);
+    }
+    var groups = [];
+    if (matchedTools.length) groups.push({ label: 'Tools', list: matchedTools });
+    if (matchedAdv.length)   groups.push({ label: 'Advertisers', list: matchedAdv });
+    if (matchedProp.length)  groups.push({ label: 'Proposals', list: matchedProp });
+
+    state.items = [];
+    groups.forEach(function(g){ g.list.forEach(function(i){ state.items.push(i); }); });
+    if (state.activeIdx >= state.items.length) state.activeIdx = 0;
+    if (state.activeIdx < 0) state.activeIdx = 0;
+
+    if (!state.items.length) {
+      var loadingHint = (state.advertisers === null || state.proposals === null) ? 'Loading…' : 'No results — try a different search';
+      results.innerHTML = '<div class="cmdk-empty">' + loadingHint + '</div>';
+      return;
+    }
+    var html = '';
+    var globalIdx = 0;
+    groups.forEach(function(g){
+      html += '<div class="cmdk-group-label">' + esc(g.label) + '</div>';
+      g.list.forEach(function(item){
+        var isActive = globalIdx === state.activeIdx;
+        html += '<a class="cmdk-item' + (isActive ? ' active' : '') + '" data-idx="' + globalIdx + '" href="' + esc(itemUrl(item)) + '">'
+              + '<span class="cmdk-item-type">' + esc(typeLabel(item)) + '</span>'
+              + '<div class="cmdk-item-body">'
+              +   '<div class="cmdk-item-label">' + esc(item.label) + '</div>'
+              +   (item.meta ? '<div class="cmdk-item-meta">' + esc(item.meta) + '</div>' : '')
+              + '</div>'
+              + '</a>';
+        globalIdx++;
+      });
+    });
+    results.innerHTML = html;
+    var active = results.querySelector('.cmdk-item.active');
+    if (active && active.scrollIntoView) active.scrollIntoView({ block: 'nearest' });
+  }
+
+  function openPalette(){
+    if (state.open) return;
+    state.open = true;
+    state.activeIdx = 0;
+    var overlay = document.getElementById('cmdkOverlay');
+    if (overlay) overlay.classList.add('open');
+    var input = document.getElementById('cmdkInput');
+    if (input) { input.value = ''; setTimeout(function(){ input.focus(); }, 30); }
+    render();
+    loadData().then(render);
+  }
+  function closePalette(){
+    state.open = false;
+    var overlay = document.getElementById('cmdkOverlay');
+    if (overlay) overlay.classList.remove('open');
+  }
+
+  document.addEventListener('keydown', function(e){
+    var k = (e.key || '').toLowerCase();
+    if ((e.metaKey || e.ctrlKey) && k === 'k') {
+      e.preventDefault();
+      if (state.open) closePalette(); else openPalette();
+      return;
+    }
+    if (!state.open) return;
+    if (k === 'escape') { e.preventDefault(); closePalette(); return; }
+    if (k === 'arrowdown') { e.preventDefault(); state.activeIdx = Math.min(state.activeIdx + 1, state.items.length - 1); render(); return; }
+    if (k === 'arrowup')   { e.preventDefault(); state.activeIdx = Math.max(state.activeIdx - 1, 0); render(); return; }
+    if (k === 'enter') {
+      e.preventDefault();
+      var active = document.querySelector('.cmdk-item.active');
+      if (active) { window.location.href = active.getAttribute('href'); closePalette(); }
+      return;
+    }
+  });
+  document.addEventListener('click', function(e){
+    if (!state.open) return;
+    var overlay = document.getElementById('cmdkOverlay');
+    if (e.target === overlay) closePalette();
+    var item = e.target && e.target.closest && e.target.closest('.cmdk-item');
+    if (item) closePalette();
+  });
+  document.addEventListener('input', function(e){
+    if (e.target && e.target.id === 'cmdkInput') {
+      state.activeIdx = 0;
+      render();
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
