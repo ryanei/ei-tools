@@ -2122,13 +2122,16 @@ function updateStatus(id, status) {
 }
 
 // ═══ DELETE PROPOSAL ═══
-function deleteProposal(id) {
+async function deleteProposal(id) {
   const p = allProposals.find(p => p.id === id);
-  if (!confirm('Delete proposal for "' + (p ? p.vendor : id) + '"? This cannot be undone.')) return;
+  const vendor = p ? p.vendor : id;
+  const ok = await confirmDialog("This cannot be undone.", { title: `Delete proposal for ${vendor}?`, confirmLabel: 'Delete', danger: true });
+  if (!ok) return;
   apiPost({ action: 'delete', id: id }).then(() => {
     loadProposals();
     // Refresh pricing data so position availability is up to date
     loadArticlesFromSheet();
+    toast.success(`Proposal for ${vendor} deleted`);
   });
 }
 
@@ -2457,7 +2460,7 @@ function setCustomerName(id) {
   for (var k in p) { if (p.hasOwnProperty(k)) updateData[k] = p[k]; }
   apiPost({ action: 'update', proposal: updateData }).then(function() {
     renderDashTable();
-    alert('Customer name saved: ' + name);
+    toast.success('Customer name saved: ' + name);
     // Refresh allProposals from Sheet
     apiGet('list').then(function(data) {
       allProposals = data.proposals || [];
@@ -2465,7 +2468,7 @@ function setCustomerName(id) {
     });
   }).catch(function() {
     renderDashTable();
-    alert('Customer name set locally but save may have failed.');
+    toast.error('Customer name set locally but save may have failed.');
   });
 }
 
@@ -2517,7 +2520,7 @@ function numWordForTerms(n) {
 // Open the modal with defaults based on the proposal's term type
 function openIOTermsModal(id, format) {
   var p = allProposals.find(function(x){return x.id===id;});
-  if (!p) { alert('Proposal not found'); return; }
+  if (!p) { toast.error('Proposal not found'); return; }
   var term = p.contractTerm || 'Monthly Rolling';
   var isMonthly = term.toLowerCase().indexOf('monthly') !== -1;
   var tM = parseInt(term) || 1;
@@ -3292,7 +3295,7 @@ function generateIOWord(id, customerName, termsOverride, monthlyOverride) {
   }
 
   if (!window.docx) {
-    alert('Word export library not loaded. Please refresh the page and try again.');
+    toast.error('Word export library not loaded. Please refresh the page and try again.');
     return;
   }
 
@@ -3797,7 +3800,7 @@ function generateIOWord(id, customerName, termsOverride, monthlyOverride) {
     saveAs(blob, 'Expert_Insights_IO_-_' + safeVendor + '.docx');
   }).catch(function(err) {
     console.error('IO Word export failed:', err);
-    alert('IO Word export failed. Check the console for details.');
+    toast.error('IO Word export failed. Check the console for details.');
   });
 }
 
@@ -4074,6 +4077,122 @@ loadProposals();
     }
   });
   window.openCmdK = openPalette; window.closeCmdK = closePalette;
+})();
+</script>
+
+<!-- ═══ Toast notifications + confirm dialog ═══ -->
+<style>
+.ei-toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column-reverse;gap:10px;z-index:2000;pointer-events:none;font-family:'Inter Tight',sans-serif;}
+.ei-toast{background:#fff;border:1px solid #e6e3dc;border-left:3px solid #6a6760;border-radius:10px;box-shadow:0 8px 32px rgba(1,26,48,0.15);padding:12px 16px 12px 14px;display:flex;align-items:center;gap:12px;min-width:280px;max-width:420px;pointer-events:auto;transform:translateX(120%);opacity:0;transition:transform 240ms ease,opacity 240ms ease;}
+.ei-toast.show{transform:translateX(0);opacity:1;}
+.ei-toast.success{border-left-color:#2f7d4d;}
+.ei-toast.error{border-left-color:#9b3a1f;}
+.ei-toast.info{border-left-color:#012747;}
+.ei-toast-icon{width:22px;height:22px;display:grid;place-items:center;flex-shrink:0;border-radius:50%;font-size:12px;font-weight:600;line-height:1;}
+.ei-toast.success .ei-toast-icon{background:#e8f1ea;color:#2f7d4d;}
+.ei-toast.error .ei-toast-icon{background:#f5e4dc;color:#9b3a1f;}
+.ei-toast.info .ei-toast-icon{background:#eaf0f6;color:#012747;}
+.ei-toast-msg{flex:1;font-size:13px;color:#131310;letter-spacing:-0.005em;line-height:1.4;}
+.ei-toast-close{background:none;border:none;color:#9b988f;cursor:pointer;font-size:16px;padding:2px 4px;border-radius:4px;line-height:1;transition:color 180ms ease,background 180ms ease;flex-shrink:0;}
+.ei-toast-close:hover{color:#131310;background:#f3f1ec;}
+
+.ei-confirm-overlay{position:fixed;inset:0;background:rgba(1,26,48,0.55);z-index:1900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);font-family:'Inter Tight',sans-serif;}
+.ei-confirm-overlay.show{display:flex;}
+.ei-confirm-modal{background:#fff;border:1px solid #e6e3dc;border-radius:14px;padding:28px 28px 22px;min-width:380px;max-width:480px;box-shadow:0 20px 60px -10px rgba(1,26,48,0.4);}
+.ei-confirm-title{font-size:18px;font-weight:500;color:#131310;letter-spacing:-0.018em;margin-bottom:8px;line-height:1.3;}
+.ei-confirm-msg{font-size:14px;color:#2e2d28;line-height:1.55;margin-bottom:24px;}
+.ei-confirm-actions{display:flex;gap:10px;justify-content:flex-end;}
+.ei-confirm-btn{padding:9px 16px;border-radius:8px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;border:1px solid #e6e3dc;background:#fff;color:#131310;transition:border-color 180ms ease,background 180ms ease,color 180ms ease;line-height:1.2;letter-spacing:-0.005em;}
+.ei-confirm-btn:hover{border-color:#131310;}
+.ei-confirm-btn.primary{background:#012747;color:#fff;border-color:#012747;}
+.ei-confirm-btn.primary:hover{background:#0a3a64;border-color:#0a3a64;}
+.ei-confirm-btn.danger{background:#9b3a1f;color:#fff;border-color:#9b3a1f;}
+.ei-confirm-btn.danger:hover{background:#7a2e18;border-color:#7a2e18;}
+.ei-confirm-btn:focus{outline:2px solid #012747;outline-offset:2px;}
+</style>
+<script>
+(function(){
+  if (window.__toastInit) return; window.__toastInit = true;
+
+  function escHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(m){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+    });
+  }
+
+  var container = null;
+  function ensureContainer(){
+    if (container) return container;
+    container = document.createElement('div');
+    container.className = 'ei-toast-container';
+    document.body.appendChild(container);
+    return container;
+  }
+
+  function showToast(message, options){
+    options = options || {};
+    var type = options.type || 'info';
+    var duration = options.duration == null ? 3500 : options.duration;
+    var icon = type === 'success' ? '\u2713' : type === 'error' ? '\u00D7' : 'i';
+    var t = document.createElement('div');
+    t.className = 'ei-toast ' + type;
+    t.innerHTML = '<div class="ei-toast-icon">' + icon + '</div>' +
+                  '<div class="ei-toast-msg">' + escHtml(message) + '</div>' +
+                  '<button class="ei-toast-close" aria-label="Dismiss">\u00D7</button>';
+    ensureContainer().appendChild(t);
+    requestAnimationFrame(function(){ t.classList.add('show'); });
+    function dismiss(){
+      t.classList.remove('show');
+      setTimeout(function(){ if (t.parentNode) t.parentNode.removeChild(t); }, 280);
+    }
+    t.querySelector('.ei-toast-close').addEventListener('click', dismiss);
+    if (duration > 0) setTimeout(dismiss, duration);
+    return t;
+  }
+
+  window.toast = showToast;
+  window.toast.success = function(m, o){ var x = Object.assign({}, o, {type:'success'}); return showToast(m, x); };
+  window.toast.error   = function(m, o){ var x = Object.assign({}, o, {type:'error'});   return showToast(m, x); };
+  window.toast.info    = function(m, o){ var x = Object.assign({}, o, {type:'info'});    return showToast(m, x); };
+
+  window.confirmDialog = function(message, options){
+    return new Promise(function(resolve){
+      options = options || {};
+      var btnClass = options.danger ? 'danger' : 'primary';
+      var overlay = document.createElement('div');
+      overlay.className = 'ei-confirm-overlay show';
+      overlay.innerHTML =
+        '<div class="ei-confirm-modal" role="dialog" aria-modal="true">' +
+          (options.title ? '<div class="ei-confirm-title">' + escHtml(options.title) + '</div>' : '') +
+          '<div class="ei-confirm-msg">' + escHtml(message) + '</div>' +
+          '<div class="ei-confirm-actions">' +
+            '<button class="ei-confirm-btn" data-act="cancel">' + escHtml(options.cancelLabel || 'Cancel') + '</button>' +
+            '<button class="ei-confirm-btn ' + btnClass + '" data-act="confirm">' + escHtml(options.confirmLabel || 'Confirm') + '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      function cleanup(result){
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        document.removeEventListener('keydown', onKey);
+        resolve(result);
+      }
+      function onKey(e){
+        if (e.key === 'Escape') { e.preventDefault(); cleanup(false); }
+        else if (e.key === 'Enter') { e.preventDefault(); cleanup(true); }
+      }
+      overlay.addEventListener('click', function(e){
+        if (e.target === overlay) { cleanup(false); return; }
+        var btn = e.target.closest && e.target.closest('.ei-confirm-btn');
+        if (!btn) return;
+        cleanup(btn.dataset.act === 'confirm');
+      });
+      document.addEventListener('keydown', onKey);
+      setTimeout(function(){
+        var p = overlay.querySelector('.ei-confirm-btn.' + btnClass);
+        if (p) p.focus();
+      }, 30);
+    });
+  };
 })();
 </script>
 
