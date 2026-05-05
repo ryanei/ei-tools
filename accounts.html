@@ -737,18 +737,16 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="modal-body">
       <div id="importStep1">
         <p style="font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:14px;">
-          Paste rows from a Google Sheet (or any CSV) into the relevant tab below. Only Advertisers is required — Contacts, Packages, and Articles are optional and link to their advertiser by name.
+          Paste rows from a Google Sheet (or any CSV) into the relevant tab below. Only Advertisers is required — Articles are optional and link to their advertiser by name. Need additional contacts beyond the primary? Add them per-advertiser in the wizard after import.
         </p>
         <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-sm" onclick="downloadImportTemplate()">↓ Download template CSV</button>
+          <button class="btn btn-sm" onclick="downloadImportTemplate()">↓ Download template (XLSX)</button>
           <button class="btn btn-sm" onclick="document.getElementById('importFileInput').click()">↑ Upload file</button>
           <input type="file" id="importFileInput" accept=".csv,.tsv,.txt,.xlsx,.xls" style="display:none;" onchange="handleImportFile(event)">
-          <span style="font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:0.04em;">CSV / XLSX · multi-sheet XLSX auto-routes to tabs</span>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:0.04em;">Fill in each sheet, save, upload — auto-routes to tabs</span>
         </div>
         <div class="import-tabs">
           <button class="import-tab active" data-itab="advertisers" onclick="switchImportTab('advertisers')">Advertisers <span class="import-tab-count" id="iCountAdv">0</span></button>
-          <button class="import-tab" data-itab="contacts" onclick="switchImportTab('contacts')">Contacts <span class="import-tab-count" id="iCountCon">0</span></button>
-          <button class="import-tab" data-itab="packages" onclick="switchImportTab('packages')">Packages <span class="import-tab-count" id="iCountPkg">0</span></button>
           <button class="import-tab" data-itab="articles" onclick="switchImportTab('articles')">Articles <span class="import-tab-count" id="iCountArt">0</span></button>
         </div>
 
@@ -762,37 +760,10 @@ tbody tr:last-child td{border-bottom:none;}
               <strong>par_live</strong> (or par) — Yes / No<br>
               <strong>start_date</strong>, <strong>renewal_date</strong> — YYYY-MM-DD or DD/MM/YYYY<br>
               <strong>fixed_months</strong> — number, only for Fixed term<br>
-              <strong>primary_first</strong> / <strong>primary_last</strong> / <strong>primary_email</strong> — main contact
+              <strong>first_name</strong> / <strong>last_name</strong> / <strong>email</strong> — primary contact (one per advertiser)
             </div>
           </details>
-          <textarea id="importPaste_advertisers" class="form-textarea import-paste" placeholder="name&#9;status&#9;term_type&#9;primary_email&#10;CrowdStrike&#9;Active&#9;Monthly Rolling&#9;j.morris@crowdstrike.com&#10;Datadog&#9;Active&#9;Fixed&#9;k.lee@datadoghq.com"></textarea>
-        </div>
-
-        <div class="import-pane" data-itab-pane="contacts" hidden>
-          <details style="margin-bottom:10px;">
-            <summary class="import-help-summary">Recognised columns</summary>
-            <div class="import-help-box">
-              <strong>advertiser</strong> (or company) — required, must match an advertiser name<br>
-              <strong>first_name</strong> (or first)<br>
-              <strong>last_name</strong> (or last / surname)<br>
-              <strong>email</strong>
-            </div>
-          </details>
-          <textarea id="importPaste_contacts" class="form-textarea import-paste" placeholder="advertiser&#9;first_name&#9;last_name&#9;email&#10;CrowdStrike&#9;Sarah&#9;Chen&#9;sarah@crowdstrike.com&#10;Datadog&#9;Marcus&#9;Reed&#9;m.reed@datadoghq.com"></textarea>
-        </div>
-
-        <div class="import-pane" data-itab-pane="packages" hidden>
-          <details style="margin-bottom:10px;">
-            <summary class="import-help-summary">Recognised columns</summary>
-            <div class="import-help-box">
-              <strong>advertiser</strong> — required, must match an advertiser name<br>
-              <strong>name</strong> (or package) — package label, e.g. "Top Tier Bundle"<br>
-              <strong>monthly_price</strong> (or price) — number<br>
-              <strong>status</strong> — Active / Inactive<br>
-              <strong>notes</strong> — optional
-            </div>
-          </details>
-          <textarea id="importPaste_packages" class="form-textarea import-paste" placeholder="advertiser&#9;name&#9;monthly_price&#9;status&#10;CrowdStrike&#9;Top Tier Bundle&#9;5000&#9;Active&#10;Datadog&#9;Q2 Bundle&#9;3200&#9;Active"></textarea>
+          <textarea id="importPaste_advertisers" class="form-textarea import-paste" placeholder="name&#9;status&#9;term_type&#9;par_live&#9;first_name&#9;last_name&#9;email&#10;CrowdStrike&#9;Active&#9;Monthly Rolling&#9;No&#9;Julia&#9;Morris&#9;j.morris@crowdstrike.com&#10;Datadog&#9;Active&#9;Fixed&#9;Yes&#9;Kyle&#9;Lee&#9;k.lee@datadoghq.com"></textarea>
         </div>
 
         <div class="import-pane" data-itab-pane="articles" hidden>
@@ -800,14 +771,14 @@ tbody tr:last-child td{border-bottom:none;}
             <summary class="import-help-summary">Recognised columns</summary>
             <div class="import-help-box">
               <strong>advertiser</strong> — required, must match an advertiser name<br>
-              <strong>package</strong> — leave empty for standalone, or match a Packages-tab name to bundle<br>
               <strong>url</strong> (or link) — full article URL<br>
               <strong>position</strong> (or pos) — 1 to 10<br>
-              <strong>monthly_price</strong> — only for standalone (skip if in a package)<br>
+              <strong>monthly_price</strong> (or price) — what the advertiser is paying for this article<br>
               <strong>active</strong> — TRUE / FALSE / Yes / No (default TRUE)
+              <div style="margin-top:8px;color:var(--mute);">Want to bundle articles into a package? Import them as standalone first, then group them in the wizard (tick 2+, click "Group as package").</div>
             </div>
           </details>
-          <textarea id="importPaste_articles" class="form-textarea import-paste" placeholder="advertiser&#9;package&#9;url&#9;position&#9;monthly_price&#9;active&#10;CrowdStrike&#9;Top Tier Bundle&#9;https://expertinsights.com/security/top-edr&#9;1&#9;&#9;TRUE&#10;CrowdStrike&#9;&#9;https://expertinsights.com/security/standalone&#9;3&#9;500&#9;TRUE"></textarea>
+          <textarea id="importPaste_articles" class="form-textarea import-paste" placeholder="advertiser&#9;url&#9;position&#9;monthly_price&#9;active&#10;CrowdStrike&#9;https://expertinsights.com/security/top-edr&#9;1&#9;800&#9;TRUE&#10;CrowdStrike&#9;https://expertinsights.com/security/top-xdr&#9;2&#9;500&#9;TRUE&#10;Datadog&#9;https://expertinsights.com/observability/top-apm&#9;1&#9;750&#9;TRUE"></textarea>
         </div>
       </div>
       <div id="importStep2" style="display:none;">
@@ -1808,8 +1779,14 @@ function statusBadge(s){
 }
 function parBadge(v){ return v==="Yes" ? `<span class="badge badge-yes">Yes</span>` : `<span class="badge badge-no">No</span>`; }
 
-// ── Bulk import (multi-tab: advertisers + contacts + packages + articles) ──
-let importState = { step: 1, advertisers: [], contacts: [], packages: [], articles: [], bundles: [] };
+// ── Bulk import (2 tabs: advertisers + articles) ──
+// Schema notes:
+//   - Each advertiser row holds the primary contact inline (one contact per advertiser).
+//     Additional contacts are added per-advertiser in the wizard after import — that
+//     flow is far nicer than CSV for the multi-contact case.
+//   - Articles import as standalone items only. Group them into packages from
+//     the wizard after import.
+let importState = { step: 1, advertisers: [], articles: [], bundles: [] };
 let importTab = 'advertisers';
 
 const IMPORT_MAPS = {
@@ -1821,27 +1798,14 @@ const IMPORT_MAPS = {
     'start':'start_date','start date':'start_date','start_date':'start_date',
     'renewal':'renewal_date','renewal date':'renewal_date','renewal_date':'renewal_date',
     'fixed months':'fixed_months','fixed_months':'fixed_months','months':'fixed_months',
-    'first name':'primary_contact_first_name','primary first':'primary_contact_first_name','first':'primary_contact_first_name',
-    'last name':'primary_contact_last_name','primary last':'primary_contact_last_name','last':'primary_contact_last_name','surname':'primary_contact_last_name',
-    'email':'primary_contact_email','primary email':'primary_contact_email','contact':'primary_contact_email','primary_email':'primary_contact_email'
-  },
-  contacts: {
-    'advertiser':'advertiser','company':'advertiser','client':'advertiser',
-    'first name':'first_name','first':'first_name','first_name':'first_name',
-    'last name':'last_name','last':'last_name','last_name':'last_name','surname':'last_name',
-    'email':'email','email address':'email'
-  },
-  packages: {
-    'advertiser':'advertiser','company':'advertiser','client':'advertiser',
-    'name':'name','package':'name','package name':'name',
-    'monthly_price':'monthly_price','monthly price':'monthly_price','price':'monthly_price','monthly':'monthly_price',
-    'status':'status',
-    'notes':'notes'
+    // Primary contact (inline)
+    'first name':'primary_contact_first_name','first':'primary_contact_first_name','first_name':'primary_contact_first_name','primary first':'primary_contact_first_name','primary_first':'primary_contact_first_name',
+    'last name':'primary_contact_last_name','last':'primary_contact_last_name','last_name':'primary_contact_last_name','surname':'primary_contact_last_name','primary last':'primary_contact_last_name','primary_last':'primary_contact_last_name',
+    'email':'primary_contact_email','email address':'primary_contact_email','contact':'primary_contact_email','primary email':'primary_contact_email','primary_email':'primary_contact_email'
   },
   articles: {
     'advertiser':'advertiser','company':'advertiser','client':'advertiser',
-    'package':'package','package name':'package','bundle':'package',
-    'url':'url','link':'url',
+    'url':'url','link':'url','article':'url',
     'position':'position','pos':'position',
     'monthly_price':'monthly_price','monthly price':'monthly_price','price':'monthly_price','monthly':'monthly_price',
     'active':'active','status':'active'
@@ -1849,9 +1813,9 @@ const IMPORT_MAPS = {
 };
 
 function openImport(){
-  importState = { step: 1, advertisers: [], contacts: [], packages: [], articles: [], bundles: [] };
+  importState = { step: 1, advertisers: [], articles: [], bundles: [] };
   importTab = 'advertisers';
-  ['advertisers','contacts','packages','articles'].forEach(function(t){
+  ['advertisers','articles'].forEach(function(t){
     const el = document.getElementById('importPaste_' + t);
     if (el) el.value = '';
   });
@@ -1893,8 +1857,6 @@ function updateImportTabCounts(){
     return Math.max(0, lines.length - 1); // minus header
   }
   document.getElementById('iCountAdv').textContent = countLines('advertisers');
-  document.getElementById('iCountCon').textContent = countLines('contacts');
-  document.getElementById('iCountPkg').textContent = countLines('packages');
   document.getElementById('iCountArt').textContent = countLines('articles');
 }
 document.addEventListener('input', function(e){
@@ -1991,7 +1953,7 @@ function importParse(){
   const advRaw = importParseTab('advertisers');
   if (!advRaw.length) { toast.error('Paste at least one advertiser row'); return; }
 
-  // Normalise advertisers
+  // Normalise advertisers (primary contact lives inline on each row)
   const existingNames = new Set(advertisers.map(a => (a.name || '').toLowerCase()));
   const advParsed = advRaw.map(raw => {
     const norm = importNormaliseAdvertiser(Object.assign({}, raw));
@@ -2003,24 +1965,7 @@ function importParse(){
     return norm;
   });
 
-  // Parse children
-  const conParsed = importParseTab('contacts').map(c => {
-    c.errors = [];
-    if (!c.advertiser) c.errors.push('Advertiser required');
-    if (!c.first_name && !c.last_name && !c.email) c.errors.push('Need at least name or email');
-    if (c.email && !/^.+@.+\..+$/.test(c.email)) c.errors.push('Bad email');
-    return c;
-  });
-  const pkgParsed = importParseTab('packages').map(p => {
-    p.errors = [];
-    if (!p.advertiser) p.errors.push('Advertiser required');
-    if (!p.name) p.errors.push('Package name required');
-    if (p.status) {
-      const s = p.status.toLowerCase();
-      p.status = s.includes('inactive') || s.includes('paused') ? 'Inactive' : 'Active';
-    } else { p.status = 'Active'; }
-    return p;
-  });
+  // Parse articles (standalone only — packages built later in the wizard)
   const artParsed = importParseTab('articles').map(a => {
     a.errors = [];
     if (!a.advertiser) a.errors.push('Advertiser required');
@@ -2033,35 +1978,19 @@ function importParse(){
     return a;
   });
 
-  // Build advertiser-name -> children index, validating that each child's advertiser exists
-  // either in the advertisers paste OR already in the database
+  // Validate that each article's advertiser exists either in the paste OR in the DB
   const advertiserNameSet = new Set();
   advParsed.forEach(a => { if (a.name) advertiserNameSet.add(a.name.toLowerCase()); });
-  // Pre-existing advertisers by name -> id (so children can attach to existing too)
   const existingAdvByName = {};
   advertisers.forEach(a => { if (a.name) existingAdvByName[a.name.toLowerCase()] = a; });
-
-  function unknownAdvertiser(advName){
-    const k = (advName || '').toLowerCase();
-    return !advertiserNameSet.has(k) && !existingAdvByName[k];
-  }
-  conParsed.forEach(c => { if (c.advertiser && unknownAdvertiser(c.advertiser)) c.errors.push('Advertiser not found'); });
-  pkgParsed.forEach(p => { if (p.advertiser && unknownAdvertiser(p.advertiser)) p.errors.push('Advertiser not found'); });
-  artParsed.forEach(a => { if (a.advertiser && unknownAdvertiser(a.advertiser)) a.errors.push('Advertiser not found'); });
-
-  // Validate package references on articles
-  const pkgKeySet = {};  // 'advertiser_lower:pkgname_lower' -> true
-  pkgParsed.forEach(p => { if (!p.errors.length) pkgKeySet[(p.advertiser||'').toLowerCase() + ':' + (p.name||'').toLowerCase()] = true; });
   artParsed.forEach(a => {
-    if (a.package && !a.errors.length) {
-      const k = (a.advertiser||'').toLowerCase() + ':' + (a.package||'').toLowerCase();
-      if (!pkgKeySet[k]) a.errors.push('Package not found in Packages tab');
+    if (a.advertiser) {
+      const k = a.advertiser.toLowerCase();
+      if (!advertiserNameSet.has(k) && !existingAdvByName[k]) a.errors.push('Advertiser not found');
     }
   });
 
   importState.advertisers = advParsed;
-  importState.contacts = conParsed;
-  importState.packages = pkgParsed;
   importState.articles = artParsed;
 
   renderImportPreview();
@@ -2071,37 +2000,24 @@ function importParse(){
 function renderImportPreview(){
   const skipDupes = document.getElementById('importSkipDupes').checked;
   const adv = importState.advertisers;
-  const con = importState.contacts;
-  const pkg = importState.packages;
   const art = importState.articles;
 
   const advReady = adv.filter(r => !r.errors.length && !(skipDupes && r.dup));
   const advSkipDup = adv.filter(r => skipDupes && r.dup && !r.errors.length);
   const advError = adv.filter(r => r.errors.length);
-  const conValid = con.filter(r => !r.errors.length);
-  const conError = con.filter(r => r.errors.length);
-  const pkgValid = pkg.filter(r => !r.errors.length);
-  const pkgError = pkg.filter(r => r.errors.length);
   const artValid = art.filter(r => !r.errors.length);
   const artError = art.filter(r => r.errors.length);
 
-  // Build per-advertiser child counts (only from "ready" advertisers + their valid children)
-  const childCounts = {};
-  function bumpCount(name, key){
-    const k = (name||'').toLowerCase();
-    if (!childCounts[k]) childCounts[k] = { contacts: 0, packages: 0, articles: 0 };
-    childCounts[k][key]++;
-  }
-  conValid.forEach(c => bumpCount(c.advertiser, 'contacts'));
-  pkgValid.forEach(p => bumpCount(p.advertiser, 'packages'));
-  artValid.forEach(a => bumpCount(a.advertiser, 'articles'));
+  // Per-advertiser article counts
+  const articleCounts = {};
+  artValid.forEach(a => {
+    const k = (a.advertiser || '').toLowerCase();
+    articleCounts[k] = (articleCounts[k] || 0) + 1;
+  });
 
-  // Summary
-  const errTotal = advError.length + conError.length + pkgError.length + artError.length;
+  const errTotal = advError.length + artError.length;
   document.getElementById('importSummary').innerHTML =
     '<strong>' + adv.length + '</strong> advertiser' + (adv.length === 1 ? '' : 's') +
-    (con.length ? ', <strong>' + con.length + '</strong> contact' + (con.length === 1 ? '' : 's') : '') +
-    (pkg.length ? ', <strong>' + pkg.length + '</strong> package' + (pkg.length === 1 ? '' : 's') : '') +
     (art.length ? ', <strong>' + art.length + '</strong> article' + (art.length === 1 ? '' : 's') : '') +
     ' parsed · ' +
     '<span style="color:var(--green);">✓ ' + advReady.length + ' ready</span> · ' +
@@ -2120,14 +2036,8 @@ function renderImportPreview(){
       rowStyle = 'opacity:0.6;';
     } else {
       actionHtml = '<span class="badge badge-active">Will create</span>';
-      const cc = childCounts[r.name.toLowerCase()];
-      if (cc) {
-        const parts = [];
-        if (cc.contacts) parts.push(cc.contacts + ' contact' + (cc.contacts > 1 ? 's' : ''));
-        if (cc.packages) parts.push(cc.packages + ' pkg' + (cc.packages > 1 ? 's' : ''));
-        if (cc.articles) parts.push(cc.articles + ' article' + (cc.articles > 1 ? 's' : ''));
-        if (parts.length) childPart = '<div style="font-family:var(--mono);font-size:10px;color:var(--ei-blue);margin-top:3px;letter-spacing:0.04em;">+ ' + parts.join(' · ') + '</div>';
-      }
+      const ac = articleCounts[r.name.toLowerCase()];
+      if (ac) childPart = '<div style="font-family:var(--mono);font-size:10px;color:var(--ei-blue);margin-top:3px;letter-spacing:0.04em;">+ ' + ac + ' article' + (ac > 1 ? 's' : '') + '</div>';
     }
     const contact = [r.primary_contact_first_name, r.primary_contact_last_name].filter(Boolean).join(' ') || r.primary_contact_email || '—';
     return '<tr style="' + rowStyle + '">' +
@@ -2141,15 +2051,13 @@ function renderImportPreview(){
     '</tr>';
   }).join('');
 
-  // Also show child errors at the bottom of the preview if any exist
-  if (errTotal && (conError.length || pkgError.length || artError.length)) {
+  // Article-level errors at the bottom (if any)
+  if (artError.length) {
     let errRows = '';
-    [['contact', conError], ['package', pkgError], ['article', artError]].forEach(([label, list]) => {
-      list.forEach(e => {
-        errRows += '<tr style="opacity:0.6;"><td colspan="6" style="font-size:12px;color:var(--rust);font-family:var(--mono);">' +
-          label + ' · ' + esc(e.advertiser || '?') + ' · ' + esc(e.errors.join(', ')) + '</td>' +
-          '<td><span class="badge badge-churned">Invalid</span></td></tr>';
-      });
+    artError.forEach(e => {
+      errRows += '<tr style="opacity:0.6;"><td colspan="6" style="font-size:12px;color:var(--rust);font-family:var(--mono);">' +
+        'article · ' + esc(e.advertiser || '?') + ' · ' + esc(e.errors.join(', ')) + '</td>' +
+        '<td><span class="badge badge-churned">Invalid</span></td></tr>';
     });
     body.innerHTML += errRows;
   }
@@ -2162,51 +2070,22 @@ document.addEventListener('change', function(e){
   if (e.target && e.target.id === 'importSkipDupes') renderImportPreview();
 });
 
-// Build the saveAdvertiserBundle payload for one advertiser, attaching its children
+// Build the saveAdvertiserBundle payload for one advertiser, attaching its articles
 function buildImportPayload(adv, advertiserId){
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const advKey = (adv.name || '').toLowerCase();
 
-  // Contacts
-  const contactsForAdv = importState.contacts
-    .filter(c => !c.errors.length && (c.advertiser || '').toLowerCase() === advKey)
-    .map(c => ({
-      id: genId('con'),
-      first_name: c.first_name || '',
-      last_name: c.last_name || '',
-      email: c.email || ''
-    }));
-
-  // Packages — keep the imported package id so we can link articles
-  const pkgsForAdv = importState.packages
-    .filter(p => !p.errors.length && (p.advertiser || '').toLowerCase() === advKey)
-    .map(p => ({
-      id: genId('pkg'),
-      _name_lower: (p.name || '').toLowerCase(),
-      name: p.name,
-      monthly_price: p.monthly_price || '',
-      status: p.status || 'Active',
-      notes: p.notes || ''
-    }));
-  const pkgIdByName = {};
-  pkgsForAdv.forEach(p => { pkgIdByName[p._name_lower] = p.id; });
-  const cleanPkgs = pkgsForAdv.map(p => ({ id: p.id, name: p.name, monthly_price: p.monthly_price, status: p.status, notes: p.notes }));
-
-  // Articles
+  // Articles (standalone only — packages are built in the wizard after import)
   const articlesForAdv = importState.articles
     .filter(a => !a.errors.length && (a.advertiser || '').toLowerCase() === advKey)
-    .map(a => {
-      const pkgKey = (a.package || '').toLowerCase();
-      const pkgId = pkgKey ? (pkgIdByName[pkgKey] || '') : '';
-      return {
-        id: genId('art'),
-        package_id: pkgId,
-        url: a.url || '',
-        position: a.position || '1',
-        monthly_price: pkgId ? '' : (a.monthly_price || ''),
-        active: a.active || 'TRUE'
-      };
-    });
+    .map(a => ({
+      id: genId('art'),
+      package_id: '',
+      url: a.url || '',
+      position: a.position || '1',
+      monthly_price: a.monthly_price || '',
+      active: a.active || 'TRUE'
+    }));
 
   return {
     action: 'saveAdvertiserBundle',
@@ -2224,8 +2103,8 @@ function buildImportPayload(adv, advertiserId){
     primary_contact_email: adv.primary_contact_email || '',
     created_at: now,
     updated_at: now,
-    contacts_json: JSON.stringify(contactsForAdv),
-    packages_json: JSON.stringify(cleanPkgs),
+    contacts_json: '[]',
+    packages_json: '[]',
     articles_json: JSON.stringify(articlesForAdv),
     services_json: '[]'
   };
@@ -2274,7 +2153,7 @@ async function importRun(){
   if (failed) {
     toast.error(`Imported ${success}, ${failed} failed`);
   } else {
-    toast.success(`Imported ${success} advertiser${success === 1 ? '' : 's'} with linked records`);
+    toast.success(`Imported ${success} advertiser${success === 1 ? '' : 's'}`);
   }
 }
 
@@ -2293,9 +2172,8 @@ async function ensureXLSX(){
 function _matchSheetToTab(sheetName){
   const s = (sheetName || '').toLowerCase().trim();
   if (s.startsWith('advertis') || s === 'accounts' || s === 'companies' || s === 'clients') return 'advertisers';
-  if (s.startsWith('contact')) return 'contacts';
-  if (s.startsWith('package') || s.startsWith('bundle')) return 'packages';
   if (s.startsWith('article') || s.startsWith('post')) return 'articles';
+  // Old templates may have Contacts / Packages sheets — silently ignored now
   return null;
 }
 
@@ -2351,29 +2229,23 @@ async function handleImportFile(e){
     const reader = new FileReader();
     reader.onload = function(ev){
       const text = String(ev.target.result || '').trim();
-      // Detect if it's our multi-section template (with === ADVERTISERS === markers)
-      if (/^# ===|=== (ADVERTISERS|CONTACTS|PACKAGES|ARTICLES)/im.test(text)) {
-        // Split into sections by header marker
+      // Detect if it's our (legacy) multi-section template — only Advertisers / Articles still route to a tab now
+      if (/^# ===|=== (ADVERTISERS|ARTICLES)/im.test(text)) {
         const sections = {};
         const lines = text.split(/\r?\n/);
         let current = null;
         let buf = [];
         function flush(){
           if (current && buf.length) {
-            // Strip leading comment lines from the buffer
             const clean = buf.filter(l => !/^\s*#/.test(l) && l.trim()).join('\n');
             if (clean) sections[current] = clean;
           }
           buf = [];
         }
         lines.forEach(line => {
-          const m = line.match(/===\s*(ADVERTISERS|CONTACTS|PACKAGES|ARTICLES)\s*===/i);
-          if (m) {
-            flush();
-            current = m[1].toLowerCase();
-          } else if (current) {
-            buf.push(line);
-          }
+          const m = line.match(/===\s*(ADVERTISERS|ARTICLES)\s*===/i);
+          if (m) { flush(); current = m[1].toLowerCase(); }
+          else if (current) { buf.push(line); }
         });
         flush();
         let populated = 0;
@@ -2399,43 +2271,51 @@ async function handleImportFile(e){
   }
 }
 
-// ── Template download ──
-function downloadImportTemplate(){
-  const lines = [];
-  lines.push('# EI Tools — Accounts import template');
-  lines.push('# Copy each section into the matching tab in the Import modal.');
-  lines.push('# Lines beginning with # are comments and will be ignored.');
-  lines.push('');
-  lines.push('# === ADVERTISERS ===');
-  lines.push('name,status,term_type,par_live,start_date,renewal_date,fixed_months,primary_first,primary_last,primary_email');
-  lines.push('CrowdStrike,Active,Monthly Rolling,No,2026-01-01,,,Julia,Morris,j.morris@crowdstrike.com');
-  lines.push('Datadog,Active,Fixed,Yes,2026-02-01,2027-02-01,12,Kyle,Lee,k.lee@datadoghq.com');
-  lines.push('');
-  lines.push('# === CONTACTS ===');
-  lines.push('advertiser,first_name,last_name,email');
-  lines.push('CrowdStrike,Sarah,Chen,sarah@crowdstrike.com');
-  lines.push('Datadog,Marcus,Reed,m.reed@datadoghq.com');
-  lines.push('');
-  lines.push('# === PACKAGES ===');
-  lines.push('advertiser,name,monthly_price,status,notes');
-  lines.push('CrowdStrike,Top Tier Bundle,5000,Active,Q1 promo');
-  lines.push('Datadog,Q2 Bundle,3200,Active,');
-  lines.push('');
-  lines.push('# === ARTICLES ===');
-  lines.push('advertiser,package,url,position,monthly_price,active');
-  lines.push('CrowdStrike,Top Tier Bundle,https://expertinsights.com/security/top-edr,1,,TRUE');
-  lines.push('CrowdStrike,,https://expertinsights.com/security/standalone-edr,3,500,TRUE');
-  lines.push('Datadog,Q2 Bundle,https://expertinsights.com/observability/top-apm,1,,TRUE');
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+// ── Template download (multi-sheet XLSX so each tab has clean columns) ──
+async function downloadImportTemplate(){
+  try {
+    toast.info('Preparing template…', { duration: 1500 });
+    await ensureXLSX();
+  } catch(e) {
+    toast.error('Could not load XLSX library — check your internet');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // Advertisers sheet — primary contact lives inline. One row per advertiser.
+  const advData = [
+    ['name', 'status', 'term_type', 'par_live', 'start_date', 'renewal_date', 'fixed_months', 'first_name', 'last_name', 'email'],
+    ['CrowdStrike', 'Active', 'Monthly Rolling', 'No', '2026-01-01', '', '', 'Julia', 'Morris', 'j.morris@crowdstrike.com'],
+    ['Datadog', 'Active', 'Fixed', 'Yes', '2026-02-01', '2027-02-01', 12, 'Kyle', 'Lee', 'k.lee@datadoghq.com']
+  ];
+  const advWs = XLSX.utils.aoa_to_sheet(advData);
+  advWs['!cols'] = [{wch:22},{wch:16},{wch:18},{wch:10},{wch:12},{wch:13},{wch:14},{wch:14},{wch:14},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, advWs, 'Advertisers');
+
+  // Articles sheet — standalone only. Group into packages later in the wizard.
+  const artData = [
+    ['advertiser', 'url', 'position', 'monthly_price', 'active'],
+    ['CrowdStrike', 'https://expertinsights.com/security/top-edr', 1, 800, 'TRUE'],
+    ['CrowdStrike', 'https://expertinsights.com/security/top-xdr', 2, 500, 'TRUE'],
+    ['Datadog', 'https://expertinsights.com/observability/top-apm', 1, 750, 'TRUE']
+  ];
+  const artWs = XLSX.utils.aoa_to_sheet(artData);
+  artWs['!cols'] = [{wch:22},{wch:55},{wch:10},{wch:14},{wch:8}];
+  XLSX.utils.book_append_sheet(wb, artWs, 'Articles');
+
+  // Generate the XLSX as a binary blob
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'accounts_import_template.csv';
+  a.download = 'accounts_import_template.xlsx';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  toast.success('Template downloaded');
+  toast.success('Template downloaded — fill each sheet, then upload it back');
 }
 
 // ── Wizard ──
