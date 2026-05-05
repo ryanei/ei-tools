@@ -89,6 +89,24 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .tab-strip-tab .tab-count{font-family:var(--mono);font-size:9.5px;color:var(--mute);margin-left:8px;letter-spacing:0.08em;font-weight:400;}
 .tab-strip-tab.active .tab-count{color:var(--ei-blue);}
 
+/* Occupancy heatmap */
+.heatmap-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);overflow:hidden;margin-bottom:36px;max-height:520px;overflow-y:auto;}
+.heatmap-row{display:grid;grid-template-columns:1fr auto 100px;gap:24px;padding:8px 18px;border-bottom:1px solid var(--line-2);align-items:center;transition:background 120ms ease;}
+.heatmap-row:last-child{border-bottom:none;}
+.heatmap-row:not(.heatmap-header):hover{background:var(--paper-2);}
+.heatmap-row.heatmap-header{background:var(--paper-2);font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;color:var(--soft);font-weight:500;position:sticky;top:0;z-index:1;padding-top:11px;padding-bottom:11px;}
+.heatmap-name{font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-0.005em;}
+.heatmap-row.heatmap-header .heatmap-name{font-size:10px;color:var(--soft);}
+.heatmap-cells{display:flex;gap:3px;flex-shrink:0;}
+.heatmap-cells span{width:20px;height:20px;border-radius:3px;background:var(--paper-2);display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:500;color:var(--mute);}
+.heatmap-cells span.filled{background:var(--ei-blue);color:#fff;}
+.heatmap-row.heatmap-header .heatmap-cells span{background:transparent;color:var(--mute);width:20px;height:20px;}
+.heatmap-rev{font-family:var(--mono);font-size:11.5px;color:var(--ink);font-weight:500;text-align:right;letter-spacing:0;}
+.heatmap-row.heatmap-header .heatmap-rev{color:var(--soft);font-size:10px;}
+.heatmap-row.heatmap-empty .heatmap-name{color:var(--mute);}
+.heatmap-row.heatmap-empty .heatmap-rev{color:var(--mute);}
+.heatmap-empty-state{padding:30px;text-align:center;color:var(--mute);font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;}
+
 /* Articles directory */
 .articles-positions{display:flex;gap:3px;flex-wrap:wrap;}
 .articles-pos-cell{width:18px;height:18px;border-radius:3px;background:var(--paper-2);display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:500;color:var(--mute);}
@@ -525,7 +543,10 @@ tbody tr:last-child td{border-bottom:none;}
   <div id="viewArticles" hidden>
     <div id="articlesKpis"></div>
 
-    <div class="section-eyebrow"><span class="num">01</span><span>All articles</span><span class="section-meta" id="articlesCount"></span></div>
+    <div class="section-eyebrow"><span class="num">01</span><span>Position occupancy</span><span class="section-meta">· sorted by fill rate</span></div>
+    <div id="occupancyHeatmap"></div>
+
+    <div class="section-eyebrow"><span class="num">02</span><span>All articles</span><span class="section-meta" id="articlesCount"></span></div>
 
     <div class="filters">
       <input type="text" class="filter-search" id="articlesSearch" placeholder="Search article URL or sponsor…" oninput="renderArticlesDirectory()">
@@ -957,9 +978,10 @@ async function reload(){
     renderKpis();
     renderRenewalRadar();
     renderTable();
-    // Rebuild articles index + render if we're on that tab
+    // Rebuild articles index + render
     articleIndex = buildArticleIndex();
     renderArticlesKpis();
+    renderOccupancyHeatmap();
     renderArticlesDirectory();
     if (currentDrawerId) openDrawer(currentDrawerId, true);
   } catch(e) {
@@ -1134,6 +1156,56 @@ function buildArticleIndex(){
   return Object.values(byUrl);
 }
 
+function renderOccupancyHeatmap(){
+  const wrap = document.getElementById('occupancyHeatmap');
+  if (!wrap) return;
+  if (!articleIndex.length) {
+    wrap.innerHTML = '<div class="heatmap-empty-state">No articles yet</div>';
+    return;
+  }
+
+  // Sort: most-filled first, then by total revenue desc
+  const sorted = [...articleIndex].sort((a, b) => {
+    const ac = Object.keys(a.positionsActive).length;
+    const bc = Object.keys(b.positionsActive).length;
+    if (ac !== bc) return bc - ac;
+    return b.totalMonthly - a.totalMonthly;
+  });
+
+  let html = '<div class="heatmap-wrap">';
+  // Header
+  html += '<div class="heatmap-row heatmap-header">';
+  html += '<div class="heatmap-name">Article</div>';
+  html += '<div class="heatmap-cells">';
+  for (let p = 1; p <= 10; p++) html += `<span>${p}</span>`;
+  html += '</div>';
+  html += '<div class="heatmap-rev">Monthly</div>';
+  html += '</div>';
+
+  // Rows
+  sorted.forEach(item => {
+    const occCount = Object.keys(item.positionsActive).length;
+    let cells = '';
+    for (let p = 1; p <= 10; p++) {
+      const occ = item.positionsActive[p];
+      if (occ) {
+        const initial = (occ.advertiser_name || '?').charAt(0).toUpperCase();
+        cells += `<span class="filled" title="${esc(occ.advertiser_name)} · Position ${p}">${esc(initial)}</span>`;
+      } else {
+        cells += `<span title="Position ${p} open"></span>`;
+      }
+    }
+    const cls = occCount === 0 ? 'heatmap-row heatmap-empty' : 'heatmap-row';
+    html += `<div class="${cls}" title="${esc(item.url)}">`;
+    html += `<div class="heatmap-name">${esc(item.title)}</div>`;
+    html += `<div class="heatmap-cells">${cells}</div>`;
+    html += `<div class="heatmap-rev">${item.totalMonthly > 0 ? fmtMoney(item.totalMonthly) : '—'}</div>`;
+    html += '</div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
 function renderArticlesKpis(){
   const total = articleIndex.length;
   const active = articleIndex.filter(x => x.activeCount > 0).length;
@@ -1271,6 +1343,7 @@ function switchAccountsTab(tab){
     if (!articleIndex.length) {
       articleIndex = buildArticleIndex();
       renderArticlesKpis();
+      renderOccupancyHeatmap();
       renderArticlesDirectory();
     }
   } else {
