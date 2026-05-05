@@ -477,6 +477,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="screen-actions">
       <button class="btn" onclick="reload()">Refresh</button>
+      <button class="btn" onclick="openImport()">Import</button>
       <button class="btn btn-primary" onclick="openWizard()">+ New advertiser</button>
     </div>
   </div>
@@ -705,6 +706,82 @@ tbody tr:last-child td{border-bottom:none;}
         <button class="btn" id="wizardBackBtn" onclick="wizardBack()" style="display:none;">Back</button>
         <button class="btn btn-primary" id="wizardNextBtn" onclick="wizardNext()">Next →</button>
         <button class="btn btn-primary" id="wizardSaveBtn" onclick="saveBundle()" style="display:none;">Save Advertiser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal" style="width:880px;max-width:95vw;">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span id="importModalTitle">Import advertisers</span>
+        <button class="modal-close-x" onclick="closeImport()">&times;</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="importStep1">
+        <p style="font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:16px;">
+          Paste rows from a Google Sheet (or any CSV). The first row should be column headers — we'll match them flexibly.
+        </p>
+        <details style="margin-bottom:16px;">
+          <summary style="font-family:var(--mono);font-size:11px;color:var(--ei-blue);cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">Recognised columns</summary>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--soft);background:var(--paper-2);border-radius:var(--radius-sm);padding:12px 14px;margin-top:8px;line-height:1.7;">
+            <strong style="color:var(--ink);">name</strong> (or company / advertiser) — required<br>
+            <strong style="color:var(--ink);">status</strong> — Active / In Negotiation / Paused / Churned<br>
+            <strong style="color:var(--ink);">term_type</strong> (or term) — Monthly Rolling / Quarterly Rolling / Fixed<br>
+            <strong style="color:var(--ink);">par_live</strong> (or par) — Yes / No<br>
+            <strong style="color:var(--ink);">start_date</strong> — YYYY-MM-DD or DD/MM/YYYY<br>
+            <strong style="color:var(--ink);">renewal_date</strong> — YYYY-MM-DD or DD/MM/YYYY<br>
+            <strong style="color:var(--ink);">fixed_months</strong> — number, only for Fixed term<br>
+            <strong style="color:var(--ink);">primary_first</strong> / <strong style="color:var(--ink);">primary_last</strong> / <strong style="color:var(--ink);">primary_email</strong> — main contact
+          </div>
+        </details>
+        <textarea id="importPasteArea" class="form-textarea" style="width:100%;min-height:200px;font-family:var(--mono);font-size:12px;line-height:1.5;" placeholder="name&#9;status&#9;term_type&#9;primary_email&#10;CrowdStrike&#9;Active&#9;Monthly Rolling&#9;julia@crowdstrike.com&#10;Datadog&#9;Active&#9;Fixed&#9;k.lee@datadog.com"></textarea>
+      </div>
+      <div id="importStep2" style="display:none;">
+        <div id="importSummary" style="margin-bottom:16px;font-size:13px;color:var(--ink-2);"></div>
+        <div id="importPreviewWrap" class="table-wrap" style="max-height:420px;overflow-y:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Term</th>
+                <th>PAR</th>
+                <th>Primary contact</th>
+                <th style="width:100px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="importPreviewBody"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;font-family:var(--mono);font-size:10.5px;color:var(--soft);letter-spacing:0.04em;">
+          <label class="form-checkbox-row" style="display:inline-flex;">
+            <input type="checkbox" id="importSkipDupes" checked>
+            <span>Skip rows whose name already exists</span>
+          </label>
+        </div>
+      </div>
+      <div id="importStep3" style="display:none;">
+        <div style="text-align:center;padding:30px 20px;">
+          <div id="importProgressMsg" style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--soft);margin-bottom:18px;">Preparing…</div>
+          <div style="height:8px;background:var(--paper-2);border-radius:100px;overflow:hidden;margin-bottom:14px;">
+            <div id="importProgressBar" style="height:100%;background:var(--ei-blue);width:0%;transition:width 250ms ease;"></div>
+          </div>
+          <div id="importProgressDetail" style="font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:0.04em;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="importBackBtn" onclick="importBack()" style="display:none;">Back</button>
+      <span style="flex:1;"></span>
+      <div class="modal-footer-actions">
+        <button class="btn" id="importCancelBtn" onclick="closeImport()">Cancel</button>
+        <button class="btn btn-primary" id="importParseBtn" onclick="importParse()">Parse rows →</button>
+        <button class="btn btn-primary" id="importRunBtn" onclick="importRun()" style="display:none;">Import rows</button>
       </div>
     </div>
   </div>
@@ -1660,6 +1737,268 @@ function statusBadge(s){
   return `<span class="badge ${cls[s]||""}">${esc(s||"—")}</span>`;
 }
 function parBadge(v){ return v==="Yes" ? `<span class="badge badge-yes">Yes</span>` : `<span class="badge badge-no">No</span>`; }
+
+// ── Bulk import ──
+let importState = { step: 1, parsed: [] };
+
+const IMPORT_HEADER_MAP = {
+  'name':'name','advertiser':'name','company':'name','client':'name','vendor':'name',
+  'status':'status',
+  'par':'par_live','par live':'par_live','par_live':'par_live',
+  'term':'term_type','term type':'term_type','term_type':'term_type','contract':'term_type','contract term':'term_type',
+  'start':'start_date','start date':'start_date','start_date':'start_date',
+  'renewal':'renewal_date','renewal date':'renewal_date','renewal_date':'renewal_date',
+  'fixed months':'fixed_months','fixed_months':'fixed_months','months':'fixed_months',
+  'first name':'primary_contact_first_name','primary first':'primary_contact_first_name','first':'primary_contact_first_name',
+  'last name':'primary_contact_last_name','primary last':'primary_contact_last_name','last':'primary_contact_last_name','surname':'primary_contact_last_name',
+  'email':'primary_contact_email','primary email':'primary_contact_email','contact':'primary_contact_email','primary_email':'primary_contact_email'
+};
+
+function openImport(){
+  importState = { step: 1, parsed: [] };
+  document.getElementById('importPasteArea').value = '';
+  showImportStep(1);
+  document.getElementById('importModal').classList.add('active');
+}
+function closeImport(){
+  document.getElementById('importModal').classList.remove('active');
+}
+function showImportStep(step){
+  importState.step = step;
+  ['importStep1','importStep2','importStep3'].forEach(function(id, i){
+    document.getElementById(id).style.display = (i+1 === step) ? '' : 'none';
+  });
+  document.getElementById('importBackBtn').style.display = step === 2 ? '' : 'none';
+  document.getElementById('importCancelBtn').style.display = step !== 3 ? '' : 'none';
+  document.getElementById('importParseBtn').style.display = step === 1 ? '' : 'none';
+  document.getElementById('importRunBtn').style.display = step === 2 ? '' : 'none';
+}
+function importBack(){ showImportStep(1); }
+
+function importDetectDelim(line){
+  const tabs = (line.match(/\t/g) || []).length;
+  const commas = (line.match(/,/g) || []).length;
+  return tabs >= commas && tabs > 0 ? '\t' : ',';
+}
+
+function importSplitCsvLine(line, delim){
+  // Minimal CSV splitter that respects double-quoted fields
+  const out = [];
+  let cur = '';
+  let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuote) {
+      if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') { inQuote = false; }
+      else cur += ch;
+    } else {
+      if (ch === '"' && cur === '') inQuote = true;
+      else if (ch === delim) { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out.map(x => x.trim());
+}
+
+function importParseDate(s){
+  if (!s) return '';
+  s = s.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  const d = new Date(s);
+  if (!isNaN(d)) return d.toISOString().slice(0, 10);
+  return '';
+}
+
+function importNormaliseRow(raw){
+  const out = {};
+  Object.keys(raw).forEach(k => {
+    const canonical = IMPORT_HEADER_MAP[k.toLowerCase().trim()];
+    if (canonical) out[canonical] = String(raw[k] || '').trim();
+  });
+  // Defaults
+  if (!out.status) out.status = 'Active';
+  if (!out.par_live) out.par_live = 'No';
+  if (!out.term_type) out.term_type = 'Monthly Rolling';
+  // Normalise term_type
+  const t = (out.term_type || '').toLowerCase();
+  if (t.includes('fixed')) out.term_type = 'Fixed';
+  else if (t.includes('quarter')) out.term_type = 'Quarterly Rolling';
+  else if (t.includes('month') || t.includes('roll')) out.term_type = 'Monthly Rolling';
+  // Normalise status
+  const s = (out.status || '').toLowerCase();
+  if (s.includes('active')) out.status = 'Active';
+  else if (s.includes('negotia')) out.status = 'In Negotiation';
+  else if (s.includes('paus')) out.status = 'Paused';
+  else if (s.includes('churn')) out.status = 'Churned';
+  // Normalise PAR
+  const p = (out.par_live || '').toLowerCase();
+  out.par_live = (p === 'yes' || p === 'y' || p === 'true' || p === '1') ? 'Yes' : 'No';
+  // Dates
+  out.start_date = importParseDate(out.start_date || '');
+  out.renewal_date = importParseDate(out.renewal_date || '');
+  return out;
+}
+
+function importValidateRow(row, existingNames){
+  const errors = [];
+  if (!row.name) errors.push('Name is required');
+  if (row.term_type === 'Fixed' && !row.fixed_months) errors.push('Fixed term needs fixed_months');
+  if (row.primary_contact_email && !/^.+@.+\..+$/.test(row.primary_contact_email)) errors.push('Bad email');
+  const dup = row.name && existingNames.has(row.name.toLowerCase());
+  return { errors: errors, dup: dup };
+}
+
+function importParse(){
+  const text = document.getElementById('importPasteArea').value.trim();
+  if (!text) { toast.error('Paste some rows first'); return; }
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { toast.error('Need at least 2 rows: header + 1 data row'); return; }
+
+  const delim = importDetectDelim(lines[0]);
+  const headers = importSplitCsvLine(lines[0], delim).map(h => h.toLowerCase().trim());
+  const rawRows = lines.slice(1).map(l => {
+    const cells = importSplitCsvLine(l, delim);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = cells[i] != null ? cells[i] : ''; });
+    return obj;
+  });
+
+  // Check we got at least the name column
+  const haveName = headers.some(h => IMPORT_HEADER_MAP[h] === 'name');
+  if (!haveName) { toast.error('No "name" column found — check your headers'); return; }
+
+  const existingNames = new Set(advertisers.map(a => (a.name || '').toLowerCase()));
+  const parsed = rawRows.map(raw => {
+    const norm = importNormaliseRow(raw);
+    const v = importValidateRow(norm, existingNames);
+    return Object.assign(norm, v);
+  });
+
+  importState.parsed = parsed;
+  renderImportPreview();
+  showImportStep(2);
+}
+
+function renderImportPreview(){
+  const rows = importState.parsed;
+  const skipDupes = document.getElementById('importSkipDupes').checked;
+
+  const ready = rows.filter(r => !r.errors.length && !(skipDupes && r.dup)).length;
+  const skipDup = rows.filter(r => skipDupes && r.dup && !r.errors.length).length;
+  const errored = rows.filter(r => r.errors.length).length;
+
+  document.getElementById('importSummary').innerHTML =
+    '<strong>' + rows.length + '</strong> row' + (rows.length === 1 ? '' : 's') + ' parsed · ' +
+    '<span style="color:var(--green);">✓ ' + ready + ' ready</span> · ' +
+    '<span style="color:var(--amber);">⚠ ' + skipDup + ' duplicate</span> · ' +
+    '<span style="color:var(--rust);">✗ ' + errored + ' invalid</span>';
+
+  const body = document.getElementById('importPreviewBody');
+  body.innerHTML = rows.map((r, i) => {
+    let actionHtml, rowStyle = '';
+    if (r.errors.length) {
+      actionHtml = '<span class="badge badge-churned" title="' + esc(r.errors.join(', ')) + '">Invalid</span>';
+      rowStyle = 'opacity:0.5;';
+    } else if (skipDupes && r.dup) {
+      actionHtml = '<span class="badge badge-negotiation" title="Already in your database">Duplicate</span>';
+      rowStyle = 'opacity:0.6;';
+    } else {
+      actionHtml = '<span class="badge badge-active">Will create</span>';
+    }
+    const contact = [r.primary_contact_first_name, r.primary_contact_last_name].filter(Boolean).join(' ') || r.primary_contact_email || '—';
+    return '<tr style="' + rowStyle + '">' +
+      '<td style="font-family:var(--mono);font-size:11px;color:var(--mute);">' + (i+1) + '</td>' +
+      '<td><strong>' + esc(r.name || '(missing)') + '</strong></td>' +
+      '<td><span class="badge ' + (r.status==='Active'?'badge-active':r.status==='Churned'?'badge-churned':r.status==='Paused'?'badge-paused':'badge-negotiation') + '">' + esc(r.status) + '</span></td>' +
+      '<td style="font-size:12px;color:var(--soft);">' + esc(r.term_type) + (r.fixed_months ? ' · ' + esc(r.fixed_months) + 'mo' : '') + '</td>' +
+      '<td>' + (r.par_live === 'Yes' ? '<span class="badge badge-yes">Yes</span>' : '<span class="badge badge-no">No</span>') + '</td>' +
+      '<td style="font-size:12px;">' + esc(contact) + '</td>' +
+      '<td>' + actionHtml + '</td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('importRunBtn').textContent = 'Import ' + ready + ' row' + (ready === 1 ? '' : 's');
+  document.getElementById('importRunBtn').disabled = ready === 0;
+}
+
+// Re-render preview when "skip dupes" toggle changes
+document.addEventListener('change', function(e){
+  if (e.target && e.target.id === 'importSkipDupes') renderImportPreview();
+});
+
+async function importRun(){
+  const skipDupes = document.getElementById('importSkipDupes').checked;
+  const toImport = importState.parsed.filter(r => !r.errors.length && !(skipDupes && r.dup));
+  if (!toImport.length) return;
+
+  showImportStep(3);
+  const total = toImport.length;
+  const bar = document.getElementById('importProgressBar');
+  const msg = document.getElementById('importProgressMsg');
+  const detail = document.getElementById('importProgressDetail');
+
+  let success = 0, failed = 0;
+  for (let i = 0; i < toImport.length; i++) {
+    const row = toImport[i];
+    const id = genId('adv');
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const payload = {
+      action: 'saveAdvertiserBundle',
+      id: id,
+      name: row.name,
+      status: row.status,
+      par_live: row.par_live,
+      start_date: row.start_date || '',
+      renewal_date: row.renewal_date || '',
+      term_type: row.term_type,
+      fixed_months: row.fixed_months || '',
+      fixed_then_rolling: 'FALSE',
+      primary_contact_first_name: row.primary_contact_first_name || '',
+      primary_contact_last_name: row.primary_contact_last_name || '',
+      primary_contact_email: row.primary_contact_email || '',
+      created_at: now,
+      updated_at: now,
+      contacts_json: '[]',
+      packages_json: '[]',
+      articles_json: '[]',
+      services_json: '[]'
+    };
+    try {
+      await fetch(ACCOUNTS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(payload).toString()
+      });
+      success++;
+    } catch(e) {
+      failed++;
+    }
+    const pct = Math.round(((i+1) / total) * 100);
+    bar.style.width = pct + '%';
+    msg.textContent = 'Importing ' + (i+1) + ' of ' + total + ' (' + pct + '%)';
+    detail.textContent = row.name;
+    if (i < toImport.length - 1) await new Promise(r => setTimeout(r, 250));
+  }
+
+  msg.textContent = 'Waiting for the sheet to catch up…';
+  detail.textContent = '';
+  await new Promise(r => setTimeout(r, 3000));
+
+  await reload();
+  closeImport();
+  if (failed) {
+    toast.error(`Imported ${success}, ${failed} failed`);
+  } else {
+    toast.success(`Imported ${success} advertiser${success === 1 ? '' : 's'}`);
+  }
+}
 
 // ── Wizard ──
 function onTermTypeChange(){
