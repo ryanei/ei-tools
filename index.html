@@ -452,6 +452,11 @@ var ex=getSession();if(ex){document.addEventListener("DOMContentLoaded",function
     <a href="pipeline.html">Pipeline</a>
   </nav>
   <div class="topbar-right">
+    <button class="cmdk-trigger" onclick="window.openCmdK&&window.openCmdK()" aria-label="Open command palette">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+      <span class="cmdk-trigger-text">Search…</span>
+      <span class="cmdk-trigger-kbd">⌘K</span>
+    </button>
     <span class="topbar-env">Live</span>
     <div class="topbar-avatar" id="userAvatar"></div>
     <span class="topbar-username" id="userName"></span>
@@ -976,6 +981,16 @@ function loadHubWidgets(){
 .cmdk-empty{padding:50px 20px;text-align:center;color:#9b988f;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;}
 .cmdk-footer{display:flex;gap:18px;padding:10px 18px;border-top:1px solid #efece6;background:#faf9f6;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#6a6760;text-transform:uppercase;letter-spacing:0.1em;align-items:center;}
 .cmdk-footer kbd{font-family:'JetBrains Mono',monospace;font-size:9px;border:1px solid #e6e3dc;padding:2px 5px;border-radius:3px;background:#fff;color:#131310;margin:0 4px 0 0;}
+/* Topbar search trigger that opens the Cmd+K palette */
+.cmdk-trigger{display:inline-flex;align-items:center;gap:10px;padding:6px 8px 6px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.7);font-family:'Inter Tight',sans-serif;font-size:12px;cursor:pointer;width:240px;transition:background 180ms ease,border-color 180ms ease,color 180ms ease;line-height:1;}
+.cmdk-trigger:hover{background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);color:rgba(255,255,255,0.95);}
+.cmdk-trigger svg{width:13px;height:13px;flex-shrink:0;color:rgba(255,255,255,0.55);}
+.cmdk-trigger:hover svg{color:rgba(255,255,255,0.85);}
+.cmdk-trigger-text{flex:1;text-align:left;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cmdk-trigger-kbd{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;background:rgba(255,255,255,0.1);padding:3px 6px;border-radius:4px;letter-spacing:0.04em;color:rgba(255,255,255,0.85);flex-shrink:0;}
+@media (max-width:1100px){.cmdk-trigger{width:160px;}.cmdk-trigger-text{font-size:11px;}}
+@media (max-width:780px){.cmdk-trigger .cmdk-trigger-text,.cmdk-trigger .cmdk-trigger-kbd{display:none;}.cmdk-trigger{width:auto;padding:6px 9px;}}
+
 </style>
 <script>
 (function(){
@@ -1183,6 +1198,7 @@ function loadHubWidgets(){
       render();
     }
   });
+  window.openCmdK = openPalette; window.closeCmdK = closePalette;
 })();
 </script>
 
