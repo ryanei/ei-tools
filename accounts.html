@@ -80,6 +80,24 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .screen-sub{font-size:14px;color:var(--soft);max-width:560px;line-height:1.55;}
 .screen-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 
+/* Tab strip (Advertisers / Articles) */
+.tab-strip{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:36px;}
+.tab-strip-tab{padding:14px 22px;font-family:var(--mono);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--soft);background:none;border:none;cursor:pointer;position:relative;transition:color 180ms ease;line-height:1;}
+.tab-strip-tab:hover{color:var(--ink);}
+.tab-strip-tab.active{color:var(--ei-blue);}
+.tab-strip-tab.active::after{content:'';position:absolute;bottom:-1px;left:22px;right:22px;height:2px;background:var(--ei-blue);}
+.tab-strip-tab .tab-count{font-family:var(--mono);font-size:9.5px;color:var(--mute);margin-left:8px;letter-spacing:0.08em;font-weight:400;}
+.tab-strip-tab.active .tab-count{color:var(--ei-blue);}
+
+/* Articles directory */
+.articles-positions{display:flex;gap:3px;flex-wrap:wrap;}
+.articles-pos-cell{width:18px;height:18px;border-radius:3px;background:var(--paper-2);display:grid;place-items:center;font-family:var(--mono);font-size:9px;font-weight:500;color:var(--mute);}
+.articles-pos-cell.filled{background:var(--ei-blue);color:#fff;}
+.articles-link{color:var(--ei-blue);text-decoration:none;font-weight:500;letter-spacing:-0.005em;}
+.articles-link:hover{text-decoration:underline;text-underline-offset:2px;}
+.articles-sponsors-list{font-family:var(--mono);font-size:11px;color:var(--soft);letter-spacing:0;line-height:1.4;}
+.articles-empty-row{font-family:var(--mono);font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:0.1em;}
+
 /* Section eyebrow ("01 / All advertisers") */
 .section-eyebrow{display:flex;align-items:center;gap:14px;margin:0 0 18px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--soft);text-transform:uppercase;letter-spacing:0.16em;}
 .section-eyebrow .num{color:var(--ei-blue);}
@@ -445,12 +463,18 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
-  <div id="kpis"></div>
+  <div class="tab-strip">
+    <button class="tab-strip-tab active" data-tab="advertisers" onclick="switchAccountsTab('advertisers')">Advertisers <span class="tab-count" id="tabCountAdv">—</span></button>
+    <button class="tab-strip-tab" data-tab="articles" onclick="switchAccountsTab('articles')">Articles <span class="tab-count" id="tabCountArt">—</span></button>
+  </div>
 
-  <div class="section-eyebrow"><span class="num">01</span><span>Renewal radar</span><span class="section-meta" id="renewalCount"></span></div>
-  <div id="renewalRadar" class="renewal-grid"></div>
+  <div id="viewAdvertisers">
+    <div id="kpis"></div>
 
-  <div class="section-eyebrow"><span class="num">02</span><span>All advertisers</span></div>
+    <div class="section-eyebrow"><span class="num">01</span><span>Renewal radar</span><span class="section-meta" id="renewalCount"></span></div>
+    <div id="renewalRadar" class="renewal-grid"></div>
+
+    <div class="section-eyebrow"><span class="num">02</span><span>All advertisers</span></div>
 
   <div class="filters">
     <input type="text" class="filter-search" id="filterSearch" placeholder="Search advertisers, contacts, packages, or articles…" oninput="renderTable()">
@@ -496,6 +520,39 @@ tbody tr:last-child td{border-bottom:none;}
       </tbody>
     </table>
   </div>
+  </div><!-- /viewAdvertisers -->
+
+  <div id="viewArticles" hidden>
+    <div id="articlesKpis"></div>
+
+    <div class="section-eyebrow"><span class="num">01</span><span>All articles</span><span class="section-meta" id="articlesCount"></span></div>
+
+    <div class="filters">
+      <input type="text" class="filter-search" id="articlesSearch" placeholder="Search article URL or sponsor…" oninput="renderArticlesDirectory()">
+      <select class="filter-select" id="articlesFilterStatus" onchange="renderArticlesDirectory()">
+        <option value="">All articles</option>
+        <option value="active">With active sponsors</option>
+        <option value="empty">No active sponsors</option>
+        <option value="full">All 3 positions filled</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="articlesHead">
+            <th class="sortable" data-sort="title">Article</th>
+            <th class="sortable" data-sort="sponsors">Sponsors</th>
+            <th>Positions</th>
+            <th class="sortable" data-sort="revenue">Monthly</th>
+          </tr>
+        </thead>
+        <tbody id="articlesBody">
+          <tr><td colspan="4" class="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div><!-- /viewArticles -->
 </div>
 
 <!-- Wizard modal -->
@@ -900,6 +957,10 @@ async function reload(){
     renderKpis();
     renderRenewalRadar();
     renderTable();
+    // Rebuild articles index + render if we're on that tab
+    articleIndex = buildArticleIndex();
+    renderArticlesKpis();
+    renderArticlesDirectory();
     if (currentDrawerId) openDrawer(currentDrawerId, true);
   } catch(e) {
     document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="9" class="error-msg">Failed to load: ${esc(e.message)}.</td></tr>`;
@@ -1008,6 +1069,221 @@ function renderKpis(){
       <div class="kpi-card accent"><div class="kpi-label">Articles Sponsored</div><div class="kpi-value">${totalArticles}</div><div class="kpi-sub">across active campaigns</div></div>
       <div class="kpi-card amber"><div class="kpi-label">Renewals (30 days)</div><div class="kpi-value">${renewing}</div><div class="kpi-sub">fixed-term campaigns ending</div></div>
     </div>`;
+  // Update tab counter
+  const advCountEl = document.getElementById("tabCountAdv");
+  if (advCountEl) advCountEl.textContent = advertisers.length;
+}
+
+// ── Articles directory ──
+let articleIndex = [];   // built by buildArticleIndex
+let articlesSortState = { column: 'revenue', dir: 'desc' };
+
+function buildArticleIndex(){
+  const byUrl = {};
+  articles.forEach(art => {
+    const url = String(art.url || '').trim();
+    if (!url) return;
+    const adv = advertisers.find(a => a.id === art.advertiser_id);
+    if (!adv) return;
+
+    let attributedPrice = 0;
+    let isActive = false;
+    let packageName = '';
+
+    if (art.package_id) {
+      const pkg = packages.find(p => p.id === art.package_id);
+      if (pkg) {
+        packageName = pkg.name || '';
+        isActive = (pkg.status || 'Active') === 'Active';
+        // Distribute the package price across its articles
+        const inPkg = articles.filter(a => a.package_id === pkg.id).length;
+        attributedPrice = inPkg > 0 ? (parseFloat(pkg.monthly_price) || 0) / inPkg : 0;
+      }
+    } else {
+      isActive = isTrue(art.active);
+      attributedPrice = parseFloat(art.monthly_price) || 0;
+    }
+
+    if (!byUrl[url]) {
+      byUrl[url] = {
+        url: url,
+        title: urlLabel(url),
+        sponsors: [],
+        positionsActive: {},   // pos number -> { advertiser_id, advertiser_name }
+        totalMonthly: 0,
+        activeCount: 0
+      };
+    }
+    byUrl[url].sponsors.push({
+      advertiser_id: adv.id,
+      advertiser_name: adv.name || '(unnamed)',
+      position: parseInt(art.position) || 0,
+      price: attributedPrice,
+      active: isActive,
+      package_name: packageName
+    });
+    if (isActive) {
+      byUrl[url].activeCount++;
+      byUrl[url].totalMonthly += attributedPrice;
+      const pos = parseInt(art.position) || 0;
+      if (pos >= 1 && pos <= 10) {
+        byUrl[url].positionsActive[pos] = { advertiser_id: adv.id, advertiser_name: adv.name || '(unnamed)' };
+      }
+    }
+  });
+  return Object.values(byUrl);
+}
+
+function renderArticlesKpis(){
+  const total = articleIndex.length;
+  const active = articleIndex.filter(x => x.activeCount > 0).length;
+  const sumRev = articleIndex.reduce((s, x) => s + x.totalMonthly, 0);
+  const avgRev = active > 0 ? sumRev / active : 0;
+  document.getElementById("articlesKpis").innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi-card teal"><div class="kpi-label">Articles</div><div class="kpi-value">${total}</div><div class="kpi-sub">unique URLs in catalogue</div></div>
+      <div class="kpi-card green"><div class="kpi-label">With sponsors</div><div class="kpi-value">${active}</div><div class="kpi-sub">${total ? Math.round(active/total*100) : 0}% utilisation</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">Monthly revenue</div><div class="kpi-value">${fmtMoney(sumRev)}</div><div class="kpi-sub">across all articles</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Avg per article</div><div class="kpi-value">${fmtMoney(avgRev)}</div><div class="kpi-sub">active articles only</div></div>
+    </div>`;
+  // Update tab counter
+  const artCountEl = document.getElementById("tabCountArt");
+  if (artCountEl) artCountEl.textContent = total;
+}
+
+function renderArticlePositions(item){
+  let cells = '';
+  for (let p = 1; p <= 10; p++) {
+    const occupant = item.positionsActive[p];
+    if (occupant) {
+      const initial = (occupant.advertiser_name || '?').trim().charAt(0).toUpperCase();
+      cells += `<span class="articles-pos-cell filled" title="${esc(occupant.advertiser_name)} · Position ${p}">${esc(initial)}</span>`;
+    } else {
+      cells += `<span class="articles-pos-cell" title="Position ${p} open">${p}</span>`;
+    }
+  }
+  return `<div class="articles-positions">${cells}</div>`;
+}
+
+function makeArticlesSortComparator(){
+  const col = articlesSortState.column;
+  const sign = articlesSortState.dir === 'desc' ? -1 : 1;
+  return (a, b) => {
+    let cmp = 0;
+    if (col === 'title') cmp = a.title.localeCompare(b.title);
+    else if (col === 'sponsors') cmp = a.activeCount - b.activeCount;
+    else if (col === 'revenue') cmp = a.totalMonthly - b.totalMonthly;
+    return cmp * sign;
+  };
+}
+
+function updateArticlesSortIndicators(){
+  document.querySelectorAll('#articlesHead th.sortable').forEach(th => {
+    const col = th.dataset.sort;
+    let ind = th.querySelector('.sort-ind');
+    if (!ind) {
+      ind = document.createElement('span');
+      ind.className = 'sort-ind';
+      th.appendChild(ind);
+    }
+    if (col === articlesSortState.column) {
+      th.classList.add('active');
+      ind.textContent = articlesSortState.dir === 'asc' ? ' ↑' : ' ↓';
+    } else {
+      th.classList.remove('active');
+      ind.textContent = ' ↕';
+    }
+  });
+}
+
+function setupArticlesSortHandlers(){
+  document.querySelectorAll('#articlesHead th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if (articlesSortState.column === col) {
+        articlesSortState.dir = articlesSortState.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        articlesSortState.column = col;
+        articlesSortState.dir = (col === 'title') ? 'asc' : 'desc';
+      }
+      renderArticlesDirectory();
+    });
+  });
+}
+
+function renderArticlesDirectory(){
+  const search = (document.getElementById("articlesSearch")?.value || "").toLowerCase().trim();
+  const status = document.getElementById("articlesFilterStatus")?.value || "";
+
+  let filtered = articleIndex.filter(item => {
+    if (status === 'active' && item.activeCount === 0) return false;
+    if (status === 'empty' && item.activeCount > 0) return false;
+    if (status === 'full') {
+      if (!item.positionsActive[1] || !item.positionsActive[2] || !item.positionsActive[3]) return false;
+    }
+    if (search) {
+      const hay = (item.url + ' ' + item.title + ' ' + item.sponsors.map(s => s.advertiser_name).join(' ')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  filtered.sort(makeArticlesSortComparator());
+  updateArticlesSortIndicators();
+
+  const meta = document.getElementById("articlesCount");
+  if (meta) meta.textContent = filtered.length === articleIndex.length ? `· ${articleIndex.length} total` : `· ${filtered.length} of ${articleIndex.length}`;
+
+  const tbody = document.getElementById("articlesBody");
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--soft);font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">No articles match — adjust filters above</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(item => {
+    const activeSponsors = item.sponsors.filter(s => s.active);
+    const sponsorNames = activeSponsors.map(s => s.advertiser_name).filter((v,i,a) => a.indexOf(v) === i);
+    const sponsorsCell = activeSponsors.length
+      ? `<div><strong>${activeSponsors.length}</strong> active</div><div class="articles-sponsors-list">${sponsorNames.slice(0, 3).map(n => esc(n)).join(' · ')}${sponsorNames.length > 3 ? ' +' + (sponsorNames.length - 3) : ''}</div>`
+      : `<span class="articles-empty-row">—</span>`;
+    return `
+      <tr>
+        <td>
+          <a class="articles-link" href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.title)}</a>
+          <div class="articles-sponsors-list" style="margin-top:3px;word-break:break-all;">${esc(item.url)}</div>
+        </td>
+        <td>${sponsorsCell}</td>
+        <td>${renderArticlePositions(item)}</td>
+        <td style="font-family:var(--mono);font-weight:500;">${item.totalMonthly > 0 ? fmtMoney(item.totalMonthly) : '<span class="articles-empty-row">—</span>'}</td>
+      </tr>`;
+  }).join("");
+}
+
+function switchAccountsTab(tab){
+  document.querySelectorAll('.tab-strip-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  const adv = document.getElementById('viewAdvertisers');
+  const art = document.getElementById('viewArticles');
+  if (tab === 'articles') {
+    adv.hidden = true;
+    art.hidden = false;
+    if (!articleIndex.length) {
+      articleIndex = buildArticleIndex();
+      renderArticlesKpis();
+      renderArticlesDirectory();
+    }
+  } else {
+    adv.hidden = false;
+    art.hidden = true;
+  }
+  // Persist tab in URL
+  try {
+    const url = new URL(window.location.href);
+    if (tab === 'articles') url.searchParams.set('tab', 'articles');
+    else url.searchParams.delete('tab');
+    history.replaceState({}, '', url.toString());
+  } catch(e) {}
 }
 
 // ── Table ──
@@ -2006,6 +2282,7 @@ async function deleteNote(noteId){
 }
 
 setupSortHandlers();
+setupArticlesSortHandlers();
 // Bulk status select wires to bulkSetStatus, then resets the dropdown
 (function(){
   const sel = document.getElementById('bulkStatusSelect');
@@ -2013,7 +2290,12 @@ setupSortHandlers();
     if (this.value) { const v = this.value; this.value = ''; bulkSetStatus(v); }
   });
 })();
-reload().then(() => { handleInitialDeepLink(); });
+reload().then(() => {
+  handleInitialDeepLink();
+  // If URL says ?tab=articles, switch
+  const t = new URLSearchParams(window.location.search).get('tab');
+  if (t === 'articles') switchAccountsTab('articles');
+});
 
 // Browser back/forward closes/opens the drawer to match the URL
 window.addEventListener('popstate', () => {
