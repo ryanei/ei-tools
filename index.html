@@ -153,6 +153,28 @@ img,svg{display:block;max-width:100%;}
 .section-label .right{font-family:var(--mono);font-size:11px;color:var(--mute);font-weight:500;text-transform:none;letter-spacing:0;cursor:pointer;}
 .section-label .right:hover{color:var(--ei-blue);}
 
+/* ── Today's snapshot widgets ──────────────────────────────────── */
+.widget-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:48px;}
+@media (max-width: 900px){.widget-grid{grid-template-columns:1fr;}}
+.widget-card{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);padding:22px 24px 20px;text-decoration:none;color:var(--ink);transition:border-color 200ms ease,transform 200ms ease,box-shadow 200ms ease;box-shadow:var(--shadow-1);min-height:240px;}
+.widget-card:hover{border-color:var(--ei-blue-100);transform:translateY(-2px);box-shadow:var(--shadow-2);}
+.widget-eyebrow{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;color:var(--soft);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.widget-eyebrow .pill{font-family:var(--mono);font-size:9px;background:var(--ei-blue-50);color:var(--ei-blue);padding:2px 8px;border-radius:100px;letter-spacing:0.08em;}
+.widget-value{font-family:var(--sans);font-size:38px;font-weight:500;letter-spacing:-0.025em;color:var(--ink);line-height:1;}
+.widget-helper{font-family:var(--mono);font-size:10.5px;color:var(--soft);margin-top:8px;letter-spacing:0.04em;min-height:14px;}
+.widget-list{list-style:none;margin:18px 0 16px;padding:0;border-top:1px solid var(--line-2);flex:1;}
+.widget-list li{padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13px;color:var(--ink-2);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.widget-list li:last-child{border-bottom:none;}
+.widget-list .li-name{font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-0.005em;}
+.widget-list .li-meta{font-family:var(--mono);font-size:10.5px;color:var(--soft);flex-shrink:0;letter-spacing:0.04em;}
+.widget-list .li-meta.urgent{color:var(--rust);}
+.widget-list .li-meta.warn{color:var(--amber);}
+.widget-list .li-meta.ok{color:var(--green);}
+.widget-list .li-meta.intent{color:var(--ei-blue);}
+.widget-foot{font-family:var(--mono);font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:0.12em;color:var(--ei-blue);transition:gap 200ms ease;display:inline-flex;align-items:center;gap:6px;margin-top:auto;}
+.widget-card:hover .widget-foot{gap:10px;}
+.widget-empty,.widget-skel{font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:0.08em;text-transform:uppercase;padding:14px 0;text-align:center;}
+
 /* ── Announcements (dynamic) ─────────────────────────────────────── */
 .announcements{display:none;margin-bottom:40px;}
 .announcements.visible{display:block;}
@@ -510,6 +532,32 @@ var ex=getSession();if(ex){document.addEventListener("DOMContentLoaded",function
 </div>
 
 
+<!-- Today's snapshot -->
+<div class="section-label"><span class="num">★</span><span>Today's snapshot</span><span class="right" id="snapshotMeta"></span></div>
+<div class="widget-grid">
+  <a class="widget-card" href="accounts.html" id="widgetRenewals">
+    <div class="widget-eyebrow">Renewals · next 30d</div>
+    <div class="widget-value" id="widgetRenewalsValue">—</div>
+    <div class="widget-helper" id="widgetRenewalsHelper">Loading…</div>
+    <ul class="widget-list" id="widgetRenewalsList"><li><div class="widget-skel">Loading…</div></li></ul>
+    <span class="widget-foot">Open Accounts <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+  </a>
+  <a class="widget-card" href="proposals.html" id="widgetPending">
+    <div class="widget-eyebrow">Awaiting signature</div>
+    <div class="widget-value" id="widgetPendingValue">—</div>
+    <div class="widget-helper" id="widgetPendingHelper">Loading…</div>
+    <ul class="widget-list" id="widgetPendingList"><li><div class="widget-skel">Loading…</div></li></ul>
+    <span class="widget-foot">Open Proposals <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+  </a>
+  <a class="widget-card" href="reports.html" id="widgetIntent">
+    <div class="widget-eyebrow">Surge intent · last 30d</div>
+    <div class="widget-value" id="widgetIntentValue">—</div>
+    <div class="widget-helper" id="widgetIntentHelper">Loading…</div>
+    <ul class="widget-list" id="widgetIntentList"><li><div class="widget-skel">Loading…</div></li></ul>
+    <span class="widget-foot">Open Reports <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+  </a>
+</div>
+
 <!-- Tools -->
 <div class="section-label"><span class="num">01</span><span>Sales toolkit</span></div>
 <div class="tools-grid">
@@ -604,7 +652,7 @@ function fetchSheet(sheetName,cb){var n="cb"+Date.now()+Math.random().toString(3
 function doLogin(){var u=document.getElementById("loginUser").value.trim().toLowerCase();var p=document.getElementById("loginPass").value;var e=document.getElementById("loginError");var b=document.getElementById("loginBtn");if(!u||!p){e.textContent="Enter username and password";return}b.disabled=true;var bl=document.getElementById("loginBtnLabel");if(bl)bl.textContent="Signing in...";e.textContent="";fetchSheet("Users",function(users){var m=users.find(function(x){return x.username&&x.username.toLowerCase()===u&&x.password===p});if(m){var s={username:m.username,name:m.name||m.username,role:m.role||"user"};setSession(s);logActivity("hub","login");showHub(s)}else{e.textContent="Invalid username or password";b.disabled=false;var bl=document.getElementById("loginBtnLabel");if(bl)bl.textContent="Sign in"}})}
 var ADMIN_USERS=["relliott"];var RESTRICTED_TOOLS=["pipeline.html","accounts.html"];
 function applyToolPerms(s){var isAdmin=ADMIN_USERS.indexOf((s.username||"").toLowerCase())>=0;if(isAdmin){var mb=document.getElementById("announceManageBtn");if(mb)mb.classList.add("visible");}if(isAdmin)return;document.querySelectorAll("a.tool-card").forEach(function(card){if(RESTRICTED_TOOLS.indexOf(card.getAttribute("href"))<0)return;card.classList.add("card-planned");card.removeAttribute("href");var st=card.querySelector(".tool-card-status");if(st){st.textContent="Coming Soon";st.classList.remove("status-live");st.classList.add("status-planned");}})}
-function showHub(s){document.getElementById("loginScreen").style.display="none";document.getElementById("hub").classList.add("visible");var ini=(s.name||"U").split(" ").map(function(w){return w[0]}).join("").toUpperCase().substring(0,2);document.getElementById("userAvatar").textContent=ini;document.getElementById("userName").textContent=s.name||s.username;var fn=(s.name||s.username).split(" ")[0];var hr=new Date().getHours();var gr=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";document.getElementById("heroTitle").innerHTML=gr+', <span class="accent">'+fn.replace(/[<>"']/g,"")+'.</span><br>Pick up where the team left off.';var d=new Date().toLocaleDateString("en-GB",{weekday:"long",month:"long",day:"numeric"});document.getElementById("heroDate").textContent=d;document.getElementById("versionLabel").textContent=HUB_VERSION;applyToolPerms(s);if(s.role==="admin"){document.getElementById("adminSection").classList.add("visible");loadActivity()}loadAnnouncements();logActivity("hub","pageview")}
+function showHub(s){document.getElementById("loginScreen").style.display="none";document.getElementById("hub").classList.add("visible");var ini=(s.name||"U").split(" ").map(function(w){return w[0]}).join("").toUpperCase().substring(0,2);document.getElementById("userAvatar").textContent=ini;document.getElementById("userName").textContent=s.name||s.username;var fn=(s.name||s.username).split(" ")[0];var hr=new Date().getHours();var gr=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";document.getElementById("heroTitle").innerHTML=gr+', <span class="accent">'+fn.replace(/[<>"']/g,"")+'.</span><br>Pick up where the team left off.';var d=new Date().toLocaleDateString("en-GB",{weekday:"long",month:"long",day:"numeric"});document.getElementById("heroDate").textContent=d;document.getElementById("versionLabel").textContent=HUB_VERSION;applyToolPerms(s);if(s.role==="admin"){document.getElementById("adminSection").classList.add("visible");loadActivity()}loadAnnouncements();loadHubWidgets();logActivity("hub","pageview")}
 function doLogout(){clearSession();location.reload()}
 var ANNOUNCE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
 var allAnnouncements = [];
@@ -737,5 +785,157 @@ function deleteAnnouncement(){
     .finally(function(){btn.disabled=false;btn.textContent="Delete"});
 }
 function loadActivity(){fetch(ACTIVITY_ENDPOINT+"?action=getActivity").then(function(r){return r.json()}).then(function(d){if(!d||!d.data)return;var rows=d.data;var logins=rows.filter(function(r){return r.action==="login"});var now=new Date();var week=new Date(now-7*864e5);var rv=rows.filter(function(r){return new Date(r.timestamp)>week});var uu={};rows.forEach(function(r){uu[r.username]=true});document.getElementById("statLogins").textContent=logins.length;document.getElementById("statViews").textContent=rv.length;document.getElementById("statUsers").textContent=Object.keys(uu).length;var sorted=rows.slice().sort(function(a,b){return new Date(b.timestamp)-new Date(a.timestamp)}).slice(0,50);if(!sorted.length){document.getElementById("activityTableWrap").innerHTML='<div class="activity-empty">No activity recorded yet.</div>';return}var h='<table class="activity-table"><thead><tr><th>Time</th><th>User</th><th>Page</th><th>Action</th></tr></thead><tbody>';sorted.forEach(function(r){var dt=new Date(r.timestamp);var t=dt.toLocaleDateString("en-GB",{day:"numeric",month:"short"})+" "+dt.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});h+='<tr><td class="time-cell">'+t+"</td><td>"+(r.username||"-")+"</td><td>"+(r.page||"-")+"</td><td>"+(r.action||"-")+"</td></tr>"});h+="</tbody></table>";document.getElementById("activityTableWrap").innerHTML=h}).catch(function(){document.getElementById("activityTableWrap").innerHTML='<div class="activity-empty">Failed to load activity data.</div>'})}
+
+// ── Today's snapshot widgets ─────────────────────────────────────
+var ACCOUNTS_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
+var PROPOSALS_SHEET_ID = "12JC_3Y52i1qrMcKtXk7dYvzhqyU6RijB6ybq0wNP18M";
+var BOMBORA_SHEET_ID = "12QD-qlPFpsUcpH_etqOolBGGURzYqoofXHPsWAwWFNw";
+
+function loadGvizSheet(sheetId, sheetName){
+  return new Promise(function(resolve){
+    var cb = "_w" + Date.now() + Math.floor(Math.random()*1e6);
+    var url = "https://docs.google.com/spreadsheets/d/"+sheetId+
+              "/gviz/tq?tqx=out:json;responseHandler:"+cb+
+              "&sheet="+encodeURIComponent(sheetName)+"&headers=1";
+    window[cb] = function(data){
+      try {
+        if (!data || !data.table) { resolve([]); return; }
+        var cols = data.table.cols.map(function(c){ return (c.label || c.id || "").toString(); });
+        var rows = (data.table.rows || []).map(function(r){
+          var o = {};
+          r.c.forEach(function(cell, i){
+            var v = cell ? (cell.v != null ? cell.v : "") : "";
+            if (typeof v === "string" && v.indexOf("Date(") === 0) {
+              var m = v.match(/Date\((\d+),(\d+),(\d+)/);
+              if (m) v = m[1]+"-"+String(+m[2]+1).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+            }
+            o[cols[i]] = v;
+          });
+          return o;
+        });
+        resolve(rows);
+      } catch(e) { resolve([]); }
+      delete window[cb];
+      var s = document.getElementById("_s"+cb); if (s) s.remove();
+    };
+    var s = document.createElement("script");
+    s.id = "_s" + cb;
+    s.src = url;
+    s.onerror = function(){ resolve([]); };
+    document.body.appendChild(s);
+  });
+}
+
+function widgetEsc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]})}
+
+function widgetDaysUntil(d){
+  if (!d) return null;
+  var dt = new Date(d);
+  if (isNaN(dt)) return null;
+  return Math.ceil((dt - new Date()) / 86400000);
+}
+
+function widgetRenewalCls(days){
+  if (days < 0) return 'urgent';
+  if (days <= 7) return 'urgent';
+  if (days <= 14) return 'warn';
+  return 'intent';
+}
+
+function loadHubWidgets(){
+  // Renewals
+  loadGvizSheet(ACCOUNTS_SHEET_ID, "Advertisers").then(function(rows){
+    var upcoming = rows.filter(function(r){
+      if (!r.renewal_date || (r.term_type||"").toLowerCase() !== "fixed") return false;
+      if ((r.status||"") === "Churned") return false;
+      var d = widgetDaysUntil(r.renewal_date);
+      return d !== null && d <= 30;
+    }).map(function(r){ return { name: r.name, days: widgetDaysUntil(r.renewal_date) }; })
+      .sort(function(a,b){ return a.days - b.days; });
+    var valEl = document.getElementById("widgetRenewalsValue");
+    var helperEl = document.getElementById("widgetRenewalsHelper");
+    var listEl = document.getElementById("widgetRenewalsList");
+    valEl.textContent = upcoming.length;
+    if (!upcoming.length) {
+      helperEl.textContent = "Nothing due in the next 30 days";
+      listEl.innerHTML = '<li><div class="widget-empty">All clear</div></li>';
+      return;
+    }
+    var nextLabel = upcoming[0].days < 0 ? Math.abs(upcoming[0].days)+"d overdue"
+                  : upcoming[0].days === 0 ? "today" : upcoming[0].days + "d";
+    helperEl.textContent = "Next: " + upcoming[0].name + " · " + nextLabel;
+    listEl.innerHTML = upcoming.slice(0, 4).map(function(r){
+      var lbl = r.days < 0 ? Math.abs(r.days)+"d overdue"
+              : r.days === 0 ? "today" : r.days + "d";
+      return '<li><span class="li-name">'+widgetEsc(r.name||"(unnamed)")+'</span>'
+           + '<span class="li-meta '+widgetRenewalCls(r.days)+'">'+lbl+'</span></li>';
+    }).join("");
+  });
+
+  // Proposals awaiting signature
+  loadGvizSheet(PROPOSALS_SHEET_ID, "Proposals").then(function(rows){
+    var sent = rows.filter(function(r){ return (r["Status"]||r.status||"").toLowerCase() === "sent"; })
+                   .map(function(r){
+                     return {
+                       vendor: r["Vendor"] || r.vendor || "(no vendor)",
+                       date: r["Date Created"] || r.date_created || "",
+                       monthly: parseFloat(r["Monthly Total"] || r.monthly_total) || 0
+                     };
+                   })
+                   .sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
+    var totalValue = sent.reduce(function(s,p){ return s + p.monthly; }, 0);
+    document.getElementById("widgetPendingValue").textContent = sent.length;
+    document.getElementById("widgetPendingHelper").textContent = sent.length
+      ? "$" + Math.round(totalValue).toLocaleString() + " awaiting"
+      : "No proposals waiting on sig";
+    var listEl = document.getElementById("widgetPendingList");
+    if (!sent.length) {
+      listEl.innerHTML = '<li><div class="widget-empty">All caught up</div></li>';
+      return;
+    }
+    listEl.innerHTML = sent.slice(0, 4).map(function(p){
+      return '<li><span class="li-name">'+widgetEsc(p.vendor)+'</span>'
+           + '<span class="li-meta warn">$'+Math.round(p.monthly).toLocaleString()+'</span></li>';
+    }).join("");
+  });
+
+  // Surge intent — top domains by visit count, last 30 days
+  loadGvizSheet(BOMBORA_SHEET_ID, "Sheet1").then(function(rows){
+    if (!rows || !rows.length) {
+      document.getElementById("widgetIntentValue").textContent = "—";
+      document.getElementById("widgetIntentHelper").textContent = "No intent data";
+      document.getElementById("widgetIntentList").innerHTML = '<li><div class="widget-empty">No data</div></li>';
+      return;
+    }
+    var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+    var counts = {};
+    var totalVisits = 0;
+    rows.forEach(function(r){
+      var dom = (r["Domain"]||"").toLowerCase().trim();
+      if (!dom || dom === "gammagroup.co") return;
+      var dStr = r["Import Date"] || "";
+      if (dStr) {
+        var d = new Date(dStr);
+        if (!isNaN(d) && d < cutoff) return;
+      }
+      counts[dom] = (counts[dom]||0) + 1;
+      totalVisits++;
+    });
+    var top = Object.keys(counts).map(function(k){ return { domain: k, n: counts[k] }; })
+                                  .sort(function(a,b){ return b.n - a.n; })
+                                  .slice(0, 4);
+    document.getElementById("widgetIntentValue").textContent = Object.keys(counts).length;
+    document.getElementById("widgetIntentHelper").textContent = totalVisits.toLocaleString() + " visits · 30d";
+    var listEl = document.getElementById("widgetIntentList");
+    if (!top.length) {
+      listEl.innerHTML = '<li><div class="widget-empty">No surge data</div></li>';
+      return;
+    }
+    listEl.innerHTML = top.map(function(t){
+      return '<li><span class="li-name">'+widgetEsc(t.domain)+'</span>'
+           + '<span class="li-meta intent">'+t.n.toLocaleString()+'</span></li>';
+    }).join("");
+  });
+}
 </script>
 </body></html>
