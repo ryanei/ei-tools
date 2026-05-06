@@ -759,7 +759,7 @@ tbody tr:last-child td{border-bottom:none;}
               <strong>term_type</strong> (or term) — Monthly Rolling / Quarterly Rolling / Fixed<br>
               <strong>par_live</strong> (or par) — Yes / No<br>
               <strong>start_date</strong>, <strong>renewal_date</strong> — YYYY-MM-DD or DD/MM/YYYY<br>
-              <strong>fixed_months</strong> — number, only for Fixed term<br>
+              <strong>fixed_months</strong> — number, only for Fixed term. If you set this and leave renewal_date blank, we'll auto-fill it (start_date + N months).<br>
               <strong>then_rolling</strong> — Yes / No. Only for Fixed term: does the contract continue on monthly rolling after the fixed period ends? (default No)<br>
               <strong>first_name</strong> / <strong>last_name</strong> / <strong>email</strong> — primary contact (one per advertiser)
             </div>
@@ -1950,6 +1950,17 @@ function importNormaliseAdvertiser(out){
   out.fixed_then_rolling = (tr === 'yes' || tr === 'y' || tr === 'true' || tr === '1') ? 'TRUE' : 'FALSE';
   out.start_date = importParseDate(out.start_date || '');
   out.renewal_date = importParseDate(out.renewal_date || '');
+  // Auto-compute renewal_date when missing on a Fixed term — matches the wizard's recomputeRenewal()
+  if (out.term_type === 'Fixed' && out.start_date && out.fixed_months && !out.renewal_date) {
+    const months = parseInt(out.fixed_months);
+    if (!isNaN(months) && months > 0) {
+      const d = new Date(out.start_date);
+      if (!isNaN(d)) {
+        d.setMonth(d.getMonth() + months);
+        out.renewal_date = d.toISOString().slice(0, 10);
+      }
+    }
+  }
   return out;
 }
 
@@ -2356,7 +2367,7 @@ async function downloadImportTemplate(){
   const advData = [
     ['name', 'status', 'term_type', 'par_live', 'start_date', 'renewal_date', 'fixed_months', 'then_rolling', 'first_name', 'last_name', 'email'],
     ['CrowdStrike', 'Active', 'Monthly Rolling', 'No', '2026-01-01', '', '', '', 'Julia', 'Morris', 'j.morris@crowdstrike.com'],
-    ['Datadog', 'Active', 'Fixed', 'Yes', '2026-02-01', '2027-02-01', 12, 'Yes', 'Kyle', 'Lee', 'k.lee@datadoghq.com']
+    ['Datadog', 'Active', 'Fixed', 'Yes', '2026-02-01', '', 12, 'Yes', 'Kyle', 'Lee', 'k.lee@datadoghq.com']
   ];
   const advWs = XLSX.utils.aoa_to_sheet(advData);
   advWs['!cols'] = [{wch:22},{wch:16},{wch:18},{wch:10},{wch:12},{wch:13},{wch:14},{wch:14},{wch:14},{wch:14},{wch:28}];
