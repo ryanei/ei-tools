@@ -773,12 +773,14 @@ tbody tr:last-child td{border-bottom:none;}
               <strong>advertiser</strong> — required, must match an advertiser name<br>
               <strong>url</strong> (or link) — full article URL<br>
               <strong>position</strong> (or pos) — 1 to 10<br>
-              <strong>monthly_price</strong> (or price) — what the advertiser is paying for this article<br>
+              <strong>monthly_price</strong> (or price) — what the advertiser pays for this article (only for standalone articles)<br>
+              <strong>bundle</strong> — tag to group articles into a package. Same tag (per advertiser) = same bundle. Use any value (1, 2, A, B…). Leave empty for standalone.<br>
+              <strong>bundle_price</strong> — combined monthly fee for the bundle. Fill this on every row of the bundle (just copy down).<br>
               <strong>active</strong> — TRUE / FALSE / Yes / No (default TRUE)
-              <div style="margin-top:8px;color:var(--mute);">Want to bundle articles into a package? Import them as standalone first, then group them in the wizard (tick 2+, click "Group as package").</div>
+              <div style="margin-top:8px;color:var(--mute);">Bundle tags are scoped per advertiser — you can reuse 1, 2 across different advertisers without merging them. Bundles get auto-named "Package 1", "Package 2" — rename later in the wizard if you like.</div>
             </div>
           </details>
-          <textarea id="importPaste_articles" class="form-textarea import-paste" placeholder="advertiser&#9;url&#9;position&#9;monthly_price&#9;active&#10;CrowdStrike&#9;https://expertinsights.com/security/top-edr&#9;1&#9;800&#9;TRUE&#10;CrowdStrike&#9;https://expertinsights.com/security/top-xdr&#9;2&#9;500&#9;TRUE&#10;Datadog&#9;https://expertinsights.com/observability/top-apm&#9;1&#9;750&#9;TRUE"></textarea>
+          <textarea id="importPaste_articles" class="form-textarea import-paste" placeholder="advertiser&#9;url&#9;position&#9;monthly_price&#9;bundle&#9;bundle_price&#9;active&#10;CrowdStrike&#9;https://expertinsights.com/security/top-edr&#9;1&#9;&#9;1&#9;5000&#9;TRUE&#10;CrowdStrike&#9;https://expertinsights.com/security/top-xdr&#9;2&#9;&#9;1&#9;5000&#9;TRUE&#10;CrowdStrike&#9;https://expertinsights.com/security/top-mfa&#9;1&#9;500&#9;&#9;&#9;TRUE&#10;Datadog&#9;https://expertinsights.com/observability/top-apm&#9;1&#9;750&#9;&#9;&#9;TRUE"></textarea>
         </div>
       </div>
       <div id="importStep2" style="display:none;">
@@ -1808,6 +1810,8 @@ const IMPORT_MAPS = {
     'url':'url','link':'url','article':'url',
     'position':'position','pos':'position',
     'monthly_price':'monthly_price','monthly price':'monthly_price','price':'monthly_price','monthly':'monthly_price',
+    'bundle':'bundle','bundle_id':'bundle','bundle id':'bundle','group':'bundle','package':'bundle',
+    'bundle_price':'bundle_price','bundle price':'bundle_price','package_price':'bundle_price','package price':'bundle_price',
     'active':'active','status':'active'
   }
 };
@@ -1965,7 +1969,7 @@ function importParse(){
     return norm;
   });
 
-  // Parse articles (standalone only — packages built later in the wizard)
+  // Parse articles. `bundle` (any tag, scoped per advertiser) groups rows into a package.
   const artParsed = importParseTab('articles').map(a => {
     a.errors = [];
     if (!a.advertiser) a.errors.push('Advertiser required');
@@ -1974,6 +1978,11 @@ function importParse(){
       const pos = parseInt(a.position);
       if (isNaN(pos) || pos < 1 || pos > 10) a.errors.push('Position must be 1-10');
     }
+    // Normalise the bundle tag to a string (so 1 and "1" match)
+    a.bundle = a.bundle != null ? String(a.bundle).trim() : '';
+    a.bundle_price = a.bundle_price != null ? String(a.bundle_price).trim() : '';
+    if (a.bundle && !a.bundle_price) a.errors.push('Bundle row needs bundle_price');
+    if (a.bundle && a.monthly_price) a.errors.push('Set either monthly_price or bundle, not both');
     a.active = importNormaliseActive(a.active);
     return a;
   });
@@ -2008,11 +2017,19 @@ function renderImportPreview(){
   const artValid = art.filter(r => !r.errors.length);
   const artError = art.filter(r => r.errors.length);
 
-  // Per-advertiser article counts
-  const articleCounts = {};
+  // Per-advertiser breakdown: total articles, distinct bundles, bundle prices, standalone count
+  const articleBreakdown = {};   // key: advertiser_lower → { total, bundles: Set, bundlePrices: [], standalone: 0 }
   artValid.forEach(a => {
     const k = (a.advertiser || '').toLowerCase();
-    articleCounts[k] = (articleCounts[k] || 0) + 1;
+    if (!articleBreakdown[k]) articleBreakdown[k] = { total: 0, bundles: {}, standalone: 0 };
+    articleBreakdown[k].total++;
+    if (a.bundle) {
+      if (!articleBreakdown[k].bundles[a.bundle]) {
+        articleBreakdown[k].bundles[a.bundle] = parseFloat(a.bundle_price) || 0;
+      }
+    } else {
+      articleBreakdown[k].standalone++;
+    }
   });
 
   const errTotal = advError.length + artError.length;
@@ -2036,8 +2053,17 @@ function renderImportPreview(){
       rowStyle = 'opacity:0.6;';
     } else {
       actionHtml = '<span class="badge badge-active">Will create</span>';
-      const ac = articleCounts[r.name.toLowerCase()];
-      if (ac) childPart = '<div style="font-family:var(--mono);font-size:10px;color:var(--ei-blue);margin-top:3px;letter-spacing:0.04em;">+ ' + ac + ' article' + (ac > 1 ? 's' : '') + '</div>';
+      const bd = articleBreakdown[r.name.toLowerCase()];
+      if (bd && bd.total > 0) {
+        const bundleKeys = Object.keys(bd.bundles);
+        const parts = [bd.total + ' article' + (bd.total > 1 ? 's' : '')];
+        if (bundleKeys.length) {
+          const prices = bundleKeys.map(k => '$' + (bd.bundles[k]||0).toLocaleString()).join(' + ');
+          parts.push(bundleKeys.length + ' bundle' + (bundleKeys.length > 1 ? 's' : '') + ' (' + prices + ')');
+        }
+        if (bd.standalone) parts.push(bd.standalone + ' standalone');
+        childPart = '<div style="font-family:var(--mono);font-size:10px;color:var(--ei-blue);margin-top:3px;letter-spacing:0.04em;">+ ' + parts.join(' · ') + '</div>';
+      }
     }
     const contact = [r.primary_contact_first_name, r.primary_contact_last_name].filter(Boolean).join(' ') || r.primary_contact_email || '—';
     return '<tr style="' + rowStyle + '">' +
@@ -2070,22 +2096,58 @@ document.addEventListener('change', function(e){
   if (e.target && e.target.id === 'importSkipDupes') renderImportPreview();
 });
 
-// Build the saveAdvertiserBundle payload for one advertiser, attaching its articles
+// Build the saveAdvertiserBundle payload for one advertiser, attaching its
+// articles. Articles with the same bundle tag (per advertiser) get grouped
+// into one auto-named "Package N" with the bundle_price as the package fee.
 function buildImportPayload(adv, advertiserId){
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
   const advKey = (adv.name || '').toLowerCase();
 
-  // Articles (standalone only — packages are built in the wizard after import)
-  const articlesForAdv = importState.articles
-    .filter(a => !a.errors.length && (a.advertiser || '').toLowerCase() === advKey)
-    .map(a => ({
-      id: genId('art'),
-      package_id: '',
-      url: a.url || '',
-      position: a.position || '1',
-      monthly_price: a.monthly_price || '',
-      active: a.active || 'TRUE'
-    }));
+  const articlesForAdv = importState.articles.filter(a =>
+    !a.errors.length && (a.advertiser || '').toLowerCase() === advKey
+  );
+
+  // Walk articles in row order, tracking bundle tag → package id (per advertiser).
+  // First time we see a bundle tag, we mint a new package with name "Package N".
+  const packagesOut = [];
+  const bundleToPkgId = {};
+  let pkgCounter = 1;
+  const articlesOut = [];
+
+  articlesForAdv.forEach(a => {
+    if (a.bundle) {
+      let pkgId = bundleToPkgId[a.bundle];
+      if (!pkgId) {
+        pkgId = genId('pkg');
+        bundleToPkgId[a.bundle] = pkgId;
+        packagesOut.push({
+          id: pkgId,
+          name: 'Package ' + pkgCounter,
+          monthly_price: a.bundle_price || '',
+          status: 'Active',
+          notes: ''
+        });
+        pkgCounter++;
+      }
+      articlesOut.push({
+        id: genId('art'),
+        package_id: pkgId,
+        url: a.url || '',
+        position: a.position || '1',
+        monthly_price: '',  // packaged articles inherit price from the package
+        active: a.active || 'TRUE'
+      });
+    } else {
+      articlesOut.push({
+        id: genId('art'),
+        package_id: '',
+        url: a.url || '',
+        position: a.position || '1',
+        monthly_price: a.monthly_price || '',
+        active: a.active || 'TRUE'
+      });
+    }
+  });
 
   return {
     action: 'saveAdvertiserBundle',
@@ -2104,8 +2166,8 @@ function buildImportPayload(adv, advertiserId){
     created_at: now,
     updated_at: now,
     contacts_json: '[]',
-    packages_json: '[]',
-    articles_json: JSON.stringify(articlesForAdv),
+    packages_json: JSON.stringify(packagesOut),
+    articles_json: JSON.stringify(articlesOut),
     services_json: '[]'
   };
 }
@@ -2293,15 +2355,17 @@ async function downloadImportTemplate(){
   advWs['!cols'] = [{wch:22},{wch:16},{wch:18},{wch:10},{wch:12},{wch:13},{wch:14},{wch:14},{wch:14},{wch:28}];
   XLSX.utils.book_append_sheet(wb, advWs, 'Advertisers');
 
-  // Articles sheet — standalone only. Group into packages later in the wizard.
+  // Articles sheet — bundle tag groups rows into a package; same tag (per
+  // advertiser) = same bundle. Leave bundle empty for standalone articles.
   const artData = [
-    ['advertiser', 'url', 'position', 'monthly_price', 'active'],
-    ['CrowdStrike', 'https://expertinsights.com/security/top-edr', 1, 800, 'TRUE'],
-    ['CrowdStrike', 'https://expertinsights.com/security/top-xdr', 2, 500, 'TRUE'],
-    ['Datadog', 'https://expertinsights.com/observability/top-apm', 1, 750, 'TRUE']
+    ['advertiser', 'url', 'position', 'monthly_price', 'bundle', 'bundle_price', 'active'],
+    ['CrowdStrike', 'https://expertinsights.com/security/top-edr', 1, '', 1, 5000, 'TRUE'],
+    ['CrowdStrike', 'https://expertinsights.com/security/top-xdr', 2, '', 1, 5000, 'TRUE'],
+    ['CrowdStrike', 'https://expertinsights.com/security/top-mfa', 1, 500, '', '', 'TRUE'],
+    ['Datadog', 'https://expertinsights.com/observability/top-apm', 1, 750, '', '', 'TRUE']
   ];
   const artWs = XLSX.utils.aoa_to_sheet(artData);
-  artWs['!cols'] = [{wch:22},{wch:55},{wch:10},{wch:14},{wch:8}];
+  artWs['!cols'] = [{wch:22},{wch:55},{wch:10},{wch:14},{wch:10},{wch:14},{wch:8}];
   XLSX.utils.book_append_sheet(wb, artWs, 'Articles');
 
   // Generate the XLSX as a binary blob
