@@ -760,10 +760,11 @@ tbody tr:last-child td{border-bottom:none;}
               <strong>par_live</strong> (or par) — Yes / No<br>
               <strong>start_date</strong>, <strong>renewal_date</strong> — YYYY-MM-DD or DD/MM/YYYY<br>
               <strong>fixed_months</strong> — number, only for Fixed term<br>
+              <strong>then_rolling</strong> — Yes / No. Only for Fixed term: does the contract continue on monthly rolling after the fixed period ends? (default No)<br>
               <strong>first_name</strong> / <strong>last_name</strong> / <strong>email</strong> — primary contact (one per advertiser)
             </div>
           </details>
-          <textarea id="importPaste_advertisers" class="form-textarea import-paste" placeholder="name&#9;status&#9;term_type&#9;par_live&#9;first_name&#9;last_name&#9;email&#10;CrowdStrike&#9;Active&#9;Monthly Rolling&#9;No&#9;Julia&#9;Morris&#9;j.morris@crowdstrike.com&#10;Datadog&#9;Active&#9;Fixed&#9;Yes&#9;Kyle&#9;Lee&#9;k.lee@datadoghq.com"></textarea>
+          <textarea id="importPaste_advertisers" class="form-textarea import-paste" placeholder="name&#9;status&#9;term_type&#9;par_live&#9;fixed_months&#9;then_rolling&#9;first_name&#9;last_name&#9;email&#10;CrowdStrike&#9;Active&#9;Monthly Rolling&#9;No&#9;&#9;&#9;Julia&#9;Morris&#9;j.morris@crowdstrike.com&#10;Datadog&#9;Active&#9;Fixed&#9;Yes&#9;12&#9;Yes&#9;Kyle&#9;Lee&#9;k.lee@datadoghq.com"></textarea>
         </div>
 
         <div class="import-pane" data-itab-pane="articles" hidden>
@@ -1800,6 +1801,7 @@ const IMPORT_MAPS = {
     'start':'start_date','start date':'start_date','start_date':'start_date',
     'renewal':'renewal_date','renewal date':'renewal_date','renewal_date':'renewal_date',
     'fixed months':'fixed_months','fixed_months':'fixed_months','months':'fixed_months',
+    'then_rolling':'fixed_then_rolling','then rolling':'fixed_then_rolling','transitions':'fixed_then_rolling','rolling_after':'fixed_then_rolling','rolling after':'fixed_then_rolling','fixed_then_rolling':'fixed_then_rolling',
     // Primary contact (inline)
     'first name':'primary_contact_first_name','first':'primary_contact_first_name','first_name':'primary_contact_first_name','primary first':'primary_contact_first_name','primary_first':'primary_contact_first_name',
     'last name':'primary_contact_last_name','last':'primary_contact_last_name','last_name':'primary_contact_last_name','surname':'primary_contact_last_name','primary last':'primary_contact_last_name','primary_last':'primary_contact_last_name',
@@ -1943,6 +1945,9 @@ function importNormaliseAdvertiser(out){
   else if (s.includes('churn')) out.status = 'Churned';
   const p = (out.par_live || '').toLowerCase();
   out.par_live = (p === 'yes' || p === 'y' || p === 'true' || p === '1') ? 'Yes' : 'No';
+  // "Then rolling" — only meaningful when term_type is Fixed; ignored otherwise
+  const tr = (out.fixed_then_rolling || '').toLowerCase();
+  out.fixed_then_rolling = (tr === 'yes' || tr === 'y' || tr === 'true' || tr === '1') ? 'TRUE' : 'FALSE';
   out.start_date = importParseDate(out.start_date || '');
   out.renewal_date = importParseDate(out.renewal_date || '');
   return out;
@@ -2159,7 +2164,7 @@ function buildImportPayload(adv, advertiserId){
     renewal_date: adv.renewal_date || '',
     term_type: adv.term_type,
     fixed_months: adv.fixed_months || '',
-    fixed_then_rolling: 'FALSE',
+    fixed_then_rolling: adv.fixed_then_rolling || 'FALSE',
     primary_contact_first_name: adv.primary_contact_first_name || '',
     primary_contact_last_name: adv.primary_contact_last_name || '',
     primary_contact_email: adv.primary_contact_email || '',
@@ -2346,13 +2351,15 @@ async function downloadImportTemplate(){
   const wb = XLSX.utils.book_new();
 
   // Advertisers sheet — primary contact lives inline. One row per advertiser.
+  // then_rolling = "Yes" means a Fixed contract continues on monthly rolling
+  // after the fixed period (only relevant when term_type is Fixed).
   const advData = [
-    ['name', 'status', 'term_type', 'par_live', 'start_date', 'renewal_date', 'fixed_months', 'first_name', 'last_name', 'email'],
-    ['CrowdStrike', 'Active', 'Monthly Rolling', 'No', '2026-01-01', '', '', 'Julia', 'Morris', 'j.morris@crowdstrike.com'],
-    ['Datadog', 'Active', 'Fixed', 'Yes', '2026-02-01', '2027-02-01', 12, 'Kyle', 'Lee', 'k.lee@datadoghq.com']
+    ['name', 'status', 'term_type', 'par_live', 'start_date', 'renewal_date', 'fixed_months', 'then_rolling', 'first_name', 'last_name', 'email'],
+    ['CrowdStrike', 'Active', 'Monthly Rolling', 'No', '2026-01-01', '', '', '', 'Julia', 'Morris', 'j.morris@crowdstrike.com'],
+    ['Datadog', 'Active', 'Fixed', 'Yes', '2026-02-01', '2027-02-01', 12, 'Yes', 'Kyle', 'Lee', 'k.lee@datadoghq.com']
   ];
   const advWs = XLSX.utils.aoa_to_sheet(advData);
-  advWs['!cols'] = [{wch:22},{wch:16},{wch:18},{wch:10},{wch:12},{wch:13},{wch:14},{wch:14},{wch:14},{wch:28}];
+  advWs['!cols'] = [{wch:22},{wch:16},{wch:18},{wch:10},{wch:12},{wch:13},{wch:14},{wch:14},{wch:14},{wch:14},{wch:28}];
   XLSX.utils.book_append_sheet(wb, advWs, 'Advertisers');
 
   // Articles sheet — bundle tag groups rows into a package; same tag (per
