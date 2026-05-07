@@ -528,7 +528,7 @@ tbody tr:last-child td{border-bottom:none;}
       <option value="Paused">Paused</option>
       <option value="Churned">Churned</option>
     </select>
-    <button class="btn btn-sm" onclick="bulkExportCSV()">Export CSV</button>
+    <button class="btn btn-sm" onclick="bulkExportXLSX()">Export</button>
     <button class="btn btn-sm btn-ghost" onclick="clearSelection()">Cancel</button>
   </div>
 
@@ -1588,41 +1588,99 @@ async function bulkSetStatus(newStatus){
     await reload();
   }
 }
-function bulkExportCSV(){
+async function bulkExportXLSX(){
   if (!selectedIds.size) return;
-  const rows = advertisers.filter(a => selectedIds.has(a.id));
-  const cols = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Name' },
-    { key: 'status', label: 'Status' },
-    { key: 'par_live', label: 'PAR Live' },
-    { key: 'term_type', label: 'Term Type' },
-    { key: 'fixed_months', label: 'Fixed Months' },
-    { key: 'fixed_then_rolling', label: 'Then Rolling' },
-    { key: 'start_date', label: 'Start Date' },
-    { key: 'renewal_date', label: 'Renewal Date' },
-    { key: 'primary_contact_first_name', label: 'Primary First' },
-    { key: 'primary_contact_last_name', label: 'Primary Last' },
-    { key: 'primary_contact_email', label: 'Primary Email' },
-    { key: '_monthlyRevenue', label: 'Monthly Revenue' },
-    { key: '_totalActiveArticles', label: 'Active Articles' }
+  try {
+    toast.info('Preparing export…', { duration: 1500 });
+    await ensureXLSX();
+  } catch(e) {
+    toast.error('Could not load XLSX library — check your internet');
+    return;
+  }
+  const advs = advertisers.filter(a => selectedIds.has(a.id));
+
+  // ── Sheet 1: Advertisers (column shape matches the import template, with two extra computed columns) ──
+  const advHeaders = [
+    'name', 'status', 'term_type', 'par_live', 'start_date', 'renewal_date',
+    'fixed_months', 'then_rolling', 'first_name', 'last_name', 'email',
+    'monthly_revenue', 'active_articles'
   ];
-  const escCsv = v => {
-    if (v == null) return '';
-    const s = String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
-  const lines = [cols.map(c => c.label).join(',')];
-  rows.forEach(r => lines.push(cols.map(c => escCsv(c.key === 'start_date' || c.key === 'renewal_date' ? fmtDate(r[c.key]) : r[c.key])).join(',')));
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const advData = [advHeaders];
+  advs.forEach(adv => {
+    advData.push([
+      adv.name || '',
+      adv.status || '',
+      adv.term_type || '',
+      adv.par_live || 'No',
+      fmtDate(adv.start_date) || '',
+      fmtDate(adv.renewal_date) || '',
+      adv.fixed_months || '',
+      isTrue(adv.fixed_then_rolling) ? 'Yes' : '',
+      adv.primary_contact_first_name || '',
+      adv.primary_contact_last_name || '',
+      adv.primary_contact_email || '',
+      Math.round(adv._monthlyRevenue || 0),
+      adv._totalActiveArticles || 0
+    ]);
+  });
+  const advWs = XLSX.utils.aoa_to_sheet(advData);
+  advWs['!cols'] = [{wch:24},{wch:16},{wch:18},{wch:10},{wch:12},{wch:13},{wch:14},{wch:14},{wch:14},{wch:14},{wch:30},{wch:16},{wch:14}];
+
+  // ── Sheet 2: Articles (one row per article, packages collapsed via per-advertiser bundle tags) ──
+  const artHeaders = ['advertiser', 'url', 'position', 'monthly_price', 'bundle', 'bundle_price', 'active'];
+  const artData = [artHeaders];
+  advs.forEach(adv => {
+    // Per-advertiser package_id → tag (1, 2, 3…). Round-trips into the importer.
+    const tagByPkgId = {};
+    (adv._packages || []).forEach((pk, i) => { tagByPkgId[pk.id] = i + 1; });
+
+    // Sort: standalones first, then grouped by package, then by position
+    const sorted = (adv._articles || []).slice().sort((x, y) => {
+      const tagX = x.package_id ? (tagByPkgId[x.package_id] || 99) : 0;
+      const tagY = y.package_id ? (tagByPkgId[y.package_id] || 99) : 0;
+      if (tagX !== tagY) return tagX - tagY;
+      return (parseInt(x.position) || 0) - (parseInt(y.position) || 0);
+    });
+
+    sorted.forEach(art => {
+      let bundle = '';
+      let bundlePrice = '';
+      if (art.package_id && tagByPkgId[art.package_id]) {
+        bundle = tagByPkgId[art.package_id];
+        const pk = (adv._packages || []).find(p => p.id === art.package_id);
+        bundlePrice = pk ? (parseFloat(pk.monthly_price) || '') : '';
+      }
+      artData.push([
+        adv.name || '',
+        art.url || '',
+        art.position || '',
+        art.package_id ? '' : (parseFloat(art.monthly_price) || ''),
+        bundle,
+        bundlePrice,
+        isTrue(art.active) ? 'TRUE' : 'FALSE'
+      ]);
+    });
+  });
+  const artWs = XLSX.utils.aoa_to_sheet(artData);
+  artWs['!cols'] = [{wch:24},{wch:55},{wch:10},{wch:14},{wch:10},{wch:14},{wch:8}];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, advWs, 'Advertisers');
+  XLSX.utils.book_append_sheet(wb, artWs, 'Articles');
+
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `advertisers_${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `accounts_${new Date().toISOString().slice(0,10)}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
   URL.revokeObjectURL(url);
+
+  const articleCount = artData.length - 1;
+  toast.success(`Exported ${advs.length} advertiser${advs.length>1?'s':''} · ${articleCount} article${articleCount===1?'':'s'}`);
 }
 
 // ── Sort ──
