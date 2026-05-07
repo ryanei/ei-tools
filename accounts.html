@@ -2304,6 +2304,260 @@ async function ensureXLSX(){
   });
 }
 
+// ── PDF generator (advertiser one-pager) ──
+async function ensureHTML2PDF(){
+  if (window.html2pdf) return;
+  await new Promise(function(resolve, reject){
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    s.onload = resolve;
+    s.onerror = function(){ reject(new Error('Failed to load PDF library — check your internet connection')); };
+    document.body.appendChild(s);
+  });
+}
+
+function buildOnePagerHTML(a){
+  // Branded one-page advertiser summary. Self-contained inline styles so html2pdf renders cleanly.
+  // Sized to ~720px content width = good fit for A4 portrait with reasonable margins.
+
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const monthlyTotal = fmtMoney(a._monthlyRevenue || 0);
+  const primaryName = a._primaryName || '';
+  const primaryEmail = a.primary_contact_email || '';
+  const isFixed = a.term_type === 'Fixed';
+  const renewalNote = isFixed && isTrue(a.fixed_then_rolling) ? ' <span style="color:#0a3a64;font-weight:500;">(then rolling)</span>' : '';
+
+  const statusColor = (() => {
+    const s = (a.status || '').toLowerCase();
+    if (s === 'active') return { bg: '#e8f1ea', fg: '#2f7d4d' };
+    if (s === 'in negotiation') return { bg: '#f4ecd9', fg: '#a8741f' };
+    if (s === 'paused') return { bg: '#eef0f2', fg: '#6a6760' };
+    if (s === 'churned') return { bg: '#f5e4dc', fg: '#9b3a1f' };
+    return { bg: '#eaf0f6', fg: '#012747' };
+  })();
+
+  // Group articles: active packages, inactive packages, then standalones
+  const sortedPackages = [...(a._packages||[])].sort((x, y) => {
+    const xa = (x.status||'Active') === 'Active' ? 0 : 1;
+    const ya = (y.status||'Active') === 'Active' ? 0 : 1;
+    if (xa !== ya) return xa - ya;
+    return (x.name||'').localeCompare(y.name||'');
+  });
+
+  const packagesHtml = sortedPackages.map((pk, idx) => {
+    const arts = (a._articles||[]).filter(x => x.package_id === pk.id)
+      .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
+    const isActive = (pk.status||'Active') === 'Active';
+    const displayName = pk.name || `Package ${idx + 1}`;
+    const articlesRows = arts.map(art => `
+      <tr>
+        <td style="padding:5px 10px 5px 0;width:30px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#6a6760;font-weight:500;letter-spacing:0.04em;">#${esc(art.position||'?')}</td>
+        <td style="padding:5px 0;font-size:11px;color:#131310;">${esc(urlLabel(art.url))}</td>
+      </tr>
+    `).join('');
+    return `
+      <div style="margin-bottom:14px;border:1px solid #e6e3dc;border-radius:8px;padding:14px 16px;background:${isActive?'#fff':'#faf9f6'};${isActive?'':'opacity:0.75;'}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:${arts.length?'8px':'0'};">
+          <div style="font-size:13px;font-weight:500;color:#131310;letter-spacing:-0.01em;">${esc(displayName)}${!isActive?` <span style="font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:#9b988f;font-weight:500;">· paused</span>`:''}</div>
+          <div style="font-size:13px;font-weight:600;color:#012747;font-variant-numeric:tabular-nums;">${fmtMoney(pk.monthly_price)}/mo</div>
+        </div>
+        ${arts.length ? `<table style="width:100%;border-collapse:collapse;">${articlesRows}</table>` : ''}
+      </div>`;
+  }).join('');
+
+  const standalones = (a._articles||[]).filter(x => !x.package_id)
+    .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
+  const standalonesHtml = standalones.length ? `
+    <div style="margin-bottom:14px;border:1px solid #e6e3dc;border-radius:8px;padding:14px 16px;">
+      <div style="font-size:13px;font-weight:500;color:#131310;letter-spacing:-0.01em;margin-bottom:8px;">Standalone articles</div>
+      <table style="width:100%;border-collapse:collapse;">
+        ${standalones.map(art => `
+          <tr>
+            <td style="padding:5px 10px 5px 0;width:30px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#6a6760;font-weight:500;letter-spacing:0.04em;">#${esc(art.position||'?')}</td>
+            <td style="padding:5px 0;font-size:11px;color:#131310;">${esc(urlLabel(art.url))}</td>
+            <td style="padding:5px 0;text-align:right;font-size:11px;font-weight:500;color:#012747;font-variant-numeric:tabular-nums;white-space:nowrap;">${isTrue(art.active) ? fmtMoney(art.monthly_price)+'/mo' : '<span style=\"color:#9b988f;\">paused</span>'}</td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>` : '';
+
+  // Recent activity: top 5 timeline events
+  const events = (typeof buildTimelineEvents === 'function') ? buildTimelineEvents(a).slice(0, 5) : [];
+  const activityHtml = events.length ? events.map(ev => {
+    const date = ev.timestamp ? fmtDateLong(ev.timestamp) : '';
+    let body = '';
+    if (ev.type === 'note') {
+      const author = ev.author ? ` · ${esc(ev.author)}` : '';
+      body = `<span style="color:#131310;">Note${author}:</span> ${esc((ev.body||'').slice(0, 180))}`;
+    } else if (ev.type && ev.type.startsWith('proposal-')) {
+      body = `<span style="color:#131310;">${esc(ev.label||'Proposal')}</span> · ${esc(ev.status||'')}`;
+    } else {
+      body = `<span style="color:#131310;">${esc(ev.label||'')}</span>`;
+    }
+    return `
+      <div style="display:flex;gap:14px;padding:8px 0;border-bottom:1px solid #efece6;font-size:11px;color:#6a6760;line-height:1.45;">
+        <div style="flex-shrink:0;width:120px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#9b988f;letter-spacing:0.04em;">${esc(date)}</div>
+        <div style="flex:1;">${body}</div>
+      </div>`;
+  }).join('') : `<div style="padding:8px 0;font-size:11px;color:#9b988f;font-style:italic;">No recent activity logged.</div>`;
+
+  // Top KPIs strip values
+  const kpiStartedLabel = a.start_date ? fmtDateLong(a.start_date) : '—';
+  const kpiTermLabel = termSummary(a) || '—';
+  const kpiRenewalLabel = isFixed
+    ? (a.renewal_date ? fmtDateLong(a.renewal_date) + renewalNote : 'Not set' + renewalNote)
+    : '—';
+
+  return `
+<div id="onePagerRoot" style="
+  width:720px;
+  background:#faf9f6;
+  font-family:'Inter Tight',-apple-system,system-ui,sans-serif;
+  color:#131310;
+  letter-spacing:-0.005em;
+  padding:36px 40px;
+  box-sizing:border-box;
+">
+
+  <!-- Header strip -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid #e6e3dc;margin-bottom:28px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <svg width="28" height="28" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="20" fill="#012747"/>
+        <circle cx="17" cy="17" r="8" fill="none" stroke="#fff" stroke-width="2.4"/>
+        <line x1="23" y1="23" x2="30" y2="30" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#012747;text-transform:uppercase;letter-spacing:0.16em;">Expert Insights</div>
+        <div style="font-size:12px;font-weight:500;color:#6a6760;letter-spacing:-0.005em;margin-top:2px;">Advertiser Summary</div>
+      </div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9b988f;letter-spacing:0.04em;">Generated ${esc(today)}</div>
+  </div>
+
+  <!-- Identity -->
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:24px;">
+    <div style="flex:1;min-width:0;">
+      <h1 style="font-size:36px;font-weight:500;color:#131310;letter-spacing:-0.028em;line-height:1.05;margin:0 0 10px;">${esc(a.name || '(unnamed)')}</h1>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;background:${statusColor.bg};color:${statusColor.fg};padding:4px 9px;border-radius:100px;">${esc(a.status || 'Unknown')}</span>
+        <span style="display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:0.14em;background:${a.par_live==='Yes'?'#e8f1ea':'#eef0f2'};color:${a.par_live==='Yes'?'#2f7d4d':'#6a6760'};padding:4px 9px;border-radius:100px;">PAR ${esc(a.par_live || 'No')}</span>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:4px;">Monthly value</div>
+      <div style="font-size:30px;font-weight:500;color:#012747;letter-spacing:-0.028em;font-variant-numeric:tabular-nums;line-height:1;">${monthlyTotal}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9b988f;margin-top:4px;letter-spacing:0.06em;">/ month</div>
+    </div>
+  </div>
+
+  <!-- Contract KPIs strip -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:28px;">
+    <div style="background:#fff;border:1px solid #e6e3dc;border-radius:8px;padding:14px 16px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:6px;">Started</div>
+      <div style="font-size:14px;color:#131310;font-weight:500;letter-spacing:-0.01em;">${esc(kpiStartedLabel)}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6e3dc;border-radius:8px;padding:14px 16px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:6px;">Term</div>
+      <div style="font-size:14px;color:#131310;font-weight:500;letter-spacing:-0.01em;">${esc(kpiTermLabel)}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e6e3dc;border-radius:8px;padding:14px 16px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:6px;">Renewal</div>
+      <div style="font-size:14px;color:#131310;font-weight:500;letter-spacing:-0.01em;">${kpiRenewalLabel}</div>
+    </div>
+  </div>
+
+  <!-- Primary contact -->
+  ${(primaryName || primaryEmail) ? `
+  <div style="margin-bottom:24px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:8px;">Primary contact</div>
+    <div style="font-size:13px;color:#131310;">
+      ${primaryName ? `<span style="font-weight:500;">${esc(primaryName)}</span>` : ''}
+      ${primaryName && primaryEmail ? ' · ' : ''}
+      ${primaryEmail ? `<span style="color:#0a3a64;">${esc(primaryEmail)}</span>` : ''}
+    </div>
+  </div>` : ''}
+
+  <!-- Articles & packages -->
+  <div style="margin-bottom:24px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.14em;">Articles & packages</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#9b988f;letter-spacing:0.04em;">${(a._packages||[]).length} package${(a._packages||[]).length===1?'':'s'} · ${(a._articles||[]).length} article${(a._articles||[]).length===1?'':'s'}</div>
+    </div>
+    ${packagesHtml || ''}
+    ${standalonesHtml || ''}
+    ${(!packagesHtml && !standalonesHtml) ? '<div style="padding:18px;font-size:11px;color:#9b988f;font-style:italic;text-align:center;background:#fff;border:1px dashed #e6e3dc;border-radius:8px;">No articles or packages on file.</div>' : ''}
+  </div>
+
+  <!-- Recent activity -->
+  <div style="margin-bottom:24px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;color:#6a6760;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:8px;">Recent activity</div>
+    ${activityHtml}
+  </div>
+
+  <!-- Footer -->
+  <div style="border-top:1px solid #e6e3dc;padding-top:14px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#9b988f;letter-spacing:0.06em;text-transform:uppercase;">expertinsights.com · confidential</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#9b988f;letter-spacing:0.06em;">${esc(today)}</div>
+  </div>
+
+</div>`;
+}
+
+async function downloadAdvertiserPDF(advertiserId){
+  const a = advertisers.find(x => x.id === advertiserId);
+  if (!a) { toast.error('Advertiser not found'); return; }
+
+  // Make sure proposalsByAdvertiser is loaded so the timeline can include them
+  if (typeof proposalsByAdvertiser !== 'undefined' && !proposalsByAdvertiser) {
+    try {
+      proposalsByAdvertiser = await loadProposalsSheet();
+    } catch(e) { /* non-fatal — timeline will just show notes + account events */ }
+  }
+
+  try {
+    toast.info('Preparing summary PDF…', { duration: 1800 });
+    await ensureHTML2PDF();
+  } catch(e) {
+    toast.error('Could not load PDF library — check your internet');
+    return;
+  }
+
+  // Render the one-pager in an off-screen container so html2pdf can capture it
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-10000px';
+  wrap.style.top = '0';
+  wrap.style.zIndex = '-1';
+  wrap.innerHTML = buildOnePagerHTML(a);
+  document.body.appendChild(wrap);
+  const root = wrap.querySelector('#onePagerRoot');
+
+  const safeName = (a.name || 'advertiser').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const dateSlug = new Date().toISOString().slice(0,10);
+  const filename = `${safeName}_summary_${dateSlug}.pdf`;
+
+  try {
+    await window.html2pdf()
+      .set({
+        margin: [10, 10, 10, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#faf9f6' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      })
+      .from(root)
+      .save();
+    toast.success(`Summary downloaded — ${filename}`);
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    toast.error('PDF generation failed: ' + (err.message || err));
+  } finally {
+    if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+  }
+}
+
 function _matchSheetToTab(sheetName){
   const s = (sheetName || '').toLowerCase().trim();
   if (s.startsWith('advertis') || s === 'accounts' || s === 'companies' || s === 'clients') return 'advertisers';
@@ -2946,6 +3200,7 @@ function openDrawer(id, refresh){
     </div>
     <div class="drawer-actions">
       <a class="btn btn-sm btn-primary" href="${newPropUrl}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">+ New proposal</a>
+      <button class="btn btn-sm" onclick="downloadAdvertiserPDF('${esc(a.id)}')">⤓ Summary PDF</button>
       <button class="btn btn-sm" onclick="openWizard('${esc(a.id)}')">✏ Edit</button>
       <button class="btn btn-sm btn-danger" onclick="quickDeleteAdvertiser('${esc(a.id)}')">Delete</button>
     </div>
