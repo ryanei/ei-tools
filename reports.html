@@ -812,7 +812,6 @@
   if(!s||!s.username){window.location.href="index.html";return;}
   var EP="https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
   fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=reports&type=pageview",{mode:"no-cors"}).catch(function(){});
-  window.openCmdK = openPalette; window.closeCmdK = closePalette;
 })();
 </script>
 
@@ -2429,6 +2428,7 @@ function renderRevenue() {
       render();
     }
   });
+  window.openCmdK = openPalette; window.closeCmdK = closePalette;
 })();
 </script>
 
