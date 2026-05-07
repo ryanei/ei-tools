@@ -456,7 +456,6 @@ tbody tr:last-child td{border-bottom:none;}
   window.__session = s;
   var EP="https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
   fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=accounts&type=pageview",{mode:"no-cors"}).catch(function(){});
-  window.openCmdK = openPalette; window.closeCmdK = closePalette;
 })();
 </script>
 
@@ -3376,6 +3375,7 @@ function handleInitialDeepLink(){
       render();
     }
   });
+  window.openCmdK = openPalette; window.closeCmdK = closePalette;
 })();
 </script>
 
