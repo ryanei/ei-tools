@@ -102,6 +102,273 @@
   .tool-subheader-back svg { width:16px; height:16px; }
 
 
+  /* ── Screen header + report sub-nav ── */
+  .screen-head {
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--line);
+    padding: 28px 48px 0;
+  }
+  .screen-head-inner {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .screen-head-text {
+    flex: 1;
+    min-width: 280px;
+    padding-bottom: 24px;
+  }
+  .screen-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--bright-blue-900);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-bottom: 12px;
+  }
+  .screen-title {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 36px;
+    font-weight: 500;
+    color: var(--dark-900);
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    margin: 0 0 6px;
+  }
+  .screen-sub {
+    font-size: 13px;
+    color: var(--grey-900);
+    line-height: 1.55;
+    max-width: 620px;
+  }
+  .report-tabs {
+    display: flex;
+    gap: 0;
+    align-self: flex-end;
+  }
+  .report-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 14px 20px;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--grey-900);
+    cursor: pointer;
+    letter-spacing: -0.005em;
+    transition: color 180ms ease, border-color 180ms ease;
+    margin-bottom: -1px; /* sit on the screen-head bottom border */
+  }
+  .report-tab:hover {
+    color: var(--bright-blue-900);
+  }
+  .report-tab.active {
+    color: var(--dark-900);
+    border-bottom-color: var(--bright-blue-900);
+    font-weight: 600;
+  }
+
+  /* ── Revenue dashboard widgets ── */
+  .rev-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .rev-mrr-chart-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .rev-mrr-bars {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+    align-items: flex-end;
+    height: 180px;
+    padding: 10px 0 0;
+  }
+  .rev-mrr-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+  }
+  .rev-mrr-bar {
+    width: 100%;
+    background: var(--bright-blue-900);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: height 0.5s ease;
+    position: relative;
+  }
+  .rev-mrr-bar:hover {
+    background: var(--bright-blue-800);
+  }
+  .rev-mrr-bar.zero {
+    background: var(--light-grey);
+    min-height: 2px;
+  }
+  .rev-mrr-bar-val {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--dark-900);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .rev-mrr-axis {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+  .rev-mrr-axis-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: var(--grey-900);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+  .rev-mrr-summary {
+    display: flex;
+    gap: 24px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--grey-900);
+  }
+  .rev-mrr-summary strong {
+    color: var(--dark-900);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Term type horizontal bars (reuse hbar styles but with $ values) */
+  .rev-term-bar-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 80px 60px;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #F2F4F6;
+  }
+  .rev-term-bar-row:last-child { border-bottom: none; }
+  .rev-term-bar-label {
+    font-size: 13px;
+    color: var(--dark-900);
+    font-weight: 500;
+  }
+  .rev-term-bar-track {
+    height: 14px;
+    background: var(--bright-blue-50);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .rev-term-bar-fill {
+    height: 100%;
+    background: var(--bright-blue-900);
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+  .rev-term-bar-val {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark-900);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .rev-term-bar-cnt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--grey-900);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* Top advertisers ranked list (reuses .ranked-* styles, with currency) */
+  .rev-top-adv-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 140px 90px;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 4px;
+    border-bottom: 1px solid #F2F4F6;
+  }
+  .rev-top-adv-row:last-child { border-bottom: none; }
+  .rev-top-adv-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--grey-900);
+    font-variant-numeric: tabular-nums;
+  }
+  .rev-top-adv-name {
+    font-size: 13px;
+    color: var(--dark-900);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rev-top-adv-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rev-top-adv-bar {
+    flex: 1;
+    height: 10px;
+    background: var(--bright-blue-50);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .rev-top-adv-bar-fill {
+    height: 100%;
+    background: var(--bright-blue-900);
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+  .rev-top-adv-val {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark-900);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .rev-empty {
+    padding: 36px 20px;
+    text-align: center;
+    color: var(--grey-900);
+    font-size: 13px;
+    background: var(--bright-blue-50);
+    border-radius: 6px;
+  }
+
+  @media (max-width:1100px) {
+    .rev-kpi-row { grid-template-columns: 1fr 1fr !important; }
+    .screen-head { padding-left: 20px; padding-right: 20px; }
+    .screen-title { font-size: 28px; }
+  }
+
   /* ── Advertiser Eyebrow Banner (matches PDF "ADVERTISER REPORT  Ionix") ── */
   .advertiser-banner {
     background: var(--bright-blue-50);
@@ -571,6 +838,24 @@
   </div>
 </div>
 
+<!-- ── Screen header + sub-nav ── -->
+<div class="screen-head">
+  <div class="screen-head-inner">
+    <div class="screen-head-text">
+      <div class="screen-eyebrow">★ Reports</div>
+      <h1 class="screen-title">Audience analytics & revenue</h1>
+      <p class="screen-sub">Visitor data from Bombora and live revenue from the Accounts database.</p>
+    </div>
+    <div class="report-tabs" role="tablist">
+      <button class="report-tab active" type="button" data-view="audience" onclick="setReportTab('audience')" role="tab" aria-selected="true">Audience</button>
+      <button class="report-tab" type="button" data-view="revenue" onclick="setReportTab('revenue')" role="tab" aria-selected="false">Revenue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Audience pane (existing dashboard) ═══ -->
+<div class="view-pane" id="audienceView">
+
 <div class="advertiser-banner" id="advertiserBanner">
   <div class="advertiser-banner-label">Advertiser Report</div>
   <div class="advertiser-banner-name" id="advertiserName"></div>
@@ -616,6 +901,36 @@
   </div>
   <div id="dashboard" style="display:none;"></div>
 </div>
+
+</div><!-- /#audienceView -->
+
+<!-- ═══ Revenue pane (new) ═══ -->
+<div class="view-pane" id="revenueView" hidden>
+  <div class="filters-bar">
+    <div><span class="filter-label">Window:</span></div>
+    <select class="advertiser-select" id="revenuePeriod" onchange="renderRevenue()" style="min-width:160px;">
+      <option value="12" selected>Last 12 months</option>
+      <option value="6">Last 6 months</option>
+      <option value="3">Last 3 months</option>
+    </select>
+    <div style="flex:1"></div>
+    <div><span class="filter-label">Last loaded:</span> <span id="revenueLoadedAt">—</span></div>
+    <button class="btn" onclick="loadRevenueData()">↻ Refresh</button>
+  </div>
+  <div class="main">
+    <div class="loading-screen" id="revenueLoading">
+      <div class="spinner"></div>
+      <div style="font-size:14px;color:#4F606E;">Loading revenue data from the Accounts database…</div>
+    </div>
+    <div class="error-screen" id="revenueError" style="display:none;">
+      <div style="font-size:18px;font-weight:700;color:#A60E0D;">Failed to load Accounts data</div>
+      <div style="font-size:14px;color:#4F606E;text-align:center;max-width:520px;">Check that the EI Accounts DB sheet is reachable.</div>
+      <div id="revenueErrorMsg" style="font-size:12px;color:#8093A3;background:#FFFFFF;padding:8px 16px;border-radius:6px;border:1px solid #E7E7E7;"></div>
+      <button class="btn" onclick="loadRevenueData()" style="margin-top:8px;padding:10px 24px;background:#2563EB;color:white;border:none;font-size:14px;">Retry</button>
+    </div>
+    <div id="revenueDashboard" style="display:none;"></div>
+  </div>
+</div><!-- /#revenueView -->
 
 <div class="footer" id="footerEl">
   <strong>Expert Insights</strong> · Campaign Report<span id="footerPeriod"></span> · expertinsights.com
@@ -1576,6 +1891,288 @@ async function loadData() {
 }
 
 loadData();
+
+// ═════════════════════════════════════════════════════════════════════
+// Revenue tab — pulls from EI Accounts DB sheet, aggregates client-side
+// ═════════════════════════════════════════════════════════════════════
+const ACCOUNTS_DB_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
+let revenueState = {
+  loaded: false,
+  loading: false,
+  advertisers: [],
+  packages: [],
+  articles: [],
+  computed: null
+};
+
+function setReportTab(view) {
+  document.querySelectorAll('.report-tab').forEach(t => {
+    const isActive = t.dataset.view === view;
+    t.classList.toggle('active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  document.getElementById('audienceView').hidden = (view !== 'audience');
+  document.getElementById('revenueView').hidden = (view !== 'revenue');
+  if (view === 'revenue' && !revenueState.loaded && !revenueState.loading) {
+    loadRevenueData();
+  }
+}
+
+function money(n) {
+  if (n == null || isNaN(n)) return '$0';
+  const v = Math.round(Number(n));
+  return '$' + v.toLocaleString('en-US');
+}
+function moneyShort(n) {
+  if (n == null || isNaN(n)) return '$0';
+  const v = Number(n);
+  if (Math.abs(v) >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
+  if (Math.abs(v) >= 1000) return '$' + (v/1000).toFixed(1) + 'k';
+  return '$' + Math.round(v);
+}
+
+function parseSheetDate(s) {
+  // loadSheetJSONP returns Date(...) cells as ISO strings; raw date strings can also slip through
+  if (!s) return null;
+  if (s instanceof Date) return isNaN(s) ? null : s;
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+
+function monthKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+
+function monthLabel(key) {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleString('en-US', { month: 'short' });
+}
+
+function currentQuarterRange() {
+  const now = new Date();
+  const q = Math.floor(now.getMonth() / 3);
+  const start = new Date(now.getFullYear(), q * 3, 1);
+  const end = new Date(now.getFullYear(), q * 3 + 3, 0, 23, 59, 59);
+  return { start, end, label: 'Q' + (q+1) + ' ' + now.getFullYear() };
+}
+
+async function loadRevenueData() {
+  revenueState.loading = true;
+  const loading = document.getElementById('revenueLoading');
+  const error = document.getElementById('revenueError');
+  const dash = document.getElementById('revenueDashboard');
+  loading.style.display = 'flex';
+  error.style.display = 'none';
+  dash.style.display = 'none';
+
+  try {
+    // Fetch advertisers + packages + articles in parallel
+    const [advRows, pkgRows, artRows] = await Promise.all([
+      loadSheetJSONP(ACCOUNTS_DB_SHEET_ID, 'Advertisers'),
+      loadSheetJSONP(ACCOUNTS_DB_SHEET_ID, 'Packages').catch(() => []),
+      loadSheetJSONP(ACCOUNTS_DB_SHEET_ID, 'Articles').catch(() => [])
+    ]);
+    revenueState.advertisers = advRows || [];
+    revenueState.packages = pkgRows || [];
+    revenueState.articles = artRows || [];
+    revenueState.loaded = true;
+    revenueState.loading = false;
+    document.getElementById('revenueLoadedAt').textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    loading.style.display = 'none';
+    renderRevenue();
+  } catch (err) {
+    console.error('Revenue load failed:', err);
+    revenueState.loading = false;
+    loading.style.display = 'none';
+    error.style.display = 'flex';
+    document.getElementById('revenueErrorMsg').textContent = err.message || String(err);
+  }
+}
+
+function computeRevenue() {
+  const advertisers = revenueState.advertisers;
+  const packages = revenueState.packages;
+  const articles = revenueState.articles;
+
+  // Build per-advertiser monthly value (sum of active packages + active standalone articles)
+  const pkgByAdv = {};
+  packages.forEach(p => {
+    const aid = (p.advertiser_id || '').trim();
+    const status = (p.status || '').trim().toLowerCase();
+    const price = parseFloat(p.monthly_price) || 0;
+    if (!aid || !price) return;
+    if (status && status !== 'active') return; // count Active or unspecified
+    pkgByAdv[aid] = (pkgByAdv[aid] || 0) + price;
+  });
+  const artByAdv = {};
+  articles.forEach(a => {
+    const aid = (a.advertiser_id || '').trim();
+    const pkgId = (a.package_id || '').trim();
+    if (pkgId) return; // packaged articles are counted via their package
+    const active = (a.active || '').toString().trim().toLowerCase();
+    // Treat empty as active (default), only skip if explicitly false/no/0
+    if (active === 'false' || active === 'no' || active === '0') return;
+    const price = parseFloat(a.monthly_price) || 0;
+    if (!aid || !price) return;
+    artByAdv[aid] = (artByAdv[aid] || 0) + price;
+  });
+
+  // Per-advertiser computed
+  const perAdv = advertisers.map(a => {
+    const id = (a.id || '').trim();
+    const status = (a.status || '').trim();
+    const isActive = status.toLowerCase() === 'active';
+    const monthly = (pkgByAdv[id] || 0) + (artByAdv[id] || 0);
+    const start = parseSheetDate(a.start_date);
+    const updated = parseSheetDate(a.updated_at);
+    return {
+      id, name: a.name || '(unnamed)', status, isActive,
+      termType: a.term_type || '',
+      monthly, start, updated
+    };
+  });
+
+  // KPIs
+  const activeAdvs = perAdv.filter(a => a.isActive);
+  const totalMRR = activeAdvs.reduce((s, a) => s + a.monthly, 0);
+  const avgDeal = activeAdvs.length ? (totalMRR / activeAdvs.length) : 0;
+
+  const q = currentQuarterRange();
+  const churnedThisQ = perAdv.filter(a => {
+    if (a.status.toLowerCase() !== 'churned') return false;
+    if (!a.updated) return false;
+    return a.updated >= q.start && a.updated <= q.end;
+  }).length;
+
+  // New MRR by start month (last N months window)
+  const period = parseInt(document.getElementById('revenuePeriod')?.value || '12', 10);
+  const months = [];
+  const now = new Date();
+  for (let i = period - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ key: monthKey(d), label: monthLabel(monthKey(d)), value: 0, count: 0 });
+  }
+  const monthIdx = {};
+  months.forEach((m, i) => { monthIdx[m.key] = i; });
+  activeAdvs.forEach(a => {
+    if (!a.start || !a.monthly) return;
+    const k = monthKey(a.start);
+    if (monthIdx[k] !== undefined) {
+      months[monthIdx[k]].value += a.monthly;
+      months[monthIdx[k]].count += 1;
+    }
+  });
+  const maxMonthVal = Math.max(1, ...months.map(m => m.value));
+  const newMRRTotal = months.reduce((s, m) => s + m.value, 0);
+  const newAdvTotal = months.reduce((s, m) => s + m.count, 0);
+
+  // Term type breakdown
+  const termAgg = {};
+  ['Fixed', 'Monthly Rolling', 'Quarterly Rolling'].forEach(t => { termAgg[t] = { count: 0, mrr: 0 }; });
+  activeAdvs.forEach(a => {
+    const t = a.termType || 'Other';
+    if (!termAgg[t]) termAgg[t] = { count: 0, mrr: 0 };
+    termAgg[t].count += 1;
+    termAgg[t].mrr += a.monthly;
+  });
+  const termRows = Object.entries(termAgg)
+    .filter(([k, v]) => v.count > 0 || ['Fixed', 'Monthly Rolling', 'Quarterly Rolling'].includes(k))
+    .map(([k, v]) => ({ name: k, count: v.count, mrr: v.mrr }));
+  const maxTermMRR = Math.max(1, ...termRows.map(t => t.mrr));
+
+  // Top advertisers by monthly value
+  const topAdvs = activeAdvs.slice().sort((a, b) => b.monthly - a.monthly).slice(0, 10);
+  const maxTopMRR = Math.max(1, ...topAdvs.map(a => a.monthly));
+
+  return {
+    totalMRR, activeCount: activeAdvs.length, avgDeal, churnedThisQ, q,
+    months, maxMonthVal, newMRRTotal, newAdvTotal,
+    termRows, maxTermMRR,
+    topAdvs, maxTopMRR,
+    period
+  };
+}
+
+function renderRevenue() {
+  if (!revenueState.loaded) return;
+  const d = computeRevenue();
+  const dash = document.getElementById('revenueDashboard');
+
+  const kpiHtml = `
+    <div class="rev-kpi-row">
+      <div class="kpi-card">
+        <div class="accent" style="background:var(--bright-blue-900);"></div>
+        <div class="kpi-label">Current MRR</div>
+        <div class="kpi-value">${moneyShort(d.totalMRR)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="accent" style="background:#012747;"></div>
+        <div class="kpi-label">Active advertisers</div>
+        <div class="kpi-value">${d.activeCount}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="accent" style="background:#E0B51A;"></div>
+        <div class="kpi-label">Avg monthly value</div>
+        <div class="kpi-value">${moneyShort(d.avgDeal)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="accent" style="background:#BF0A61;"></div>
+        <div class="kpi-label">Churned · ${d.q.label}</div>
+        <div class="kpi-value">${d.churnedThisQ}</div>
+      </div>
+    </div>`;
+
+  const barsHtml = d.months.map(m => {
+    const pct = m.value > 0 ? Math.max(2, (m.value / d.maxMonthVal) * 100) : 0;
+    const isZero = m.value === 0;
+    return `<div class="rev-mrr-bar-col">
+      ${m.value > 0 ? `<span class="rev-mrr-bar-val">${moneyShort(m.value)}</span>` : ''}
+      <div class="rev-mrr-bar ${isZero ? 'zero' : ''}" style="height:${pct}%;" title="${m.label}: ${money(m.value)} · ${m.count} new"></div>
+    </div>`;
+  }).join('');
+  const axisHtml = d.months.map(m => `<div class="rev-mrr-axis-label">${m.label}</div>`).join('');
+  const mrrChartHtml = `
+    <div class="rev-mrr-chart-wrap">
+      <div class="rev-mrr-bars">${barsHtml}</div>
+      <div class="rev-mrr-axis">${axisHtml}</div>
+      <div class="rev-mrr-summary">
+        <div>Total in window: <strong>${money(d.newMRRTotal)}</strong></div>
+        <div>New advertisers: <strong>${d.newAdvTotal}</strong></div>
+        <div>Avg / month: <strong>${money(d.newMRRTotal / d.period)}</strong></div>
+      </div>
+    </div>`;
+
+  const termHtml = d.termRows.map(t => {
+    const pct = (t.mrr / d.maxTermMRR) * 100;
+    return `<div class="rev-term-bar-row">
+      <div class="rev-term-bar-label">${t.name}</div>
+      <div class="rev-term-bar-track"><div class="rev-term-bar-fill" style="width:${pct}%;"></div></div>
+      <div class="rev-term-bar-val">${moneyShort(t.mrr)}</div>
+      <div class="rev-term-bar-cnt">${t.count} adv</div>
+    </div>`;
+  }).join('');
+
+  const topHtml = d.topAdvs.length ? d.topAdvs.map((a, i) => {
+    const pct = (a.monthly / d.maxTopMRR) * 100;
+    return `<a class="rev-top-adv-row" href="accounts.html?id=${encodeURIComponent(a.id)}" style="text-decoration:none;color:inherit;">
+      <div class="rev-top-adv-rank">${String(i+1).padStart(2,'0')}</div>
+      <div class="rev-top-adv-name">${a.name}</div>
+      <div class="rev-top-adv-bar-wrap"><div class="rev-top-adv-bar"><div class="rev-top-adv-bar-fill" style="width:${pct}%;"></div></div></div>
+      <div class="rev-top-adv-val">${money(a.monthly)}</div>
+    </a>`;
+  }).join('') : '<div class="rev-empty">No active advertisers with monthly value yet.</div>';
+
+  dash.innerHTML = `
+    ${kpiHtml}
+    ${section('New MRR by start month', `Active advertisers grouped by their contract start month · last ${d.period} months`, mrrChartHtml)}
+    <div class="grid-2">
+      ${section('Contract type', 'MRR contribution by term type', termHtml || '<div class="rev-empty">No active advertisers.</div>')}
+      ${section('Top advertisers by monthly value', 'Click a row to open in Accounts', topHtml)}
+    </div>
+  `;
+  dash.style.display = 'block';
+}
 </script>
 <!-- ═══ Cmd+K command palette ═══ -->
 <div class="cmdk-overlay" id="cmdkOverlay" aria-hidden="true">
