@@ -129,11 +129,18 @@ def supabase_request(method, path, body=None, headers_extra=None):
         return e.code, e.read().decode(errors="replace")
 
 
+def _strip_nulls(rows):
+    """Drop None values from each row so Postgres column defaults take effect.
+    Avoids explicit nulls overriding `not null default now()` columns like created_at."""
+    return [{k: v for k, v in r.items() if v is not None} for r in rows]
+
+
 def upsert(table, rows, on_conflict="id", batch=200):
     """UPSERT rows into a Supabase table via PostgREST. Batches for safety."""
     if not rows:
         print(f"  · {table}: nothing to insert")
         return
+    rows = _strip_nulls(rows)
     inserted = 0
     for i in range(0, len(rows), batch):
         chunk = rows[i:i+batch]
@@ -155,6 +162,7 @@ def insert(table, rows, batch=200):
     if not rows:
         print(f"  · {table}: nothing to insert")
         return
+    rows = _strip_nulls(rows)
     inserted = 0
     for i in range(0, len(rows), batch):
         chunk = rows[i:i+batch]
