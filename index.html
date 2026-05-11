@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+<!-- Supabase auth (transitional bridge during Phase 3 migration) -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="supabase-client.js"></script>
 <style>
 /* ============================================================
    Expert Insights — Sales Tool Hub
@@ -329,7 +332,44 @@ function getSession(){try{var v=localStorage.getItem("eitools_session")||session
 function setSession(u){var r=document.getElementById("remember");var keep=r?r.checked:false;var k="eitools_session";var v=JSON.stringify(u);if(keep){localStorage.setItem(k,v);sessionStorage.removeItem(k);}else{sessionStorage.setItem(k,v);localStorage.removeItem(k);}}
 function clearSession(){sessionStorage.removeItem("eitools_session");localStorage.removeItem("eitools_session")}
 function logActivity(page,type){var s=getSession();if(!s)return;fetch(ACTIVITY_ENDPOINT+"?action=log&username="+encodeURIComponent(s.username)+"&page="+encodeURIComponent(page)+"&type="+encodeURIComponent(type||"pageview"),{mode:"no-cors"}).catch(function(){})}
-var ex=getSession();if(ex){document.addEventListener("DOMContentLoaded",function(){showHub(ex)})}
+
+/* ── Auth bridge: prefer Supabase session, redirect to login.html if none ──
+   During Phase 3 migration we accept either:
+     1. A legacy localStorage session (set by old login form — still works during transition)
+     2. A Supabase session (set by login.html magic-link flow), which we bridge into the legacy format
+   so existing hub init code works unchanged. Phase 3b will rewrite this. */
+(function(){
+  var legacy = getSession();
+  if (legacy) {
+    document.addEventListener("DOMContentLoaded", function(){ showHub(legacy); });
+    return;
+  }
+  document.addEventListener("DOMContentLoaded", async function(){
+    // Wait briefly for the deferred supabase-client.js to initialise
+    for (var i = 0; i < 40 && !(window.eitools && window.eitools.sb); i++) {
+      await new Promise(function(r){ setTimeout(r, 25); });
+    }
+    if (window.eitools && window.eitools.sb) {
+      try {
+        var res = await window.eitools.sb.auth.getSession();
+        var session = res && res.data && res.data.session;
+        if (session && session.user) {
+          var u = {
+            username: (session.user.email || "").split("@")[0] || "user",
+            email: session.user.email,
+            firstName: ((session.user.user_metadata && session.user.user_metadata.first_name) || ""),
+            supabase: true
+          };
+          try { localStorage.setItem("eitools_session", JSON.stringify(u)); } catch(e){}
+          showHub(u);
+          return;
+        }
+      } catch(e) {}
+    }
+    // No session anywhere — bounce to the new login screen
+    window.location.replace("login.html");
+  });
+})();
 </script>
 
 <div class="stage" id="loginScreen">
@@ -651,7 +691,15 @@ function doLogin(){var u=document.getElementById("loginUser").value.trim().toLow
 var ADMIN_USERS=["relliott"];var RESTRICTED_TOOLS=["pipeline.html","accounts.html"];
 function applyToolPerms(s){var isAdmin=ADMIN_USERS.indexOf((s.username||"").toLowerCase())>=0;if(isAdmin){var mb=document.getElementById("announceManageBtn");if(mb)mb.classList.add("visible");}if(isAdmin)return;document.querySelectorAll("a.tool-card").forEach(function(card){if(RESTRICTED_TOOLS.indexOf(card.getAttribute("href"))<0)return;card.classList.add("card-planned");card.removeAttribute("href");var st=card.querySelector(".tool-card-status");if(st){st.textContent="Coming Soon";st.classList.remove("status-live");st.classList.add("status-planned");}})}
 function showHub(s){document.getElementById("loginScreen").style.display="none";document.getElementById("hub").classList.add("visible");var ini=(s.name||"U").split(" ").map(function(w){return w[0]}).join("").toUpperCase().substring(0,2);document.getElementById("userAvatar").textContent=ini;document.getElementById("userName").textContent=s.name||s.username;var fn=(s.name||s.username).split(" ")[0];var hr=new Date().getHours();var gr=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";document.getElementById("heroTitle").innerHTML=gr+', <span class="accent">'+fn.replace(/[<>"']/g,"")+'.</span><br>Pick up where the team left off.';var d=new Date().toLocaleDateString("en-GB",{weekday:"long",month:"long",day:"numeric"});document.getElementById("heroDate").textContent=d;document.getElementById("versionLabel").textContent=HUB_VERSION;applyToolPerms(s);if(s.role==="admin"){document.getElementById("adminSection").classList.add("visible");loadActivity()}loadAnnouncements();loadHubWidgets();logActivity("hub","pageview")}
-function doLogout(){clearSession();location.reload()}
+function doLogout(){
+  // Phase 3 transitional: also sign out of Supabase so the bridge doesn't re-auth us on reload
+  if (window.eitools && window.eitools.sb) {
+    window.eitools.sb.auth.signOut().finally(function(){ clearSession(); window.location.replace("login.html"); });
+  } else {
+    clearSession();
+    window.location.replace("login.html");
+  }
+}
 var ANNOUNCE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
 var allAnnouncements = [];
 function escAnn(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]})}
