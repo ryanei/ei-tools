@@ -135,26 +135,37 @@ def _strip_nulls(rows):
     return [{k: v for k, v in r.items() if v is not None} for r in rows]
 
 
+def _group_by_keys(rows):
+    """Group rows that share the same key set. PostgREST batch insert requires
+    every row in a batch to have the same shape."""
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for r in rows:
+        groups[tuple(sorted(r.keys()))].append(r)
+    return list(groups.values())
+
+
 def upsert(table, rows, on_conflict="id", batch=200):
     """UPSERT rows into a Supabase table via PostgREST. Batches for safety."""
     if not rows:
         print(f"  · {table}: nothing to insert")
         return
     rows = _strip_nulls(rows)
-    inserted = 0
-    for i in range(0, len(rows), batch):
-        chunk = rows[i:i+batch]
-        status, body = supabase_request(
-            "POST",
-            f"{table}?on_conflict={on_conflict}",
-            body=chunk,
-            headers_extra={"Prefer": "resolution=merge-duplicates,return=minimal"},
-        )
-        if status >= 400:
-            print(f"  ✗ {table}: HTTP {status}: {body[:500]}")
-            sys.exit(1)
-        inserted += len(chunk)
-    print(f"  ✓ {table}: upserted {inserted} rows")
+    total = 0
+    for group in _group_by_keys(rows):
+        for i in range(0, len(group), batch):
+            chunk = group[i:i+batch]
+            status, body = supabase_request(
+                "POST",
+                f"{table}?on_conflict={on_conflict}",
+                body=chunk,
+                headers_extra={"Prefer": "resolution=merge-duplicates,return=minimal,missing=default"},
+            )
+            if status >= 400:
+                print(f"  ✗ {table}: HTTP {status}: {body[:500]}")
+                sys.exit(1)
+            total += len(chunk)
+    print(f"  ✓ {table}: upserted {total} rows")
 
 
 def insert(table, rows, batch=200):
@@ -163,20 +174,21 @@ def insert(table, rows, batch=200):
         print(f"  · {table}: nothing to insert")
         return
     rows = _strip_nulls(rows)
-    inserted = 0
-    for i in range(0, len(rows), batch):
-        chunk = rows[i:i+batch]
-        status, body = supabase_request(
-            "POST",
-            table,
-            body=chunk,
-            headers_extra={"Prefer": "return=minimal"},
-        )
-        if status >= 400:
-            print(f"  ✗ {table}: HTTP {status}: {body[:500]}")
-            sys.exit(1)
-        inserted += len(chunk)
-    print(f"  ✓ {table}: inserted {inserted} rows")
+    total = 0
+    for group in _group_by_keys(rows):
+        for i in range(0, len(group), batch):
+            chunk = group[i:i+batch]
+            status, body = supabase_request(
+                "POST",
+                table,
+                body=chunk,
+                headers_extra={"Prefer": "return=minimal,missing=default"},
+            )
+            if status >= 400:
+                print(f"  ✗ {table}: HTTP {status}: {body[:500]}")
+                sys.exit(1)
+            total += len(chunk)
+    print(f"  ✓ {table}: inserted {total} rows")
 
 
 # ────────────────────────────────────────────────────────────────────────
