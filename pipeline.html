@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+<!-- Supabase client (Phase 3b) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -212,11 +215,15 @@ tbody tr:last-child td{border-bottom:none;}
 </head>
 <body>
 <script>
-(function(){
-  var s;try{var v=localStorage.getItem("eitools_session")||sessionStorage.getItem("eitools_session");s=v?JSON.parse(v):null;}catch(e){}
-  if(!s||!s.username){window.location.href="index.html";return;}
-  var EP="https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
-  fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=pipeline&type=pageview",{mode:"no-cors"}).catch(function(){});
+(async function(){
+  for (var i=0; i<40 && !(window.eitools && window.eitools.sb); i++) {
+    await new Promise(function(r){ setTimeout(r, 25); });
+  }
+  if (!window.eitools || !window.eitools.sb) { window.location.href = "login.html"; return; }
+  var session = await window.eitools.requireAuth();
+  if (!session) return;
+  window.__session = { username: (session.user.email || "").split("@")[0], email: session.user.email };
+  window.eitools.logActivity("pipeline", "pageview");
 })();
 </script>
 

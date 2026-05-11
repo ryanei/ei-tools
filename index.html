@@ -687,7 +687,10 @@ function logActivity(page,type){var s=getSession();if(!s)return;fetch(ACTIVITY_E
 
 <script>
 function fetchSheet(sheetName,cb){var n="cb"+Date.now()+Math.random().toString(36).substr(2,5);var url="https://docs.google.com/spreadsheets/d/"+AUTH_SHEET_ID+"/gviz/tq?tqx=responseHandler:"+n+"&sheet="+encodeURIComponent(sheetName)+"&headers=1";window[n]=function(r){var rows=[];if(r&&r.table&&r.table.rows){var c=r.table.cols.map(function(x){return x.label});r.table.rows.forEach(function(row){var o={};row.c.forEach(function(cell,i){o[c[i]]=cell?(cell.v!=null?String(cell.v):""):""});rows.push(o)})}cb(rows);delete window[n]};var s=document.createElement("script");s.src=url;document.body.appendChild(s)}
-function doLogin(){var u=document.getElementById("loginUser").value.trim().toLowerCase();var p=document.getElementById("loginPass").value;var e=document.getElementById("loginError");var b=document.getElementById("loginBtn");if(!u||!p){e.textContent="Enter username and password";return}b.disabled=true;var bl=document.getElementById("loginBtnLabel");if(bl)bl.textContent="Signing in...";e.textContent="";fetchSheet("Users",function(users){var m=users.find(function(x){return x.username&&x.username.toLowerCase()===u&&x.password===p});if(m){var s={username:m.username,name:m.name||m.username,role:m.role||"user"};setSession(s);logActivity("hub","login");showHub(s)}else{e.textContent="Invalid username or password";b.disabled=false;var bl=document.getElementById("loginBtnLabel");if(bl)bl.textContent="Sign in"}})}
+// Old Sheets-based login is decommissioned. The visible form should never render
+// (the bridge above redirects to login.html before DOM paints), but in case it
+// does, the submit handler just bounces to the real login page.
+function doLogin(){ window.location.replace("login.html"); }
 var ADMIN_USERS=["relliott"];var RESTRICTED_TOOLS=["pipeline.html","accounts.html"];
 function applyToolPerms(s){var isAdmin=ADMIN_USERS.indexOf((s.username||"").toLowerCase())>=0;if(isAdmin){var mb=document.getElementById("announceManageBtn");if(mb)mb.classList.add("visible");}if(isAdmin)return;document.querySelectorAll("a.tool-card").forEach(function(card){if(RESTRICTED_TOOLS.indexOf(card.getAttribute("href"))<0)return;card.classList.add("card-planned");card.removeAttribute("href");var st=card.querySelector(".tool-card-status");if(st){st.textContent="Coming Soon";st.classList.remove("status-live");st.classList.add("status-planned");}})}
 function showHub(s){document.getElementById("loginScreen").style.display="none";document.getElementById("hub").classList.add("visible");var ini=(s.name||"U").split(" ").map(function(w){return w[0]}).join("").toUpperCase().substring(0,2);document.getElementById("userAvatar").textContent=ini;document.getElementById("userName").textContent=s.name||s.username;var fn=(s.name||s.username).split(" ")[0];var hr=new Date().getHours();var gr=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";document.getElementById("heroTitle").innerHTML=gr+', <span class="accent">'+fn.replace(/[<>"']/g,"")+'.</span><br>Pick up where the team left off.';var d=new Date().toLocaleDateString("en-GB",{weekday:"long",month:"long",day:"numeric"});document.getElementById("heroDate").textContent=d;document.getElementById("versionLabel").textContent=HUB_VERSION;applyToolPerms(s);if(s.role==="admin"){document.getElementById("adminSection").classList.add("visible");loadActivity()}loadAnnouncements();loadHubWidgets();logActivity("hub","pageview")}
@@ -888,15 +891,23 @@ function widgetRenewalCls(days){
   return 'intent';
 }
 
-function loadHubWidgets(){
+async function loadHubWidgets(){
+  // Wait for the deferred supabase-client.js
+  for (var i=0; i<40 && !(window.eitools && window.eitools.sb); i++) {
+    await new Promise(function(r){ setTimeout(r, 25); });
+  }
+  var sb = window.eitools && window.eitools.sb;
+  if (!sb) return; // can't load; widgets stay empty
+
   // Renewals
-  loadGvizSheet(ACCOUNTS_SHEET_ID, "Advertisers").then(function(rows){
-    var upcoming = rows.filter(function(r){
-      if (!r.renewal_date || (r.term_type||"").toLowerCase() !== "fixed") return false;
-      if ((r.status||"") === "Churned") return false;
-      var d = widgetDaysUntil(r.renewal_date);
+  sb.from('advertisers').select('name,renewal_date,term_type,status').then(function(r){
+    var rows = r.data || [];
+    var upcoming = rows.filter(function(row){
+      if (!row.renewal_date || (row.term_type||"").toLowerCase() !== "fixed") return false;
+      if ((row.status||"") === "Churned") return false;
+      var d = widgetDaysUntil(row.renewal_date);
       return d !== null && d <= 90;
-    }).map(function(r){ return { name: r.name, days: widgetDaysUntil(r.renewal_date) }; })
+    }).map(function(row){ return { name: row.name, days: widgetDaysUntil(row.renewal_date) }; })
       .sort(function(a,b){ return a.days - b.days; });
     var valEl = document.getElementById("widgetRenewalsValue");
     var helperEl = document.getElementById("widgetRenewalsHelper");
@@ -910,22 +921,23 @@ function loadHubWidgets(){
     var nextLabel = upcoming[0].days < 0 ? Math.abs(upcoming[0].days)+"d overdue"
                   : upcoming[0].days === 0 ? "today" : upcoming[0].days + "d";
     helperEl.textContent = "Next: " + upcoming[0].name + " · " + nextLabel;
-    listEl.innerHTML = upcoming.slice(0, 4).map(function(r){
-      var lbl = r.days < 0 ? Math.abs(r.days)+"d overdue"
-              : r.days === 0 ? "today" : r.days + "d";
-      return '<li><span class="li-name">'+widgetEsc(r.name||"(unnamed)")+'</span>'
-           + '<span class="li-meta '+widgetRenewalCls(r.days)+'">'+lbl+'</span></li>';
+    listEl.innerHTML = upcoming.slice(0, 4).map(function(row){
+      var lbl = row.days < 0 ? Math.abs(row.days)+"d overdue"
+              : row.days === 0 ? "today" : row.days + "d";
+      return '<li><span class="li-name">'+widgetEsc(row.name||"(unnamed)")+'</span>'
+           + '<span class="li-meta '+widgetRenewalCls(row.days)+'">'+lbl+'</span></li>';
     }).join("");
   });
 
   // Proposals awaiting signature
-  loadGvizSheet(PROPOSALS_SHEET_ID, "Proposals").then(function(rows){
-    var sent = rows.filter(function(r){ return (r["Status"]||r.status||"").toLowerCase() === "sent"; })
-                   .map(function(r){
+  sb.from('proposals').select('vendor,status,date_created,monthly_total').then(function(r){
+    var rows = r.data || [];
+    var sent = rows.filter(function(row){ return (row.status||"").toLowerCase() === "sent"; })
+                   .map(function(row){
                      return {
-                       vendor: r["Vendor"] || r.vendor || "(no vendor)",
-                       date: r["Date Created"] || r.date_created || "",
-                       monthly: parseFloat(r["Monthly Total"] || r.monthly_total) || 0
+                       vendor: row.vendor || "(no vendor)",
+                       date: row.date_created || "",
+                       monthly: parseFloat(row.monthly_total) || 0
                      };
                    })
                    .sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });

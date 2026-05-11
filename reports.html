@@ -1973,15 +1973,23 @@ async function loadRevenueData() {
   dash.style.display = 'none';
 
   try {
-    // Fetch advertisers + packages + articles in parallel
-    const [advRows, pkgRows, artRows] = await Promise.all([
-      loadSheetJSONP(ACCOUNTS_DB_SHEET_ID, 'Advertisers'),
-      loadSheetJSONP(ACCOUNTS_DB_SHEET_ID, 'Packages').catch(() => []),
-      loadSheetJSONP(ACCOUNTS_DB_SHEET_ID, 'Articles').catch(() => [])
+    // Wait briefly for supabase-client.js (deferred load)
+    for (let i = 0; i < 40 && !(window.eitools && window.eitools.sb); i++) {
+      await new Promise(r => setTimeout(r, 25));
+    }
+    if (!(window.eitools && window.eitools.sb)) throw new Error('Supabase client not ready');
+    const sb = window.eitools.sb;
+    // Fetch advertisers + packages + articles in parallel from Supabase
+    const [advRes, pkgRes, artRes] = await Promise.all([
+      sb.from('advertisers').select('*'),
+      sb.from('packages').select('*'),
+      sb.from('articles').select('*')
     ]);
-    revenueState.advertisers = advRows || [];
-    revenueState.packages = pkgRows || [];
-    revenueState.articles = artRows || [];
+    const err = advRes.error || pkgRes.error || artRes.error;
+    if (err) throw err;
+    revenueState.advertisers = advRes.data || [];
+    revenueState.packages    = pkgRes.data || [];
+    revenueState.articles    = artRes.data || [];
     revenueState.loaded = true;
     revenueState.loading = false;
     document.getElementById('revenueLoadedAt').textContent = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -2016,9 +2024,11 @@ function computeRevenue() {
     const aid = (a.advertiser_id || '').trim();
     const pkgId = (a.package_id || '').trim();
     if (pkgId) return; // packaged articles are counted via their package
-    const active = (a.active || '').toString().trim().toLowerCase();
-    // Treat empty as active (default), only skip if explicitly false/no/0
-    if (active === 'false' || active === 'no' || active === '0') return;
+    // Treat empty/null as active; skip only if explicitly false. Handles both
+    // gviz strings ("TRUE"/"FALSE") and Supabase booleans (true/false).
+    if (a.active === false) return;
+    const activeStr = String(a.active == null ? '' : a.active).trim().toLowerCase();
+    if (activeStr === 'false' || activeStr === 'no' || activeStr === '0') return;
     const price = parseFloat(a.monthly_price) || 0;
     if (!aid || !price) return;
     artByAdv[aid] = (artByAdv[aid] || 0) + price;
