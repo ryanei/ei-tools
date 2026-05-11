@@ -266,18 +266,15 @@ img,svg{display:block;max-width:100%;}
   (async function init(){
     var hash = window.location.hash || '';
     var search = window.location.search || '';
-    var isCallback = hash.indexOf('access_token') >= 0
-                  || hash.indexOf('error=') >= 0
-                  || search.indexOf('code=') >= 0
-                  || search.indexOf('error=') >= 0;
+    var hasCode  = search.indexOf('code=') >= 0;
+    var hasToken = hash.indexOf('access_token') >= 0;
+    var hasError = hash.indexOf('error=') >= 0 || search.indexOf('error=') >= 0;
+    var isCallback = hasCode || hasToken || hasError;
 
     if (isCallback) show('loadingCard');
 
-    // Give supabase-js a moment to process URL params on its own (detectSessionInUrl)
-    await new Promise(function(r){ setTimeout(r, 50); });
-
-    // If the callback contained an explicit error, surface it
-    if (hash.indexOf('error=') >= 0 || search.indexOf('error=') >= 0) {
+    // Surface explicit Supabase errors first
+    if (hasError) {
       var params = new URLSearchParams(hash.replace(/^#/, '') || search.replace(/^\?/, ''));
       var desc = params.get('error_description') || params.get('error') || 'Sign-in failed.';
       document.getElementById('errorMsg').textContent = decodeURIComponent(desc).replace(/\+/g, ' ');
@@ -285,17 +282,41 @@ img,svg{display:block;max-width:100%;}
       return;
     }
 
-    // Check for an active session — either freshly established or from a previous visit
+    // Listen for SIGNED_IN — fires when supabase-js finishes processing the URL.
+    // For PKCE (which we use), this requires an HTTP round-trip to exchange the code,
+    // so it's NOT instant. Using the event is more reliable than polling.
+    var redirected = false;
+    sb.auth.onAuthStateChange(function(event, session){
+      if (redirected) return;
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        redirected = true;
+        if (hash || hasCode) history.replaceState(null, '', window.location.pathname);
+        window.location.replace('index.html');
+      }
+    });
+
+    // Also check the existing session right away (covers returning visitors with a stored session)
     var sessRes = await sb.auth.getSession();
     var session = sessRes && sessRes.data && sessRes.data.session;
     if (session) {
-      // Strip the auth hash from URL before redirect for cleanliness
-      if (hash) history.replaceState(null, '', window.location.pathname);
+      redirected = true;
+      if (hash || hasCode) history.replaceState(null, '', window.location.pathname);
       window.location.replace('index.html');
       return;
     }
 
-    // Fresh visit, no session — show the form
+    // If this looks like a callback, wait for the auth-state event to fire (PKCE round-trip).
+    // If nothing happens after ~6s, surface a fallback error.
+    if (isCallback) {
+      await new Promise(function(r){ setTimeout(r, 6000); });
+      if (!redirected) {
+        document.getElementById('errorMsg').textContent = 'Sign-in took too long or the link is invalid. Request a new one.';
+        show('errorCard');
+      }
+      return;
+    }
+
+    // Fresh visit, no session, no callback — show the form
     show('emailCard');
   })();
 })();
