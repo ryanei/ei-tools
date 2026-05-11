@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+<!-- Supabase client (Phase 3b) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <style>
 :root {
   --ei-blue:#012747; --ei-blue-700:#0a3a64; --ei-blue-900:#001a30;
@@ -450,12 +453,20 @@ tbody tr:last-child td{border-bottom:none;}
 </head>
 <body>
 <script>
-(function(){
-  var s;try{var v=localStorage.getItem("eitools_session")||sessionStorage.getItem("eitools_session");s=v?JSON.parse(v):null;}catch(e){}
-  if(!s||!s.username){window.location.href="index.html";return;}
-  window.__session = s;
-  var EP="https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
-  fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=accounts&type=pageview",{mode:"no-cors"}).catch(function(){});
+(async function(){
+  // Wait for supabase-client.js (deferred load) to initialise
+  for (var i=0; i<40 && !(window.eitools && window.eitools.sb); i++) {
+    await new Promise(function(r){ setTimeout(r, 25); });
+  }
+  if (!window.eitools || !window.eitools.sb) {
+    window.location.href = "login.html";
+    return;
+  }
+  var session = await window.eitools.requireAuth();
+  if (!session) return; // requireAuth redirects on no session
+  window.__session = { username: (session.user.email || "").split("@")[0], email: session.user.email };
+  // Best-effort activity log
+  window.eitools.logActivity("accounts", "pageview");
 })();
 </script>
 
@@ -844,9 +855,148 @@ tbody tr:last-child td{border-bottom:none;}
 
 <script>
 // ── Config ──
-const ACCOUNTS_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
-const ACCOUNTS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcwZhAgCsZxFQ-dl7gKv6StZC2en_QVzgtrp5aBHYPg4In-9A9Zk4iv7C_lxGZ_SvY/exec";
-const PROPOSALS_SHEET_ID = "12JC_3Y52i1qrMcKtXk7dYvzhqyU6RijB6ybq0wNP18M";
+const ACCOUNTS_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";   // retained for legacy references
+const ACCOUNTS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcwZhAgCsZxFQ-dl7gKv6StZC2en_QVzgtrp5aBHYPg4In-9A9Zk4iv7C_lxGZ_SvY/exec"; // retained for legacy references
+const PROPOSALS_SHEET_ID = "12JC_3Y52i1qrMcKtXk7dYvzhqyU6RijB6ybq0wNP18M";   // retained for legacy references
+
+// ── Supabase data layer (Phase 3b) ──
+// Thin wrappers around the Supabase client. Each returns plain data, throws on error.
+const _sb = () => (window.eitools && window.eitools.sb);
+
+async function sbLoadAccounts(){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const [a, c, pk, ar, sv, n] = await Promise.all([
+    sb.from('advertisers').select('*').order('name', { ascending: true }),
+    sb.from('contacts').select('*'),
+    sb.from('packages').select('*'),
+    sb.from('articles').select('*'),
+    sb.from('services').select('*'),
+    sb.from('notes').select('*').order('timestamp', { ascending: false })
+  ]);
+  const err = a.error || c.error || pk.error || ar.error || sv.error || n.error;
+  if (err) throw err;
+  return {
+    advertisers: a.data || [], contacts: c.data || [],
+    packages:    pk.data || [], articles: ar.data || [],
+    services:    sv.data || [], notes:    n.data || []
+  };
+}
+
+async function sbLoadProposals(){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const { data, error } = await sb.from('proposals').select('*').order('date_created', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function sbPatchAdvertiser(idOrIds, fields){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  let q = sb.from('advertisers').update(fields);
+  q = Array.isArray(idOrIds) ? q.in('id', idOrIds) : q.eq('id', idOrIds);
+  const { error } = await q;
+  if (error) throw error;
+}
+
+async function sbDeleteAdvertiser(id){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  // ON DELETE CASCADE in the schema handles all child rows
+  const { error } = await sb.from('advertisers').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function sbSaveAdvertiserBundle(advertiser, children){
+  // Upsert advertiser, then wipe-and-rewrite all children (matches the Apps Script semantics).
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+
+  // Strip empty-string optional fields so column defaults / nulls take effect cleanly
+  const adv = {};
+  Object.keys(advertiser).forEach(k => {
+    const v = advertiser[k];
+    if (v === '' || v === undefined) return;
+    adv[k] = v;
+  });
+  // fixed_months: convert empty/string → int or null
+  if (adv.fixed_months !== undefined && adv.fixed_months !== null) {
+    const n = parseInt(adv.fixed_months, 10);
+    adv.fixed_months = isNaN(n) ? null : n;
+  }
+
+  const up = await sb.from('advertisers').upsert(adv, { onConflict: 'id' });
+  if (up.error) throw new Error('advertiser: ' + up.error.message);
+
+  const aid = advertiser.id;
+  // Wipe children — order matters: articles must go before packages (FK constraint).
+  // NOTES are NOT wiped — they have their own add/delete path and survive saves.
+  const wipeArticles = await sb.from('articles').delete().eq('advertiser_id', aid);
+  if (wipeArticles.error) throw new Error('wipe articles: ' + wipeArticles.error.message);
+  const wipeServices = await sb.from('services').delete().eq('advertiser_id', aid);
+  if (wipeServices.error) throw new Error('wipe services: ' + wipeServices.error.message);
+  const wipePackages = await sb.from('packages').delete().eq('advertiser_id', aid);
+  if (wipePackages.error) throw new Error('wipe packages: ' + wipePackages.error.message);
+  const wipeContacts = await sb.from('contacts').delete().eq('advertiser_id', aid);
+  if (wipeContacts.error) throw new Error('wipe contacts: ' + wipeContacts.error.message);
+
+  // Insert children (packages before articles so FK can resolve)
+  if (children.contacts && children.contacts.length) {
+    const rows = children.contacts.map(c => Object.assign({}, c, { advertiser_id: aid }));
+    const r = await sb.from('contacts').insert(rows);
+    if (r.error) throw new Error('contacts: ' + r.error.message);
+  }
+  if (children.packages && children.packages.length) {
+    const rows = children.packages.map(p => {
+      const o = Object.assign({}, p, { advertiser_id: aid });
+      if (o.monthly_price === '' || o.monthly_price === undefined) delete o.monthly_price;
+      else o.monthly_price = parseFloat(o.monthly_price);
+      return o;
+    });
+    const r = await sb.from('packages').insert(rows);
+    if (r.error) throw new Error('packages: ' + r.error.message);
+  }
+  if (children.articles && children.articles.length) {
+    const rows = children.articles.map(a => {
+      const o = Object.assign({}, a, { advertiser_id: aid });
+      if (o.package_id === '' || o.package_id === undefined) o.package_id = null;
+      if (o.position === '' || o.position === undefined) delete o.position;
+      else o.position = parseInt(o.position, 10);
+      if (o.monthly_price === '' || o.monthly_price === undefined || o.monthly_price === null) delete o.monthly_price;
+      else o.monthly_price = parseFloat(o.monthly_price);
+      // active: gviz/legacy "TRUE"/"FALSE"/boolean → boolean
+      if (typeof o.active === 'string') o.active = o.active.toUpperCase() === 'TRUE';
+      else o.active = !!o.active;
+      return o;
+    });
+    const r = await sb.from('articles').insert(rows);
+    if (r.error) throw new Error('articles: ' + r.error.message);
+  }
+  if (children.services && children.services.length) {
+    const rows = children.services.map(s => Object.assign({}, s, { advertiser_id: aid }));
+    const r = await sb.from('services').insert(rows);
+    if (r.error) throw new Error('services: ' + r.error.message);
+  }
+}
+
+async function sbAddNote(advertiser_id, body, author){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const id = 'note_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const { error } = await sb.from('notes').insert({
+    id, advertiser_id, body, author,
+    timestamp: new Date().toISOString()
+  });
+  if (error) throw error;
+}
+
+async function sbDeleteNote(noteId){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const { error } = await sb.from('notes').delete().eq('id', noteId);
+  if (error) throw error;
+}
 
 let proposalsByAdvertiser = null; // populated lazily on first drawer open
 
@@ -875,49 +1025,28 @@ function urlLabel(u){if(!u)return"(no URL)";try{const url=new URL(u);const slug=
 function tagKey(t){return (t||"").trim().toLowerCase();}
 
 // ── Proposals (cross-tool linkage) ──
-function loadProposalsSheet(){
-  const cb = "_propCb_" + Date.now() + Math.floor(Math.random()*1000);
-  const url = `https://docs.google.com/spreadsheets/d/${PROPOSALS_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=Proposals&headers=1`;
-  return new Promise((resolve) => {
-    window[cb] = function(data){
-      try {
-        if (!data || !data.table) { resolve({}); return; }
-        const cols = data.table.cols.map(c => (c.label || c.id || "").toString());
-        const colIdx = {};
-        cols.forEach((label, i) => { colIdx[label.toLowerCase().replace(/\s+/g,"_")] = i; });
-        const idIdx = colIdx["proposal_id"] !== undefined ? colIdx["proposal_id"] : colIdx["id"];
-        const vendorIdx = colIdx["vendor"];
-        const dateIdx = colIdx["date_created"];
-        const totalIdx = colIdx["monthly_total"];
-        const statusIdx = colIdx["status"];
-        const advIdx = colIdx["advertiser_id"];
-        if (advIdx === undefined) { resolve({}); return; }
-        const map = {};
-        (data.table.rows || []).forEach(r => {
-          const cell = (i) => (i !== undefined && r.c[i]) ? r.c[i].v : "";
-          const advId = String(cell(advIdx) || "").trim();
-          if (!advId) return;
-          (map[advId] = map[advId] || []).push({
-            id: String(cell(idIdx) || ""),
-            vendor: String(cell(vendorIdx) || ""),
-            date: String(cell(dateIdx) || ""),
-            monthly_total: Number(cell(totalIdx)) || 0,
-            status: String(cell(statusIdx) || "")
-          });
-        });
-        // Newest first within each advertiser
-        Object.keys(map).forEach(k => map[k].sort((a,b) => String(b.date).localeCompare(String(a.date))));
-        resolve(map);
-      } catch(e) { resolve({}); }
-      delete window[cb];
-      document.getElementById("_sc_" + cb)?.remove();
-    };
-    const script = document.createElement("script");
-    script.id = "_sc_" + cb;
-    script.src = url;
-    script.onerror = () => { resolve({}); };
-    document.body.appendChild(script);
-  });
+async function loadProposalsSheet(){
+  // Supabase replaces the gviz fetch. Returns { advertiserId: [{ id, vendor, date, monthly_total, status }, …] }
+  try {
+    const proposals = await sbLoadProposals();
+    const map = {};
+    proposals.forEach(p => {
+      const advId = String(p.advertiser_id || "").trim();
+      if (!advId) return;
+      (map[advId] = map[advId] || []).push({
+        id: String(p.id || ""),
+        vendor: String(p.vendor || ""),
+        date: p.date_created ? String(p.date_created) : "",
+        monthly_total: Number(p.monthly_total) || 0,
+        status: String(p.status || "")
+      });
+    });
+    // Newest first within each advertiser
+    Object.keys(map).forEach(k => map[k].sort((a,b) => String(b.date).localeCompare(String(a.date))));
+    return map;
+  } catch(e) {
+    return {};
+  }
 }
 
 function proposalStatusBadge(status){
@@ -1050,50 +1179,16 @@ function renderTimeline(advertiserId){
 }
 
 // ── Loading ──
-function loadSheet(sheetName){
-  const cb = "_acctCb_" + sheetName.replace(/\W/g,"") + "_" + Date.now() + Math.floor(Math.random()*1000);
-  const url = `https://docs.google.com/spreadsheets/d/${ACCOUNTS_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&headers=1`;
-  return new Promise((resolve, reject) => {
-    window[cb] = function(data){
-      try {
-        if (!data || !data.table) { resolve([]); return; }
-        const cols = data.table.cols.map(c => c.label || c.id);
-        const rows = (data.table.rows || []).map((r, idx) => {
-          const obj = { _rowIndex: idx };
-          r.c.forEach((cell, i) => {
-            let v = cell ? (cell.v != null ? cell.v : "") : "";
-            if (typeof v === "string" && v.startsWith("Date(")) {
-              const m = v.match(/Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?/);
-              if (m) {
-                if (m[4] !== undefined) v = `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")} ${String(m[4]).padStart(2,"0")}:${String(m[5]).padStart(2,"0")}:${String(m[6]).padStart(2,"0")}`;
-                else v = `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
-              }
-            }
-            obj[cols[i]] = v;
-          });
-          return obj;
-        });
-        resolve(rows);
-      } catch(e) { reject(e); }
-      delete window[cb];
-      document.getElementById("_sc_" + cb)?.remove();
-    };
-    const script = document.createElement("script");
-    script.id = "_sc_" + cb;
-    script.src = url;
-    script.onerror = () => reject(new Error("Failed to load " + sheetName));
-    document.body.appendChild(script);
-  });
-}
+// (Old gviz-based loadSheet removed in Phase 3b — data now comes from Supabase via sbLoadAccounts.)
 
 async function reload(){
   document.getElementById("advertisersBody").innerHTML = '<tr><td colspan="9" class="loading">Loading…</td></tr>';
   try {
-    const [a, c, pk, ar, sv, n] = await Promise.all([
-      loadSheet("Advertisers"), loadSheet("Contacts"), loadSheet("Packages"),
-      loadSheet("Articles"), loadSheet("Services"), loadSheet("Notes")
-    ]);
-    advertisers = a; contacts = c; packages = pk; articles = ar; services = sv; notes = n;
+    // Wait for supabase-client.js if needed (deferred load)
+    for (let i=0; i<40 && !_sb(); i++) await new Promise(r => setTimeout(r, 25));
+    const data = await sbLoadAccounts();
+    advertisers = data.advertisers; contacts = data.contacts; packages = data.packages;
+    articles = data.articles; services = data.services; notes = data.notes;
     indexChildren();
     renderKpis();
     renderRenewalRadar();
@@ -1538,17 +1633,7 @@ async function inlineEditField(advId, field, newValue){
   renderTable();
   renderRenewalRadar();
   try {
-    await fetch(ACCOUNTS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        action: 'patchAdvertiser',
-        id: advId,
-        fields_json: JSON.stringify({ [field]: newValue })
-      }).toString()
-    });
-    await new Promise(r => setTimeout(r, 700));
+    await sbPatchAdvertiser(advId, { [field]: newValue });
     await reload();
   } catch(e) {
     // Revert on error
@@ -1568,17 +1653,7 @@ async function bulkSetStatus(newStatus){
   ids.forEach(id => { const a = advertisers.find(x => x.id === id); if (a) a.status = newStatus; });
   renderTable();
   try {
-    await fetch(ACCOUNTS_SCRIPT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        action: 'patchAdvertiser',
-        ids_json: JSON.stringify(ids),
-        fields_json: JSON.stringify({ status: newStatus })
-      }).toString()
-    });
-    await new Promise(r => setTimeout(r, 800));
+    await sbPatchAdvertiser(ids, { status: newStatus });
     selectedIds.clear();
     renderBulkBar();
     await reload();
@@ -2223,25 +2298,26 @@ function buildImportPayload(adv, advertiserId){
   });
 
   return {
-    action: 'saveAdvertiserBundle',
-    id: advertiserId,
-    name: adv.name,
-    status: adv.status,
-    par_live: adv.par_live,
-    start_date: adv.start_date || '',
-    renewal_date: adv.renewal_date || '',
-    term_type: adv.term_type,
-    fixed_months: adv.fixed_months || '',
-    fixed_then_rolling: adv.fixed_then_rolling || 'FALSE',
-    primary_contact_first_name: adv.primary_contact_first_name || '',
-    primary_contact_last_name: adv.primary_contact_last_name || '',
-    primary_contact_email: adv.primary_contact_email || '',
-    created_at: now,
-    updated_at: now,
-    contacts_json: '[]',
-    packages_json: JSON.stringify(packagesOut),
-    articles_json: JSON.stringify(articlesOut),
-    services_json: '[]'
+    advertiser: {
+      id: advertiserId,
+      name: adv.name,
+      status: adv.status,
+      par_live: adv.par_live,
+      start_date: adv.start_date || null,
+      renewal_date: adv.renewal_date || null,
+      term_type: adv.term_type,
+      fixed_months: adv.fixed_months || null,
+      fixed_then_rolling: adv.fixed_then_rolling || 'FALSE',
+      primary_contact_first_name: adv.primary_contact_first_name || '',
+      primary_contact_last_name: adv.primary_contact_last_name || '',
+      primary_contact_email: adv.primary_contact_email || ''
+    },
+    children: {
+      contacts: [],
+      packages: packagesOut,
+      articles: articlesOut,
+      services: []
+    }
   };
 }
 
@@ -2260,29 +2336,23 @@ async function importRun(){
   for (let i = 0; i < advReady.length; i++) {
     const adv = advReady[i];
     const id = genId('adv');
-    const payload = buildImportPayload(adv, id);
+    const { advertiser, children } = buildImportPayload(adv, id);
     try {
-      await fetch(ACCOUNTS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(payload).toString()
-      });
+      await sbSaveAdvertiserBundle(advertiser, children);
       success++;
     } catch(e) {
+      console.error('Import failed for', adv.name, e);
       failed++;
     }
     const pct = Math.round(((i+1) / total) * 100);
     bar.style.width = pct + '%';
     msg.textContent = 'Importing ' + (i+1) + ' of ' + total + ' (' + pct + '%)';
     detail.textContent = adv.name;
-    if (i < advReady.length - 1) await new Promise(r => setTimeout(r, 350));
+    // Supabase is fast; no need for a throttle
   }
 
-  msg.textContent = 'Waiting for the sheet to catch up…';
+  msg.textContent = 'Refreshing…';
   detail.textContent = '';
-  await new Promise(r => setTimeout(r, 3500));
-
   await reload();
   closeImport();
   if (failed) {
@@ -3105,36 +3175,29 @@ async function saveBundle(){
   const termType = document.getElementById("fTermType").value;
   const isFixed = termType === "Fixed";
 
-  const payload = {
-    action: "saveAdvertiserBundle",
+  const advertiser = {
     id: id,
     name: name,
     status: document.getElementById("fStatus").value,
     par_live: document.getElementById("fPAR").value,
-    start_date: document.getElementById("fStart").value,
-    renewal_date: isFixed ? document.getElementById("fRenewal").value : "",
+    start_date: document.getElementById("fStart").value || null,
+    renewal_date: isFixed ? (document.getElementById("fRenewal").value || null) : null,
     term_type: termType,
-    fixed_months: isFixed ? (document.getElementById("fFixedMonths").value || "") : "",
+    fixed_months: isFixed ? (document.getElementById("fFixedMonths").value || null) : null,
     fixed_then_rolling: isFixed && document.getElementById("fFixedThenRolling").checked ? "TRUE" : "FALSE",
     primary_contact_first_name: document.getElementById("fPrimaryFirst").value.trim(),
     primary_contact_last_name: document.getElementById("fPrimaryLast").value.trim(),
-    primary_contact_email: document.getElementById("fPrimaryEmail").value.trim(),
-    created_at: wizard.mode === "edit" ? "" : now,
-    updated_at: now,
-    contacts_json: JSON.stringify(wizard.contacts.filter(c => c.first_name || c.last_name || c.email)),
-    packages_json: JSON.stringify(cleanPackages),
-    articles_json: JSON.stringify(allArticles),
-    services_json: JSON.stringify(wizard.services.filter(s => s.name))
+    primary_contact_email: document.getElementById("fPrimaryEmail").value.trim()
+  };
+  const children = {
+    contacts: wizard.contacts.filter(c => c.first_name || c.last_name || c.email),
+    packages: cleanPackages,
+    articles: allArticles,
+    services: wizard.services.filter(s => s.name)
   };
 
   try {
-    await fetch(ACCOUNTS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {"Content-Type": "application/x-www-form-urlencoded"},
-      body: new URLSearchParams(payload).toString()
-    });
-    await new Promise(r => setTimeout(r, 700));
+    await sbSaveAdvertiserBundle(advertiser, children);
     await reload();
     closeWizard();
     if (wizard.mode === "new") openDrawer(id);
@@ -3157,8 +3220,7 @@ async function deleteAdvertiser(){
   const btn = document.getElementById("wizardDeleteBtn");
   btn.disabled = true; btn.textContent = "Deleting…";
   try {
-    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({action:"deleteAdvertiser", id:id}).toString(), {mode:"no-cors"});
-    await new Promise(r => setTimeout(r, 700));
+    await sbDeleteAdvertiser(id);
     await reload();
     closeWizard(); closeDrawer();
     toast.success(`${a?.name || "Advertiser"} deleted`);
@@ -3365,8 +3427,7 @@ async function quickDeleteAdvertiser(id){
   const ok = await confirmDialog(msg, { title: `Delete ${a.name}?`, confirmLabel: "Delete", danger: true });
   if (!ok) return;
   try {
-    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({action:"deleteAdvertiser", id:id}).toString(), {mode:"no-cors"});
-    await new Promise(r => setTimeout(r, 700));
+    await sbDeleteAdvertiser(id);
     await reload();
     closeDrawer();
     toast.success(`${a.name} deleted`);
@@ -3381,10 +3442,7 @@ async function addNote(advId){
   if (!body) return;
   const author = (window.__session && window.__session.username) || "";
   try {
-    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({
-      action: "addNote", advertiser_id: advId, body: body, author: author
-    }).toString(), {mode:"no-cors"});
-    await new Promise(r => setTimeout(r, 700));
+    await sbAddNote(advId, body, author);
     await reload();
     toast.success("Note added");
   } catch(e) {
@@ -3396,8 +3454,7 @@ async function deleteNote(noteId){
   const ok = await confirmDialog("This cannot be undone.", { title: "Delete this note?", confirmLabel: "Delete", danger: true });
   if (!ok) return;
   try {
-    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({action:"deleteNote", id:noteId}).toString(), {mode:"no-cors"});
-    await new Promise(r => setTimeout(r, 700));
+    await sbDeleteNote(noteId);
     await reload();
     toast.success("Note deleted");
   } catch(e) {
@@ -3496,61 +3553,41 @@ function handleInitialDeepLink(){
   ];
   var state = { open: false, advertisers: null, proposals: null, activeIdx: 0, items: [] };
 
-  function loadGviz(sheetId, sheetName){
-    return new Promise(function(resolve){
-      var cb = "_ck" + Date.now() + Math.floor(Math.random()*1e6);
-      var url = "https://docs.google.com/spreadsheets/d/" + sheetId +
-                "/gviz/tq?tqx=out:json;responseHandler:" + cb +
-                "&sheet=" + encodeURIComponent(sheetName) + "&headers=1";
-      window[cb] = function(data){
-        try {
-          if (!data || !data.table) { resolve([]); return; }
-          var cols = data.table.cols.map(function(c){ return (c.label||c.id||"").toString(); });
-          var rows = (data.table.rows||[]).map(function(r){
-            var o = {};
-            r.c.forEach(function(cell, i){ o[cols[i]] = cell ? (cell.v != null ? String(cell.v) : "") : ""; });
-            return o;
-          });
-          resolve(rows);
-        } catch(e) { resolve([]); }
-        delete window[cb];
-        var s = document.getElementById("_cks"+cb); if (s) s.remove();
-      };
-      var s = document.createElement("script");
-      s.id = "_cks" + cb; s.src = url; s.onerror = function(){ resolve([]); };
-      document.body.appendChild(s);
-    });
-  }
-
-  function loadData(){
+  function loadFromSupabase(){
+    var sbClient = window.eitools && window.eitools.sb;
+    if (!sbClient) return Promise.resolve();
     var jobs = [];
     if (state.advertisers === null) {
-      jobs.push(loadGviz(ACCOUNTS_SHEET, "Advertisers").then(function(rows){
-        state.advertisers = rows.map(function(r){
+      jobs.push(sbClient.from('advertisers').select('id,name,status,primary_contact_first_name,primary_contact_last_name,primary_contact_email').then(function(r){
+        var rows = r.data || [];
+        state.advertisers = rows.map(function(row){
           return {
-            type: 'advertiser', id: r.id || '',
-            label: r.name || '(unnamed)',
-            meta: ([r.primary_contact_first_name, r.primary_contact_last_name].filter(Boolean).join(' ') ||
-                   r.primary_contact_email || '') + (r.status ? ' · ' + r.status : '')
+            type: 'advertiser', id: row.id || '',
+            label: row.name || '(unnamed)',
+            meta: ([row.primary_contact_first_name, row.primary_contact_last_name].filter(Boolean).join(' ') ||
+                   row.primary_contact_email || '') + (row.status ? ' · ' + row.status : '')
           };
         }).filter(function(a){ return a.id && a.label; });
       }));
     }
     if (state.proposals === null) {
-      jobs.push(loadGviz(PROPOSALS_SHEET, "Proposals").then(function(rows){
-        state.proposals = rows.map(function(r){
-          var id = r["Proposal ID"] || r.proposal_id || '';
-          var status = r["Status"] || r.status || '';
-          var monthly = parseFloat(r["Monthly Total"] || r.monthly_total) || 0;
+      jobs.push(sbClient.from('proposals').select('id,vendor,status,monthly_total').then(function(r){
+        var rows = r.data || [];
+        state.proposals = rows.map(function(row){
+          var monthly = parseFloat(row.monthly_total) || 0;
           return {
-            type: 'proposal', id: id,
-            label: r["Vendor"] || r.vendor || '(no vendor)',
-            meta: (status || 'Draft') + ' · ' + id + (monthly ? ' · $' + Math.round(monthly).toLocaleString() + '/mo' : '')
+            type: 'proposal', id: row.id || '',
+            label: row.vendor || '(no vendor)',
+            meta: (row.status || 'Draft') + ' · ' + row.id + (monthly ? ' · $' + Math.round(monthly).toLocaleString() + '/mo' : '')
           };
         }).filter(function(p){ return p.id; });
       }));
     }
     return Promise.all(jobs);
+  }
+
+  function loadData(){
+    return loadFromSupabase();
   }
 
   function fuzzy(needle, haystack){
