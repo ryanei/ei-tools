@@ -9,6 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+<!-- Supabase client (Phase 3b) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
@@ -575,6 +578,20 @@ body {
 </style>
 </head>
 <body>
+
+<!-- Auth gate (Phase 3b — proposals.html was previously unprotected) -->
+<script>
+(async function(){
+  for (var i=0; i<40 && !(window.eitools && window.eitools.sb); i++) {
+    await new Promise(function(r){ setTimeout(r, 25); });
+  }
+  if (!window.eitools || !window.eitools.sb) { window.location.href = "login.html"; return; }
+  var session = await window.eitools.requireAuth();
+  if (!session) return;
+  window.__session = { username: (session.user.email || "").split("@")[0], email: session.user.email };
+  window.eitools.logActivity("proposals", "pageview");
+})();
+</script>
 
 <div class="topbar">
   <div class="topbar-brand">
@@ -1949,12 +1966,129 @@ function parseProposalData(jsonStr) {
   return result;
 }
 
-// ═══ APPS SCRIPT BACKEND ═══
+// ═══ APPS SCRIPT BACKEND (Phase 3b — only used for updateStatus → Master Pricing side effect) ═══
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiFJs_8HhhOAL7EZxrSczdp2XQ8CwCFJs_9TiNQ5lr5UXO15JAbhEjYrmNgXRGbLgrKA/exec';
 let allProposals = [];
 let dashFilter = 'all';
 let dashSort = { col: 'date', dir: 'desc' };
 let editingProposalId = null;
+
+// ═══ SUPABASE DATA LAYER (Phase 3b) ═══
+const _sb = () => (window.eitools && window.eitools.sb);
+
+// Apps Script returned camelCase, Supabase columns are snake_case.
+// All front-end code (parseProposalData, dashboard rendering, etc.) already
+// expects camelCase, so we transform on read/write at this boundary only.
+function _propFromSupabase(p) {
+  if (!p) return null;
+  return {
+    id: p.id,
+    vendor: p.vendor || '',
+    dateCreated: p.date_created || '',
+    accountManager: p.account_manager || '',
+    contactEmail: p.contact_email || '',
+    contractTerm: p.contract_term || '',
+    // articles_json is jsonb in Supabase — stringify so parseProposalData() works unchanged
+    articlesJson: p.articles_json ? JSON.stringify(p.articles_json) : '',
+    monthlyTotal: Number(p.monthly_total) || 0,
+    discount: Number(p.discount_pct) || 0,
+    status: p.status || 'Draft',
+    notes: p.notes || '',
+    startDate: p.start_date || '',
+    customerName: p.customer_name || '',
+    advertiserId: p.advertiser_id || '',
+    stage: p.stage || 'Discovery'
+  };
+}
+
+function _propToSupabase(p) {
+  // Convert front-end camelCase + JSON-string articlesJson into snake_case + jsonb object
+  let articlesObj = null;
+  if (p.articlesJson) {
+    try { articlesObj = JSON.parse(p.articlesJson); } catch(e) { articlesObj = { raw: String(p.articlesJson) }; }
+  }
+  const out = {
+    id: p.id,
+    vendor: p.vendor,
+    account_manager: p.accountManager,
+    contact_email: p.contactEmail,
+    contract_term: p.contractTerm,
+    articles_json: articlesObj,
+    monthly_total: p.monthlyTotal != null ? Number(p.monthlyTotal) : null,
+    discount_pct: p.discount != null ? Number(p.discount) : null,
+    status: p.status || 'Draft',
+    notes: p.notes || '',
+    start_date: p.startDate || null,
+    customer_name: p.customerName || '',
+    advertiser_id: p.advertiserId || null,
+    stage: p.stage || 'Discovery'
+  };
+  // Strip empty-string optional fields so column defaults can apply
+  if (out.start_date === '') out.start_date = null;
+  if (out.advertiser_id === '') out.advertiser_id = null;
+  // date_created/updated_at are managed by Supabase (defaults + trigger)
+  return out;
+}
+
+async function sbListProposals(){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const { data, error } = await sb.from('proposals').select('*').order('date_created', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(_propFromSupabase);
+}
+
+async function sbGetProposal(id){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const { data, error } = await sb.from('proposals').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  return _propFromSupabase(data);
+}
+
+async function sbCreateProposal(p){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  // Mint an ID matching the existing convention: PROP-YYYYMMDD-HHmmss
+  const d = new Date();
+  const pad = (n, w=2) => String(n).padStart(w, '0');
+  if (!p.id) {
+    p.id = 'PROP-' + d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate())
+         + '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  }
+  const row = _propToSupabase(p);
+  const { data, error } = await sb.from('proposals').insert(row).select().maybeSingle();
+  if (error) throw error;
+  return _propFromSupabase(data);
+}
+
+async function sbUpdateProposal(p){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  if (!p.id) throw new Error("Proposal id required for update");
+  const row = _propToSupabase(p);
+  delete row.id; // don't try to update the primary key
+  const { error } = await sb.from('proposals').update(row).eq('id', p.id);
+  if (error) throw error;
+}
+
+async function sbDeleteProposal(id){
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const { error } = await sb.from('proposals').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function sbUpdateProposalStatus(id, status, stage){
+  // Update status (and optionally stage) on the Supabase record.
+  // The Master Pricing sheet side-effect still runs via Apps Script (kept separately).
+  const sb = _sb();
+  if (!sb) throw new Error("Supabase client not ready");
+  const fields = { status: status };
+  if (stage) fields.stage = stage;
+  const { error } = await sb.from('proposals').update(fields).eq('id', id);
+  if (error) throw error;
+}
 
 // ═══ VIEW SWITCHING ═══
 function switchView(view) {
@@ -1998,17 +2132,21 @@ function loadProposals() {
   content.style.display = 'none';
   empty.style.display = 'none';
 
-  apiGet('list').then(data => {
-    loading.style.display = 'none';
-    allProposals = data.proposals || [];
-    updateDashStats();
-    renderDashTable();
-    handleDeepLinkParams();
-  }).catch(err => {
-    loading.style.display = 'none';
-    loading.textContent = 'Failed to load proposals. Check your connection.';
-    loading.style.display = 'block';
-  });
+  (async () => {
+    // Wait briefly for the deferred supabase-client.js
+    for (let i=0; i<40 && !_sb(); i++) await new Promise(r => setTimeout(r, 25));
+    try {
+      allProposals = await sbListProposals();
+      loading.style.display = 'none';
+      updateDashStats();
+      renderDashTable();
+      handleDeepLinkParams();
+    } catch(err) {
+      console.error('Failed to load proposals:', err);
+      loading.textContent = 'Failed to load proposals: ' + (err.message || err);
+      loading.style.display = 'block';
+    }
+  })();
 }
 
 // Deep link handlers: ?edit=PROP-ID opens that proposal in builder;
@@ -2195,16 +2333,24 @@ function renderDashTable() {
 }
 
 // ═══ UPDATE STATUS ═══
-function updateStatus(id, status) {
-  apiPost({ action: 'updateStatus', id: id, status: status }).then(() => {
-    // Update local cache
+// Supabase is the primary write; the Apps Script POST is kept as a side effect
+// to keep the Master Pricing tab in sync (Vendor / Vendor — Proposed placement).
+async function updateStatus(id, status) {
+  try {
+    await sbUpdateProposalStatus(id, status);
+    // Update local cache so the UI reflects the change immediately
     const p = allProposals.find(p => p.id === id);
     if (p) p.status = status;
     updateDashStats();
     renderDashTable();
-    // Refresh pricing data so position availability is up to date
-    loadArticlesFromSheet();
-  });
+  } catch(e) {
+    toast.error('Status update failed: ' + (e.message || e));
+    return;
+  }
+  // Side effect: write articles into Master Pricing tab (legacy Apps Script). Fire-and-forget.
+  apiPost({ action: 'updateStatus', id: id, status: status }).catch(()=>{});
+  // Refresh pricing data so position availability is up to date
+  loadArticlesFromSheet();
 }
 
 // ═══ DELETE PROPOSAL ═══
@@ -2213,12 +2359,17 @@ async function deleteProposal(id) {
   const vendor = p ? p.vendor : id;
   const ok = await confirmDialog("This cannot be undone.", { title: `Delete proposal for ${vendor}?`, confirmLabel: 'Delete', danger: true });
   if (!ok) return;
-  apiPost({ action: 'delete', id: id }).then(() => {
-    loadProposals();
-    // Refresh pricing data so position availability is up to date
-    loadArticlesFromSheet();
-    toast.success(`Proposal for ${vendor} deleted`);
-  });
+  try {
+    await sbDeleteProposal(id);
+  } catch(e) {
+    toast.error('Delete failed: ' + (e.message || e));
+    return;
+  }
+  // Side effect: clear positions from Master Pricing tab (legacy Apps Script). Fire-and-forget.
+  apiPost({ action: 'delete', id: id }).catch(()=>{});
+  loadProposals();
+  loadArticlesFromSheet();
+  toast.success(`Proposal for ${vendor} deleted`);
 }
 
 // ═══ SAVE PROPOSAL ═══
@@ -2260,28 +2411,28 @@ function saveProposal(thenGeneratePDF) {
       // Preserve customerName from dashboard edits
       if (existing.customerName) proposal.customerName = existing.customerName;
     }
-    apiPost({ action: 'update', proposal: proposal }).then(() => {
-      showSaveMsg('Saved & updated', 'success');
-      // Refresh allProposals so dashboard and IO generation use fresh data
-      apiGet('list').then(data => {
-        allProposals = data.proposals || [];
-            renderDashTable();
-      });
+    (async () => {
+      try {
+        await sbUpdateProposal(proposal);
+        showSaveMsg('Saved & updated', 'success');
+        allProposals = await sbListProposals();
+        renderDashTable();
+      } catch(e) {
+        console.error('Update failed:', e);
+        showSaveMsg('Save failed — document still generated', 'error');
+      }
       onDone();
-    }).catch(() => {
-      showSaveMsg('Save failed — document still generated', 'error');
-      onDone();
-    });
+    })();
   } else {
-    apiPost({ action: 'create', proposal: proposal }).then((resp) => {
-      showSaveMsg('Saved to dashboard', 'success');
-      apiGet('list').then(data => {
-        allProposals = data.proposals || [];
+    (async () => {
+      try {
+        const created = await sbCreateProposal(proposal);
+        showSaveMsg('Saved to dashboard', 'success');
+        allProposals = await sbListProposals();
         var __pc = document.getElementById('proposalCount'); if (__pc) __pc.textContent = allProposals.length;
         renderDashTable();
         // Set editing state so subsequent saves update rather than create new
-        // Find the most recently created proposal matching this vendor
-        var newId = (resp && resp.id) ? resp.id : null;
+        var newId = (created && created.id) ? created.id : null;
         if (!newId) {
           var matching = allProposals.filter(p => p.vendor === vendor).sort((a,b) => (b.id||'').localeCompare(a.id||''));
           if (matching.length > 0) newId = matching[0].id;
@@ -2291,12 +2442,12 @@ function saveProposal(thenGeneratePDF) {
           document.getElementById('editingIndicator').style.display = 'flex';
           document.getElementById('editingId').textContent = vendor + ' (' + newId + ')';
         }
-      });
+      } catch(e) {
+        console.error('Create failed:', e);
+        showSaveMsg('Save failed — document still generated', 'error');
+      }
       onDone();
-    }).catch(() => {
-      showSaveMsg('Save failed — document still generated', 'error');
-      onDone();
-    });
+    })();
   }
 }
 
@@ -2544,18 +2695,18 @@ function setCustomerName(id) {
   // Save via the standard update action
   var updateData = {};
   for (var k in p) { if (p.hasOwnProperty(k)) updateData[k] = p[k]; }
-  apiPost({ action: 'update', proposal: updateData }).then(function() {
-    renderDashTable();
-    toast.success('Customer name saved: ' + name);
-    // Refresh allProposals from Sheet
-    apiGet('list').then(function(data) {
-      allProposals = data.proposals || [];
+  (async function(){
+    try {
+      await sbUpdateProposal(updateData);
       renderDashTable();
-    });
-  }).catch(function() {
-    renderDashTable();
-    toast.error('Customer name set locally but save may have failed.');
-  });
+      toast.success('Customer name saved: ' + name);
+      allProposals = await sbListProposals();
+      renderDashTable();
+    } catch(err) {
+      renderDashTable();
+      toast.error('Customer name set locally but save may have failed.');
+    }
+  })();
 }
 
 // ═══ IO TERMS MODAL ═══
@@ -3890,9 +4041,10 @@ function generateIOWord(id, customerName, termsOverride, monthlyOverride) {
   });
 }
 
-function initDashCount() {
-  apiGet('list').then(data => {
-    allProposals = data.proposals || [];
+async function initDashCount() {
+  try {
+    for (let i=0; i<40 && !_sb(); i++) await new Promise(r => setTimeout(r, 25));
+    allProposals = await sbListProposals();
     var __pc = document.getElementById('proposalCount'); if (__pc) __pc.textContent = allProposals.length;
     // Deep link: ?edit=PROP-ID opens that proposal in the builder
     var params = new URLSearchParams(window.location.search);
@@ -3901,7 +4053,7 @@ function initDashCount() {
       var match = allProposals.find(function(x){ return x.id === editId; });
       if (match) editProposal(editId);
     }
-  }).catch(() => {});
+  } catch(e) { /* swallow */ }
 }
 
 init();
@@ -3970,56 +4122,33 @@ loadProposals();
   ];
   var state = { open: false, advertisers: null, proposals: null, activeIdx: 0, items: [] };
 
-  function loadGviz(sheetId, sheetName){
-    return new Promise(function(resolve){
-      var cb = "_ck" + Date.now() + Math.floor(Math.random()*1e6);
-      var url = "https://docs.google.com/spreadsheets/d/" + sheetId +
-                "/gviz/tq?tqx=out:json;responseHandler:" + cb +
-                "&sheet=" + encodeURIComponent(sheetName) + "&headers=1";
-      window[cb] = function(data){
-        try {
-          if (!data || !data.table) { resolve([]); return; }
-          var cols = data.table.cols.map(function(c){ return (c.label||c.id||"").toString(); });
-          var rows = (data.table.rows||[]).map(function(r){
-            var o = {};
-            r.c.forEach(function(cell, i){ o[cols[i]] = cell ? (cell.v != null ? String(cell.v) : "") : ""; });
-            return o;
-          });
-          resolve(rows);
-        } catch(e) { resolve([]); }
-        delete window[cb];
-        var s = document.getElementById("_cks"+cb); if (s) s.remove();
-      };
-      var s = document.createElement("script");
-      s.id = "_cks" + cb; s.src = url; s.onerror = function(){ resolve([]); };
-      document.body.appendChild(s);
-    });
-  }
-
+  // Phase 3b: Cmd+K palette now reads from Supabase instead of gviz.
   function loadData(){
+    var sbClient = window.eitools && window.eitools.sb;
+    if (!sbClient) return Promise.resolve();
     var jobs = [];
     if (state.advertisers === null) {
-      jobs.push(loadGviz(ACCOUNTS_SHEET, "Advertisers").then(function(rows){
-        state.advertisers = rows.map(function(r){
+      jobs.push(sbClient.from('advertisers').select('id,name,status,primary_contact_first_name,primary_contact_last_name,primary_contact_email').then(function(r){
+        var rows = r.data || [];
+        state.advertisers = rows.map(function(row){
           return {
-            type: 'advertiser', id: r.id || '',
-            label: r.name || '(unnamed)',
-            meta: ([r.primary_contact_first_name, r.primary_contact_last_name].filter(Boolean).join(' ') ||
-                   r.primary_contact_email || '') + (r.status ? ' · ' + r.status : '')
+            type: 'advertiser', id: row.id || '',
+            label: row.name || '(unnamed)',
+            meta: ([row.primary_contact_first_name, row.primary_contact_last_name].filter(Boolean).join(' ') ||
+                   row.primary_contact_email || '') + (row.status ? ' · ' + row.status : '')
           };
         }).filter(function(a){ return a.id && a.label; });
       }));
     }
     if (state.proposals === null) {
-      jobs.push(loadGviz(PROPOSALS_SHEET, "Proposals").then(function(rows){
-        state.proposals = rows.map(function(r){
-          var id = r["Proposal ID"] || r.proposal_id || '';
-          var status = r["Status"] || r.status || '';
-          var monthly = parseFloat(r["Monthly Total"] || r.monthly_total) || 0;
+      jobs.push(sbClient.from('proposals').select('id,vendor,status,monthly_total').then(function(r){
+        var rows = r.data || [];
+        state.proposals = rows.map(function(row){
+          var monthly = parseFloat(row.monthly_total) || 0;
           return {
-            type: 'proposal', id: id,
-            label: r["Vendor"] || r.vendor || '(no vendor)',
-            meta: (status || 'Draft') + ' · ' + id + (monthly ? ' · $' + Math.round(monthly).toLocaleString() + '/mo' : '')
+            type: 'proposal', id: row.id || '',
+            label: row.vendor || '(no vendor)',
+            meta: (row.status || 'Draft') + ' · ' + row.id + (monthly ? ' · $' + Math.round(monthly).toLocaleString() + '/mo' : '')
           };
         }).filter(function(p){ return p.id; });
       }));
