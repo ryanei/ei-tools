@@ -198,22 +198,22 @@ def processed_filenames(secret_key):
 
 
 def insert_rows(rows, source_file, secret_key):
-    """Bulk-insert into bombora_raw in chunks of BATCH_SIZE."""
+    """Bulk-insert into bombora_raw in chunks of BATCH_SIZE.
+       parse_row() produces uniform shape (all 51 keys, with None for empty
+       fields), so we don't strip nulls — that would create variable-shape
+       batches and PostgREST rejects those with PGRST102 "All object keys
+       must match". Nullable columns happily accept JSON null."""
     if not rows:
         return 0
-    # Drop None values so column defaults take effect (matches migrate.py pattern)
-    cleaned = [
-        {**{k: v for k, v in r.items() if v is not None}, "source_file": source_file}
-        for r in rows
-    ]
+    payload = [{**r, "source_file": source_file} for r in rows]
     inserted = 0
-    for i in range(0, len(cleaned), BATCH_SIZE):
-        chunk = cleaned[i:i + BATCH_SIZE]
+    for i in range(0, len(payload), BATCH_SIZE):
+        chunk = payload[i:i + BATCH_SIZE]
         status, body = sb_request(
             "POST",
             "bombora_raw",
             body=chunk,
-            headers_extra={"Prefer": "return=minimal,missing=default"},
+            headers_extra={"Prefer": "return=minimal"},
             secret_key=secret_key,
         )
         if status >= 400:
