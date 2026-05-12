@@ -1234,9 +1234,11 @@ function applyDatePreset(val) {
   customWrap.style.display = "none";
   
   if (val === "all") {
-    const allDates = allBomboraRows.map(r => getDayKey(r["Import Date"]||"")).filter(Boolean).sort();
-    fromEl.value = allDates.length ? allDates[0] : "";
-    toEl.value = allDates.length ? allDates[allDates.length - 1] : "";
+    // Use the cached global bounds (one fast min/max query at page load)
+    // rather than scanning allBomboraRows — which now only holds the
+    // currently-filtered window, not every row.
+    fromEl.value = bomboraDateBounds.min || "";
+    toEl.value   = bomboraDateBounds.max || "";
   } else if (val === "lastmonth") {
     const now = new Date();
     const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -1251,9 +1253,9 @@ function applyDatePreset(val) {
     fromEl.value = from.toISOString().slice(0, 10);
     toEl.value = to.toISOString().slice(0, 10);
   }
-  
+
   updateDateRangeDisplay();
-  renderDashboard();
+  reloadBomboraData();
 }
 
 function onDatePresetChange() {
@@ -1262,7 +1264,7 @@ function onDatePresetChange() {
 
 function onDateChange() {
   updateDateRangeDisplay();
-  renderDashboard();
+  reloadBomboraData();
 }
 
 // ─── Render ──────────────────────────────────────────────
@@ -1737,8 +1739,10 @@ async function downloadAllPDFs() {
 // (header-cased keys: "Bombora ID", "URL", "Domain", "Import Date", …) so
 // the rest of the Audience tab's processing pipeline doesn't have to change.
 //
-// Paginates because Supabase caps each request at 1000 rows by default.
-async function loadBomboraFromSupabase() {
+// SQL-bounds by universal_datetime so we don't paginate hundreds of thousands
+// of rows over the wire when the user only wants a month's worth. Caller
+// passes ISO date strings (YYYY-MM-DD); pass null for unbounded.
+async function loadBomboraFromSupabase(fromDate, toDate) {
   for (let i = 0; i < 40 && !(window.eitools && window.eitools.sb); i++) {
     await new Promise(r => setTimeout(r, 25));
   }
@@ -1748,22 +1752,20 @@ async function loadBomboraFromSupabase() {
   const PAGE = 1000;
   let from = 0;
   const out = [];
-  // We only need the columns reports.html actually consumes — keeps the
-  // payload small even when the table grows to 100k+ rows.
-  //
   // For "Import Date" we use universal_datetime (the actual event time set
   // by Bombora) rather than ingested_at — otherwise the historical backfill
   // looks like one giant spike on the day we ran the ingester. Fall back to
   // ingested_at if universal_datetime is null (shouldn't happen in practice).
   const cols = 'bombora_id,url,domain,universal_datetime,ingested_at,country,industry,company_size,company_revenue,professional_group,functional_area,seniority';
   // Loop with .range() until we get back fewer rows than the page size.
-  // Safety cap at 200 pages (200,000 rows) so a runaway query can't lock the page.
-  for (let page = 0; page < 200; page++) {
-    const { data, error } = await sb
-      .from('bombora_raw')
+  // Safety cap at 500 pages (500k rows) so a runaway query can't lock the page.
+  for (let page = 0; page < 500; page++) {
+    let q = sb.from('bombora_raw')
       .select(cols)
-      .order('universal_datetime', { ascending: true, nullsFirst: false })
-      .range(from, from + PAGE - 1);
+      .order('universal_datetime', { ascending: true, nullsFirst: false });
+    if (fromDate) q = q.gte('universal_datetime', fromDate + 'T00:00:00Z');
+    if (toDate)   q = q.lte('universal_datetime', toDate   + 'T23:59:59.999Z');
+    const { data, error } = await q.range(from, from + PAGE - 1);
     if (error) throw error;
     if (!data || !data.length) break;
     for (const r of data) {
@@ -1786,6 +1788,43 @@ async function loadBomboraFromSupabase() {
     from += PAGE;
   }
   return out;
+}
+
+// Quick min/max query so the "All" preset and the date inputs know the
+// available range without having to load every row.
+async function loadBomboraDateBounds() {
+  const sb = window.eitools && window.eitools.sb;
+  if (!sb) return { min: null, max: null };
+  const [minRes, maxRes] = await Promise.all([
+    sb.from('bombora_raw').select('universal_datetime').order('universal_datetime', { ascending: true,  nullsFirst: false }).limit(1).maybeSingle(),
+    sb.from('bombora_raw').select('universal_datetime').order('universal_datetime', { ascending: false, nullsFirst: false }).limit(1).maybeSingle(),
+  ]);
+  const fmt = ts => ts ? new Date(ts).toISOString().slice(0, 10) : null;
+  return {
+    min: fmt(minRes.data && minRes.data.universal_datetime),
+    max: fmt(maxRes.data && maxRes.data.universal_datetime),
+  };
+}
+
+// Cached date bounds — fetched once at page load, used by the "All" preset.
+let bomboraDateBounds = { min: null, max: null };
+
+// Refetch bombora data for the currently-selected date range. Called when
+// the user changes the date filter. Re-renders after.
+async function reloadBomboraData() {
+  const from = document.getElementById("dateFrom").value;
+  const to   = document.getElementById("dateTo").value;
+  if (!from || !to) { renderDashboard(); return; }
+  document.body.style.cursor = "wait";
+  try {
+    allBomboraRows = await loadBomboraFromSupabase(from, to);
+    renderDashboard();
+  } catch (e) {
+    console.error("Bombora reload failed:", e);
+    if (window.toast) window.toast.error("Couldn't refresh audience data: " + (e.message || e));
+  } finally {
+    document.body.style.cursor = "";
+  }
 }
 
 // ─── JSONP loader ────────────────────────────────────────
@@ -1931,12 +1970,28 @@ async function loadData() {
   const loading=document.getElementById("loadingScreen"), error=document.getElementById("errorScreen"), dash=document.getElementById("dashboard");
   loading.style.display="flex"; error.style.display="none"; dash.style.display="none";
   try {
-    const [bomboraRows, advRows, settingsRows, clickRows] = await Promise.all([
-      loadBomboraFromSupabase(),                               // ← was loadSheetJSONP(BOMBORA_SHEET_ID, "Sheet1")
+    // Compute the default date range (lastmonth = previous calendar month)
+    // before fetching, so we only pull that window of rows from Supabase.
+    // Pre-populate the date inputs so applyDatePreset/onDateChange see them.
+    const _now = new Date();
+    const _from = new Date(_now.getFullYear(), _now.getMonth() - 1, 1);
+    const _to   = new Date(_now.getFullYear(), _now.getMonth(), 0);
+    const initFrom = _from.toISOString().slice(0, 10);
+    const initTo   = _to.toISOString().slice(0, 10);
+    document.getElementById("dateFrom").value = initFrom;
+    document.getElementById("dateTo").value   = initTo;
+    const presetEl = document.getElementById("datePreset");
+    if (presetEl) presetEl.value = "lastmonth";
+
+    // Also fetch the global min/max dates in parallel — used by the "All" preset.
+    const [bomboraRows, advRows, settingsRows, clickRows, bounds] = await Promise.all([
+      loadBomboraFromSupabase(initFrom, initTo),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet1"),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet2"),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet3"),
+      loadBomboraDateBounds(),
     ]);
+    bomboraDateBounds = bounds;
     if (!bomboraRows.length) throw new Error("No Bombora data — has the ingester run yet?");
     allBomboraRows = bomboraRows;
     advertiserMap = parseAdvertiserSheet(advRows);
@@ -1948,8 +2003,11 @@ async function loadData() {
       document.getElementById("advertiserSelect").value = currentAdvertiser;
     } else { currentAdvertiser = ""; }
     loading.style.display = "none";
-    // Default to Last month
-    applyDatePreset("lastmonth");
+    // Inputs are already set to "lastmonth" above; data is already fetched
+    // for that range. Just trigger the render — don't call applyDatePreset
+    // since that would refetch the same window we just loaded.
+    updateDateRangeDisplay();
+    renderDashboard();
   } catch(err) {
     loading.style.display="none"; error.style.display="flex";
     document.getElementById("errorMsg").textContent = err.message;
