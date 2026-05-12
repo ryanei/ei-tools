@@ -887,7 +887,7 @@
     <span style="color:#8093A3;">to</span>
     <input type="date" class="advertiser-select" id="dateTo" onchange="onDateChange()" style="min-width:130px;" />
   </div>
-  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="limitDomains" onchange="renderDashboard()" style="cursor:pointer;" /><span class="filter-label" style="font-weight:500;">Limit domain data</span></label>
+  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="limitDomains" onchange="reloadBomboraData()" style="cursor:pointer;" /><span class="filter-label" style="font-weight:500;">Limit domain data</span></label>
   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="hideWeekly" onchange="renderDashboard()" style="cursor:pointer;" /><span class="filter-label" style="font-weight:500;">Hide weekly chart</span></label>
   <div><span class="filter-label">Rows:</span> <span id="rowCount">–</span></div>
   <button class="btn" onclick="loadData()">↻ Refresh</button>
@@ -951,7 +951,11 @@ const BOMBORA_SHEET_ID = "12QD-qlPFpsUcpH_etqOolBGGURzYqoofXHPsWAwWFNw";
 const ADVERTISER_SHEET_ID = "1zzNNL9POaARVo-xFSKouujjpenA0yjUo2Fjq-GlEk6s";
 const PALETTE = ["#001323","#012747","#2563EB","#1D4FD7","#8093A3","#4F606E","#585C66","#E7E7E7"];
 
-let allBomboraRows = [];
+// All aggregation now happens server-side in public.get_audience_summary().
+// The Audience tab caches the latest RPC result here and re-renders from it.
+// `allBomboraRows` and the client-side processData() were removed in favour
+// of the single-RPC approach — page load went from 15-20s to <2s.
+let lastSummary = null;
 let advertiserMap = {};
 let limitDomainsMap = {};
 let clickData = {};  // { "advertiser": { "slug": clicks, "YYYY-MM|slug": clicks } }
@@ -959,34 +963,6 @@ let currentAdvertiser = "";
 
 function fmt(n) { return n == null ? "0" : Number(n).toLocaleString("en-US"); }
 function pct(p, t) { return t ? Math.round((p/t)*100) : 0; }
-function topN(map, n=10) { return Object.entries(map).filter(([k])=>k&&k.trim()).sort((a,b)=>b[1]-a[1]).slice(0,n); }
-
-const SIZE_ORDER = ["Micro","Small","Medium-Small","Medium","Medium-Large","Large","XLarge","XXLarge"];
-const REV_ORDER = ["Micro","Small","Medium-Small","Medium-Large","Large","XLarge","XXLarge"];
-
-function sortByOrder(map, order) {
-  // Always include every category from the order, default to 0
-  return order.map(key => {
-    // Find matching entry (startsWith to handle labels like "Small (10 - 49 Employees)")
-    const match = Object.entries(map).find(([k]) => k && k.startsWith(key));
-    return match || [key, 0];
-  });
-}
-
-function getDayKey(ds) {
-  try {
-    if (!ds) return null;
-    let d;
-    if (typeof ds === "string" && ds.startsWith("Date(")) {
-      const parts = ds.replace("Date(","").replace(")","").split(",").map(Number);
-      d = new Date(parts[0], parts[1], parts[2]||1);
-    } else { d = new Date(ds); }
-    if (isNaN(d)) return null;
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  } catch { return null; }
-}
-
-function parseMulti(v) { return v ? v.split("|").map(s=>s.trim()).filter(Boolean) : []; }
 
 function normalizePath(url) {
   if (!url) return "";
@@ -997,41 +973,12 @@ function normalizePath(url) {
   return p.toLowerCase();
 }
 
-const REGION_MAP = {
-  // North America
-  "United States":"North America","Canada":"North America",
-  // LATAM
-  "Mexico":"LATAM","Brazil":"LATAM","Argentina":"LATAM","Colombia":"LATAM","Chile":"LATAM","Peru":"LATAM",
-  "Panama":"LATAM","Costa Rica":"LATAM","Dominican Republic":"LATAM","Ecuador":"LATAM","Trinidad and Tobago":"LATAM","Belize":"LATAM","Jamaica":"LATAM",
-  // EMEA
-  "United Kingdom":"EMEA","United Kingdom (Great Britain)":"EMEA",
-  "Germany":"EMEA","France":"EMEA","Spain":"EMEA","Italy":"EMEA","Netherlands":"EMEA","Finland":"EMEA",
-  "South Africa":"EMEA","Israel":"EMEA","Sweden":"EMEA","Norway":"EMEA","Denmark":"EMEA","Switzerland":"EMEA",
-  "Poland":"EMEA","Belgium":"EMEA","Austria":"EMEA","Ireland":"EMEA","Portugal":"EMEA",
-  "Czech Republic":"EMEA","Romania":"EMEA","Turkey":"EMEA","Saudi Arabia":"EMEA",
-  "UAE":"EMEA","United Arab Emirates":"EMEA",
-  "Egypt":"EMEA","Nigeria":"EMEA","Kenya":"EMEA",
-  "Croatia":"EMEA","Slovakia":"EMEA","Armenia":"EMEA","Ghana":"EMEA","Latvia":"EMEA",
-  "Bulgaria":"EMEA","Lithuania":"EMEA","Hungary":"EMEA","Algeria":"EMEA",
-  "Tanzania, United Republic of":"EMEA","Qatar":"EMEA","Kuwait":"EMEA","Ukraine":"EMEA",
-  "Zambia":"EMEA","Slovenia":"EMEA","Iraq":"EMEA","Oman":"EMEA",
-  "Albania":"EMEA","Serbia":"EMEA","Russian Federation":"EMEA","Macedonia":"EMEA",
-  "Greece":"EMEA","Malta":"EMEA","Jordan":"EMEA","Morocco":"EMEA","Bahrain":"EMEA",
-  "Estonia":"EMEA","Cyprus":"EMEA","Lesotho":"EMEA","Kazakhstan":"EMEA",
-  "Palestinian Territory":"EMEA","Ethiopia":"EMEA","Rwanda":"EMEA","Niger":"EMEA",
-  "Lebanon":"EMEA","Namibia":"EMEA","Mauritius":"EMEA","Tunisia":"EMEA",
-  "Luxembourg":"EMEA","Angola":"EMEA","Belarus":"EMEA","Madagascar":"EMEA",
-  "Moldova, Republic of":"EMEA","Kyrgyzstan":"EMEA","Uzbekistan":"EMEA",
-  // APAC
-  "India":"APAC","China":"APAC","Japan":"APAC","Singapore":"APAC","Australia":"APAC",
-  "South Korea":"APAC","Korea (South)":"APAC",
-  "Hong Kong":"APAC","Taiwan":"APAC","New Zealand":"APAC","Thailand":"APAC",
-  "Malaysia":"APAC","Philippines":"APAC","Indonesia":"APAC","Vietnam":"APAC",
-  "Pakistan":"APAC","Bangladesh":"APAC","Sri Lanka":"APAC","Mongolia":"APAC",
-  "Timor-Leste":"APAC","Myanmar":"APAC","Cambodia":"APAC","Papua New Guinea":"APAC",
-};
-
-// Advertiser/vendor domains filtered from Top Business Domains when viewing advertiser reports
+// REGION_MAP, SIZE_ORDER, REV_ORDER, getDayKey, parseMulti, topN, sortByOrder
+// all live in SQL now (see supabase/bombora.sql get_audience_summary).
+//
+// Advertiser/vendor domains stripped from Top Business Domains under
+// advertiser views. Edited by humans; kept client-side rather than shipped
+// to the RPC.
 const ADVERTISER_DOMAINS = new Set([
   // EI advertiser domains
   "abnormalsecurity.com","acronis.com","arcticwolf.com","axonius.com","barracuda.com",
@@ -1079,148 +1026,9 @@ const ADVERTISER_DOMAINS = new Set([
   "traceable.ai","tuskira.com","valence.security","veriti.ai","wiz.io",
 ]);
 
-function processData(rows) {
-  const uv=new Set(), doms=new Set(); let pv=0;
-  const daily={}, urlStats={}, industryC={}, sizeC={}, revC={}, profC={}, funcC={}, senC={}, countryC={};
-  const domVis={}, domPV={}, domPages={};
-
-  // Pre-seed urlStats with all mapped advertiser paths so 0-visit pages still appear
-  if (currentAdvertiser && advertiserMap[currentAdvertiser]) {
-    advertiserMap[currentAdvertiser].forEach(p => {
-      const path = normalizePath(p);
-      if (path && !urlStats[path]) urlStats[path] = {pv:0, vis:new Set(), dom:new Set()};
-    });
-  }
-
-  // Excluded domains — filtered from all stats
-  const EXCLUDED_DOMAINS = new Set(["gammagroup.co"]);
-
-  rows.forEach(r => {
-    const bid=r["Bombora ID"]||"", url=r["URL"]||"", domain=r["Domain"]||"", importDate=r["Import Date"]||"";
-    const country=r["Country"]||"", industry=r["Industry"]||"";
-    const compSize=r["Company_Size"]||"", compRev=r["Company_Revenue"]||"";
-    const profGroup=r["Professional_Group"]||"", funcArea=r["Functional_Area"]||"", seniority=r["Seniority"]||"";
-
-    if (EXCLUDED_DOMAINS.has(domain)) return;
-    pv++;
-    if(bid) uv.add(bid);
-    if(domain) doms.add(domain);
-
-    const dk=getDayKey(importDate);
-    if(dk){
-      if(!daily[dk]) daily[dk]={pv:0,vis:new Set(),dom:new Set()};
-      daily[dk].pv++; if(bid) daily[dk].vis.add(bid); if(domain) daily[dk].dom.add(domain);
-    }
-
-    if(url){
-      const path=normalizePath(url);
-      if(!urlStats[path]) urlStats[path]={pv:0,vis:new Set(),dom:new Set()};
-      urlStats[path].pv++; if(bid) urlStats[path].vis.add(bid); if(domain) urlStats[path].dom.add(domain);
-      
-      // Track pages per domain
-      if(domain) {
-        if(!domPages[domain]) domPages[domain]={};
-        if(!domPages[domain][path]) domPages[domain][path]=0;
-        domPages[domain][path]++;
-      }
-    }
-
-    if(industry){ const top=industry.split("|")[0].split(">")[0].trim(); if(top) industryC[top]=(industryC[top]||0)+1; }
-    if(compSize) sizeC[compSize]=(sizeC[compSize]||0)+1;
-    if(compRev) revC[compRev]=(revC[compRev]||0)+1;
-    parseMulti(profGroup).forEach(pg=>{ profC[pg]=(profC[pg]||0)+1; });
-    if(funcArea) funcC[funcArea]=(funcC[funcArea]||0)+1;
-    if(seniority) {
-      let senKey = seniority.trim();
-      if(senKey.toLowerCase().includes("csuite") || senKey.toLowerCase().includes("c-suite")) senKey = "C-Suite";
-      else if(senKey.toLowerCase().includes("board") || senKey.toLowerCase().includes("ownership")) senKey = "Management";
-      senC[senKey]=(senC[senKey]||0)+1;
-    }
-    if(country) countryC[country]=(countryC[country]||0)+1;
-    if(domain){ if(!domVis[domain]) domVis[domain]=new Set(); if(bid) domVis[domain].add(bid); domPV[domain]=(domPV[domain]||0)+1; }
-  });
-
-  const days=Object.keys(daily).sort();
-  // Aggregate into weeks (Mon-Sun)
-  const weekMap = {};
-  days.forEach(dk => {
-    const d = new Date(dk + "T00:00:00");
-    const day = d.getDay(); // 0=Sun
-    const diff = (day === 0 ? -6 : 1) - day; // shift to Monday
-    const mon = new Date(d);
-    mon.setDate(mon.getDate() + diff);
-    const wk = mon.toISOString().slice(0,10);
-    if (!weekMap[wk]) weekMap[wk] = { pv:0, vis:new Set(), dom:new Set() };
-    weekMap[wk].pv += daily[dk].pv;
-    daily[dk].vis.forEach(v => weekMap[wk].vis.add(v));
-    daily[dk].dom.forEach(v => weekMap[wk].dom.add(v));
-  });
-  const weeks = Object.keys(weekMap).sort().map(wk => {
-    const d = new Date(wk + "T00:00:00");
-    const end = new Date(d); end.setDate(end.getDate() + 6);
-    const label = d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
-    return { week:wk, label, pageViews:weekMap[wk].pv, visitors:weekMap[wk].vis.size, domains:weekMap[wk].dom.size };
-  });
-  const urlTableAll=Object.entries(urlStats).map(([p,s])=>({path:p,pv:s.pv,visitors:s.vis.size,domains:s.dom.size})).sort((a,b)=>b.visitors-a.visitors);
-  const urlTable=currentAdvertiser ? urlTableAll : urlTableAll.slice(0,15);
-  const domainTableRaw=Object.keys(domVis).map(d=>{
-    const pages = domPages[d] ? Object.entries(domPages[d]) : [];
-    // Extract distinct categories (first path segment)
-    const cats = new Set();
-    pages.forEach(([p]) => {
-      const seg = p.split("/").filter(Boolean)[0];
-      if (seg) cats.add(seg);
-    });
-    const pagesHtml = [...cats].map(c => {
-      const title = c.replace(/-/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
-      return title;
-    }).join(", ");
-    return {domain:d, visitors:domVis[d].size, pv:domPV[d]||0, pages:pagesHtml};
-  }).sort((a,b)=>b.visitors-a.visitors);
-  // Filter advertiser/vendor domains from Top Business Domains when viewing an advertiser
-  const domainFiltered = currentAdvertiser
-    ? domainTableRaw.filter(d => !ADVERTISER_DOMAINS.has(d.domain.toLowerCase()))
-    : domainTableRaw;
-  const domainTable = currentAdvertiser ? domainFiltered : domainFiltered.slice(0,15);
-  const regionC={};
-  const unmappedCountries={};
-  Object.entries(countryC).forEach(([c,n])=>{ 
-    const r=REGION_MAP[c]||"Other"; 
-    regionC[r]=(regionC[r]||0)+n;
-    if(r==="Other") unmappedCountries[c]=n;
-  });
-  if(Object.keys(unmappedCountries).length) console.log("Unmapped countries (falling into Other):", JSON.stringify(unmappedCountries));
-
-  return {
-    pageViews:pv, uniqueVisitors:uv.size, businessDomains:doms.size, weeks, urlTable, domainTable,
-    industry:topN(industryC,8), companySize:sortByOrder(sizeC, SIZE_ORDER), revenue:sortByOrder(revC, REV_ORDER),
-    profGroup:topN(profC,3), funcArea:topN(funcC,3), seniority:topN(senC,5),
-    countries:topN(countryC,9), regions:topN(regionC,5),
-  };
-}
-
-function getFilteredRows() {
-  let rows = allBomboraRows;
-  if (currentAdvertiser && advertiserMap[currentAdvertiser]) {
-    const allowed = advertiserMap[currentAdvertiser].map(p => p.toLowerCase());
-    rows = rows.filter(r => {
-      const rp = normalizePath(r["URL"]||"");
-      return allowed.some(ap => rp === ap || rp.startsWith(ap + "/"));
-    });
-  }
-  const fromVal = document.getElementById("dateFrom").value;
-  const toVal = document.getElementById("dateTo").value;
-  if (fromVal || toVal) {
-    rows = rows.filter(r => {
-      const dk = getDayKey(r["Import Date"]||"");
-      if (!dk) return false;
-      if (fromVal && dk < fromVal) return false;
-      if (toVal && dk > toVal) return false;
-      return true;
-    });
-  }
-  return rows;
-}
+// processData() and getFilteredRows() were deleted — aggregation + filtering
+// are now done in Postgres (public.get_audience_summary). renderDashboard
+// reads directly from `lastSummary` which is the RPC's jsonb payload.
 
 function applyDatePreset(val) {
   const fromEl = document.getElementById("dateFrom");
@@ -1435,10 +1243,30 @@ function section(title,subtitle,content) {
 }
 
 function renderDashboard() {
-  const filtered = getFilteredRows();
-  const d = processData(filtered);
+  if (!lastSummary) return;
+  // Local mutable copy — we adjust urlTable (zero-path pre-seed) and
+  // domainTable (ADVERTISER_DOMAINS filter) before rendering.
+  const d = JSON.parse(JSON.stringify(lastSummary));
 
-  document.getElementById("rowCount").textContent = fmt(filtered.length);
+  // Re-instate the per-advertiser "zero-row paths still appear" behaviour
+  // (was at the head of processData()). Adds {path, pv:0, visitors:0, domains:0}
+  // for each mapped path missing from the RPC's top-N urlTable.
+  if (currentAdvertiser && advertiserMap[currentAdvertiser]) {
+    const have = new Set(d.urlTable.map(r => r.path));
+    advertiserMap[currentAdvertiser].forEach(p => {
+      const path = normalizePath(p);
+      if (path && !have.has(path)) {
+        d.urlTable.push({ path, pv: 0, visitors: 0, domains: 0 });
+      }
+    });
+  }
+
+  // Strip vendor/advertiser-self domains from Top Business Domains for advertiser views.
+  if (currentAdvertiser) {
+    d.domainTable = d.domainTable.filter(r => !ADVERTISER_DOMAINS.has((r.domain || "").toLowerCase()));
+  }
+
+  document.getElementById("rowCount").textContent = fmt(d.pageViews);
   const loadTimeEl = document.getElementById("loadTime");
   if (loadTimeEl) loadTimeEl.textContent = "Loaded " + new Date().toLocaleTimeString();
 
@@ -1452,9 +1280,8 @@ function renderDashboard() {
 
   const showClicks = currentAdvertiser && isFullCalendarMonth();
   const month = getSelectedMonth();
-  console.log("Click debug:", { currentAdvertiser, isFullMonth: isFullCalendarMonth(), month, showClicks, clickDataKeys: Object.keys(clickData) });
 
-  // Compute click totals for urlTable rows
+  // Compute click totals for urlTable rows (clicks come from Sheet3, unchanged)
   let totalClicks = 0;
   if (showClicks) {
     d.urlTable.forEach(row => {
@@ -1489,9 +1316,15 @@ function renderDashboard() {
       renderRegions(d.regions)
     )}
     ${(function(){
+      // domainTable already trimmed server-side when limit_domains is on and
+      // no advertiser filter is active. The CTA still renders based on the
+      // checkbox state, regardless of who did the slicing.
       const limited = document.getElementById("limitDomains").checked;
-      const rows = limited ? d.domainTable.slice(0, 3) : d.domainTable;
       const cta = limited ? '<div style="margin-top:20px;padding:18px 22px;background:#012747;border-radius:6px;font-size:13px;color:#DDE6F0;line-height:1.55;letter-spacing:-0.005em;"><strong style="color:#FFFFFF;font-weight:600;">Want to see the full picture?</strong> Unlock complete intent data for your campaign — including all identified business domains and detailed visitor insights. Contact your account manager to learn more.</div>' : '';
+      // Belt-and-braces slice: when an advertiser filter is active, the RPC
+      // returns all rows so the client can do the ADVERTISER_DOMAINS strip;
+      // if limit_domains is on in that case, trim here.
+      const rows = (limited && currentAdvertiser) ? d.domainTable.slice(0, 3) : d.domainTable;
       return section("Top Business Domains", "Identified companies by visitor count", renderTable(
         [{key:"domain",label:"Domain"},{key:"pv",label:"Page Views",align:"right"},{key:"visitors",label:"Visitors",align:"right"},{key:"pages",label:"Categories"}], rows
       ) + cta);
@@ -1508,7 +1341,9 @@ function onAdvertiserChange() {
   } else {
     document.getElementById("limitDomains").checked = false;
   }
-  renderDashboard();
+  // Advertiser filter + limit_domains are now RPC parameters, so we need
+  // to refetch rather than just re-render.
+  reloadBomboraData();
 }
 
 function getDateRangeLabel() {
@@ -1735,59 +1570,24 @@ async function downloadAllPDFs() {
 }
 
 // ─── Bombora loader (Supabase) ───────────────────────────
-// Reads bombora_raw and reshapes each row to match the legacy gviz output
-// (header-cased keys: "Bombora ID", "URL", "Domain", "Import Date", …) so
-// the rest of the Audience tab's processing pipeline doesn't have to change.
-//
-// SQL-bounds by universal_datetime so we don't paginate hundreds of thousands
-// of rows over the wire when the user only wants a month's worth. Caller
-// passes ISO date strings (YYYY-MM-DD); pass null for unbounded.
-async function loadBomboraFromSupabase(fromDate, toDate) {
+// Single-RPC dashboard loader. Calls public.get_audience_summary(...) and
+// returns the jsonb payload directly. Replaces the previous paginated
+// raw-row loader, which was loading 12+ pages and crunching ~12k rows
+// client-side (15-20s for one month).
+async function loadAudienceSummary(fromDate, toDate, advertiserUrls, limitDomains) {
   for (let i = 0; i < 40 && !(window.eitools && window.eitools.sb); i++) {
     await new Promise(r => setTimeout(r, 25));
   }
   if (!(window.eitools && window.eitools.sb)) throw new Error('Supabase client not ready');
   const sb = window.eitools.sb;
-
-  const PAGE = 1000;
-  let from = 0;
-  const out = [];
-  // For "Import Date" we use universal_datetime (the actual event time set
-  // by Bombora) rather than ingested_at — otherwise the historical backfill
-  // looks like one giant spike on the day we ran the ingester. Fall back to
-  // ingested_at if universal_datetime is null (shouldn't happen in practice).
-  const cols = 'bombora_id,url,domain,universal_datetime,ingested_at,country,industry,company_size,company_revenue,professional_group,functional_area,seniority';
-  // Loop with .range() until we get back fewer rows than the page size.
-  // Safety cap at 500 pages (500k rows) so a runaway query can't lock the page.
-  for (let page = 0; page < 500; page++) {
-    let q = sb.from('bombora_raw')
-      .select(cols)
-      .order('universal_datetime', { ascending: true, nullsFirst: false });
-    if (fromDate) q = q.gte('universal_datetime', fromDate + 'T00:00:00Z');
-    if (toDate)   q = q.lte('universal_datetime', toDate   + 'T23:59:59.999Z');
-    const { data, error } = await q.range(from, from + PAGE - 1);
-    if (error) throw error;
-    if (!data || !data.length) break;
-    for (const r of data) {
-      const eventTs = r.universal_datetime || r.ingested_at;
-      out.push({
-        "Bombora ID":         r.bombora_id || "",
-        "URL":                r.url || "",
-        "Domain":             r.domain || "",
-        "Import Date":        eventTs ? new Date(eventTs).toISOString() : "",
-        "Country":            r.country || "",
-        "Industry":           r.industry || "",
-        "Company_Size":       r.company_size || "",
-        "Company_Revenue":    r.company_revenue || "",
-        "Professional_Group": r.professional_group || "",
-        "Functional_Area":    r.functional_area || "",
-        "Seniority":          r.seniority || "",
-      });
-    }
-    if (data.length < PAGE) break;
-    from += PAGE;
-  }
-  return out;
+  const { data, error } = await sb.rpc('get_audience_summary', {
+    from_date:       fromDate,
+    to_date:         toDate,
+    advertiser_urls: (advertiserUrls && advertiserUrls.length) ? advertiserUrls : null,
+    limit_domains:   !!limitDomains,
+  });
+  if (error) throw error;
+  return data;
 }
 
 // Quick min/max query so the "All" preset and the date inputs know the
@@ -1809,18 +1609,26 @@ async function loadBomboraDateBounds() {
 // Cached date bounds — fetched once at page load, used by the "All" preset.
 let bomboraDateBounds = { min: null, max: null };
 
-// Refetch bombora data for the currently-selected date range. Called when
-// the user changes the date filter. Re-renders after.
+// Refetch the audience summary for the currently-selected filters. Called
+// whenever date range, advertiser, or limit_domains changes. One RPC call.
 async function reloadBomboraData() {
   const from = document.getElementById("dateFrom").value;
   const to   = document.getElementById("dateTo").value;
   if (!from || !to) { renderDashboard(); return; }
+
+  // Resolve advertiser URL allowlist (from the still-Google-Sheets-backed
+  // advertiserMap). Normalise paths the same way the server does.
+  const advUrls = (currentAdvertiser && advertiserMap[currentAdvertiser])
+    ? advertiserMap[currentAdvertiser].map(p => normalizePath(p)).filter(Boolean)
+    : null;
+  const limitDomains = !!document.getElementById("limitDomains").checked;
+
   document.body.style.cursor = "wait";
   try {
-    allBomboraRows = await loadBomboraFromSupabase(from, to);
+    lastSummary = await loadAudienceSummary(from, to, advUrls, limitDomains);
     renderDashboard();
   } catch (e) {
-    console.error("Bombora reload failed:", e);
+    console.error("Audience reload failed:", e);
     if (window.toast) window.toast.error("Couldn't refresh audience data: " + (e.message || e));
   } finally {
     document.body.style.cursor = "";
@@ -1983,17 +1791,20 @@ async function loadData() {
     const presetEl = document.getElementById("datePreset");
     if (presetEl) presetEl.value = "lastmonth";
 
-    // Also fetch the global min/max dates in parallel — used by the "All" preset.
-    const [bomboraRows, advRows, settingsRows, clickRows, bounds] = await Promise.all([
-      loadBomboraFromSupabase(initFrom, initTo),
+    // One RPC for the dashboard + min/max bounds + 3 Sheet reads in parallel.
+    const [summary, advRows, settingsRows, clickRows, bounds] = await Promise.all([
+      loadAudienceSummary(initFrom, initTo, null, false),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet1"),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet2"),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet3"),
       loadBomboraDateBounds(),
     ]);
     bomboraDateBounds = bounds;
-    if (!bomboraRows.length) throw new Error("No Bombora data — has the ingester run yet?");
-    allBomboraRows = bomboraRows;
+    if (!summary || (summary.pageViews|0) === 0) {
+      // Empty but non-error — keep going (the dashboard will render zeros).
+      console.warn("Audience summary is empty for", initFrom, "→", initTo);
+    }
+    lastSummary = summary;
     advertiserMap = parseAdvertiserSheet(advRows);
     limitDomainsMap = parseAdvertiserSettings(settingsRows);
     console.log("Sheet3 raw rows:", clickRows.length, clickRows.length ? JSON.stringify(clickRows[0]) : "empty");

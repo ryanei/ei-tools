@@ -234,6 +234,332 @@ $$;
 
 grant execute on function public.get_intent_summary(int) to authenticated, service_role;
 
+
+-- ── 4. Supporting index for the date predicate ────────────────────────
+-- get_audience_summary() filters on coalesce(universal_datetime, ingested_at)::date.
+-- Without this expression index, Postgres scans the whole table for every call.
+create index if not exists idx_bombora_raw_event_date
+  on public.bombora_raw ((coalesce(universal_datetime, ingested_at)::date));
+
+
+-- ── 5. get_audience_summary() ─────────────────────────────────────────
+-- One call returns the entire Audience tab dashboard for a date range:
+-- KPIs + weekly chart + top pages + top business domains + every
+-- demographic table. Replaces the client-side processData() in
+-- reports.html which paginated thousands of raw rows and crunched
+-- everything in JS.
+--
+--   from_date / to_date : inclusive, applied against
+--                         coalesce(universal_datetime, ingested_at)::date
+--   advertiser_urls     : NULL or empty = no allowlist (All view).
+--                         Otherwise each row's normalised path must
+--                         match one of these prefixes (exact OR startsWith).
+--                         Paths are pre-normalised by the client.
+--   limit_domains       : when true (and no advertiser filter), top
+--                         business domains is capped at 3 server-side.
+--
+-- gammagroup.co is hard-excluded for parity with get_intent_summary().
+-- ADVERTISER_DOMAINS (vendor exclusion list) stays client-side: edited
+-- by humans, changes often, wasteful to ship over the wire.
+create or replace function public.get_audience_summary(
+  from_date       date,
+  to_date         date,
+  advertiser_urls text[]  default null,
+  limit_domains   boolean default false
+)
+returns jsonb
+language sql
+stable
+security definer
+as $$
+with
+base as (
+  select
+    b.bombora_id,
+    b.domain,
+    coalesce(b.universal_datetime, b.ingested_at)::date as event_date,
+    -- URL normalisation: mirrors normalizePath() in reports.html (~line 991)
+    (
+      with u0 as (select coalesce(b.url, '') as u),
+           u1 as (select regexp_replace(u, '^https?://expertinsights\.com', '') as u from u0),
+           u2 as (select split_part(split_part(u, '#', 1), '?', 1) as u from u1),
+           u3 as (select case when u = '' or u like '/%' then u else '/' || u end as u from u2),
+           u4 as (select case when length(u) > 1 and right(u, 1) = '/' then left(u, length(u)-1) else u end as u from u3)
+      select lower(u) from u4
+    ) as path,
+    b.country,
+    nullif(btrim(split_part(split_part(coalesce(b.industry, ''), '|', 1), '>', 1)), '') as industry_top,
+    nullif(btrim(coalesce(b.company_size, '')),    '') as company_size,
+    nullif(btrim(coalesce(b.company_revenue, '')), '') as revenue,
+    nullif(btrim(coalesce(b.professional_group, '')), '') as professional_group_raw,
+    nullif(btrim(coalesce(b.functional_area, '')), '') as functional_area,
+    case
+      when lower(coalesce(b.seniority, '')) like '%csuite%'    then 'C-Suite'
+      when lower(coalesce(b.seniority, '')) like '%c-suite%'   then 'C-Suite'
+      when lower(coalesce(b.seniority, '')) like '%board%'     then 'Management'
+      when lower(coalesce(b.seniority, '')) like '%ownership%' then 'Management'
+      else nullif(btrim(coalesce(b.seniority, '')), '')
+    end as seniority
+  from public.bombora_raw b
+  where coalesce(b.universal_datetime, b.ingested_at)::date between from_date and to_date
+    and lower(btrim(coalesce(b.domain, ''))) <> 'gammagroup.co'
+),
+f as (
+  select b.*
+  from base b
+  where advertiser_urls is null
+     or array_length(advertiser_urls, 1) is null
+     or exists (
+       select 1 from unnest(advertiser_urls) as a(allowed)
+       where b.path = a.allowed
+          or b.path like a.allowed || '/%'
+     )
+),
+kpis as (
+  select
+    count(*)                                          as page_views,
+    count(distinct nullif(btrim(bombora_id), ''))     as unique_visitors,
+    count(distinct nullif(btrim(domain), ''))         as business_domains
+  from f
+),
+weekly as (
+  select
+    date_trunc('week', event_date)::date              as week_start,
+    count(*)                                          as page_views,
+    count(distinct nullif(btrim(bombora_id), ''))     as visitors,
+    count(distinct nullif(btrim(domain),     ''))     as domains
+  from f
+  group by 1 order by 1
+),
+pages_agg as (
+  select
+    path,
+    count(*)                                          as pv,
+    count(distinct nullif(btrim(bombora_id), ''))     as visitors,
+    count(distinct nullif(btrim(domain),     ''))     as domains
+  from f
+  where path is not null and path <> ''
+  group by path
+),
+domain_agg as (
+  select
+    domain,
+    count(*)                                          as pv,
+    count(distinct nullif(btrim(bombora_id), ''))     as visitors
+  from f
+  where coalesce(btrim(domain), '') <> ''
+  group by domain
+),
+domain_cats as (
+  -- First path segment per (domain, path), Title Cased.
+  select
+    domain,
+    string_agg(distinct cat_title, ', ' order by cat_title) as categories
+  from (
+    select
+      f.domain,
+      initcap(replace(split_part(trim(both '/' from f.path), '/', 1), '-', ' ')) as cat_title
+    from f
+    where coalesce(btrim(f.domain), '') <> ''
+      and f.path is not null and f.path <> ''
+      and split_part(trim(both '/' from f.path), '/', 1) <> ''
+  ) s
+  group by domain
+),
+domain_table as (
+  select d.domain, d.pv, d.visitors, coalesce(c.categories, '') as pages
+  from domain_agg d
+  left join domain_cats c using (domain)
+  order by d.visitors desc, d.pv desc
+),
+industry_agg as (
+  select industry_top as label, count(*) as n
+  from f where industry_top is not null
+  group by industry_top
+  order by n desc
+  limit 8
+),
+size_agg as (
+  select company_size as label, count(*) as n
+  from f where company_size is not null
+  group by company_size
+),
+size_ordered as (
+  -- SIZE_ORDER mirrored from reports.html.
+  select o.ord, coalesce(s.label, o.prefix) as label, coalesce(s.n, 0) as n
+  from (values (1,'Micro'),(2,'Small'),(3,'Medium-Small'),(4,'Medium'),
+               (5,'Medium-Large'),(6,'Large'),(7,'XLarge'),(8,'XXLarge')
+       ) o(ord, prefix)
+  left join lateral (
+    select label, sum(n) as n
+    from size_agg
+    where label ilike o.prefix || '%'
+    group by label
+    order by n desc
+    limit 1
+  ) s on true
+  order by o.ord
+),
+rev_agg as (
+  select revenue as label, count(*) as n
+  from f where revenue is not null
+  group by revenue
+),
+rev_ordered as (
+  -- REV_ORDER mirrored from reports.html (no "Medium" bucket here).
+  select o.ord, coalesce(s.label, o.prefix) as label, coalesce(s.n, 0) as n
+  from (values (1,'Micro'),(2,'Small'),(3,'Medium-Small'),
+               (4,'Medium-Large'),(5,'Large'),(6,'XLarge'),(7,'XXLarge')
+       ) o(ord, prefix)
+  left join lateral (
+    select label, sum(n) as n
+    from rev_agg
+    where label ilike o.prefix || '%'
+    group by label
+    order by n desc
+    limit 1
+  ) s on true
+  order by o.ord
+),
+prof_agg as (
+  -- Each row's professional_group is itself '|'-delimited; split first.
+  select pg as label, count(*) as n
+  from f, lateral unnest(string_to_array(professional_group_raw, '|')) as pg
+  where btrim(coalesce(pg, '')) <> ''
+  group by pg
+  order by n desc
+  limit 3
+),
+func_agg as (
+  select functional_area as label, count(*) as n
+  from f where functional_area is not null
+  group by functional_area
+  order by n desc
+  limit 3
+),
+sen_agg as (
+  select seniority as label, count(*) as n
+  from f where seniority is not null
+  group by seniority
+  order by n desc
+  limit 5
+),
+region_agg as (
+  -- REGION_MAP inline. Unmapped countries go to 'Other' (filtered out below).
+  select
+    case country
+      when 'United States' then 'North America' when 'Canada' then 'North America'
+      when 'Mexico' then 'LATAM' when 'Brazil' then 'LATAM' when 'Argentina' then 'LATAM'
+      when 'Colombia' then 'LATAM' when 'Chile' then 'LATAM' when 'Peru' then 'LATAM'
+      when 'Panama' then 'LATAM' when 'Costa Rica' then 'LATAM' when 'Dominican Republic' then 'LATAM'
+      when 'Ecuador' then 'LATAM' when 'Trinidad and Tobago' then 'LATAM' when 'Belize' then 'LATAM'
+      when 'Jamaica' then 'LATAM'
+      when 'United Kingdom' then 'EMEA' when 'United Kingdom (Great Britain)' then 'EMEA'
+      when 'Germany' then 'EMEA' when 'France' then 'EMEA' when 'Spain' then 'EMEA'
+      when 'Italy' then 'EMEA' when 'Netherlands' then 'EMEA' when 'Finland' then 'EMEA'
+      when 'South Africa' then 'EMEA' when 'Israel' then 'EMEA' when 'Sweden' then 'EMEA'
+      when 'Norway' then 'EMEA' when 'Denmark' then 'EMEA' when 'Switzerland' then 'EMEA'
+      when 'Poland' then 'EMEA' when 'Belgium' then 'EMEA' when 'Austria' then 'EMEA'
+      when 'Ireland' then 'EMEA' when 'Portugal' then 'EMEA' when 'Czech Republic' then 'EMEA'
+      when 'Romania' then 'EMEA' when 'Turkey' then 'EMEA' when 'Saudi Arabia' then 'EMEA'
+      when 'UAE' then 'EMEA' when 'United Arab Emirates' then 'EMEA' when 'Egypt' then 'EMEA'
+      when 'Nigeria' then 'EMEA' when 'Kenya' then 'EMEA' when 'Croatia' then 'EMEA'
+      when 'Slovakia' then 'EMEA' when 'Armenia' then 'EMEA' when 'Ghana' then 'EMEA'
+      when 'Latvia' then 'EMEA' when 'Bulgaria' then 'EMEA' when 'Lithuania' then 'EMEA'
+      when 'Hungary' then 'EMEA' when 'Algeria' then 'EMEA'
+      when 'Tanzania, United Republic of' then 'EMEA' when 'Qatar' then 'EMEA'
+      when 'Kuwait' then 'EMEA' when 'Ukraine' then 'EMEA' when 'Zambia' then 'EMEA'
+      when 'Slovenia' then 'EMEA' when 'Iraq' then 'EMEA' when 'Oman' then 'EMEA'
+      when 'Albania' then 'EMEA' when 'Serbia' then 'EMEA' when 'Russian Federation' then 'EMEA'
+      when 'Macedonia' then 'EMEA' when 'Greece' then 'EMEA' when 'Malta' then 'EMEA'
+      when 'Jordan' then 'EMEA' when 'Morocco' then 'EMEA' when 'Bahrain' then 'EMEA'
+      when 'Estonia' then 'EMEA' when 'Cyprus' then 'EMEA' when 'Lesotho' then 'EMEA'
+      when 'Kazakhstan' then 'EMEA' when 'Palestinian Territory' then 'EMEA'
+      when 'Ethiopia' then 'EMEA' when 'Rwanda' then 'EMEA' when 'Niger' then 'EMEA'
+      when 'Lebanon' then 'EMEA' when 'Namibia' then 'EMEA' when 'Mauritius' then 'EMEA'
+      when 'Tunisia' then 'EMEA' when 'Luxembourg' then 'EMEA' when 'Angola' then 'EMEA'
+      when 'Belarus' then 'EMEA' when 'Madagascar' then 'EMEA'
+      when 'Moldova, Republic of' then 'EMEA' when 'Kyrgyzstan' then 'EMEA'
+      when 'Uzbekistan' then 'EMEA'
+      when 'India' then 'APAC' when 'China' then 'APAC' when 'Japan' then 'APAC'
+      when 'Singapore' then 'APAC' when 'Australia' then 'APAC' when 'South Korea' then 'APAC'
+      when 'Korea (South)' then 'APAC' when 'Hong Kong' then 'APAC' when 'Taiwan' then 'APAC'
+      when 'New Zealand' then 'APAC' when 'Thailand' then 'APAC' when 'Malaysia' then 'APAC'
+      when 'Philippines' then 'APAC' when 'Indonesia' then 'APAC' when 'Vietnam' then 'APAC'
+      when 'Pakistan' then 'APAC' when 'Bangladesh' then 'APAC' when 'Sri Lanka' then 'APAC'
+      when 'Mongolia' then 'APAC' when 'Timor-Leste' then 'APAC' when 'Myanmar' then 'APAC'
+      when 'Cambodia' then 'APAC' when 'Papua New Guinea' then 'APAC'
+      else 'Other'
+    end as region,
+    count(*) as n
+  from f
+  where coalesce(btrim(country), '') <> ''
+  group by 1
+  order by n desc
+  limit 5
+)
+select jsonb_build_object(
+  'pageViews',       (select page_views      from kpis),
+  'uniqueVisitors',  (select unique_visitors from kpis),
+  'businessDomains', (select business_domains from kpis),
+  'weeks', coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'week',      to_char(week_start, 'YYYY-MM-DD'),
+      'label',     to_char(week_start, 'FMMon FMDD'),
+      'pageViews', page_views,
+      'visitors',  visitors,
+      'domains',   domains
+    ) order by week_start)
+    from weekly
+  ), '[]'::jsonb),
+  'urlTable', coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'path', path, 'pv', pv, 'visitors', visitors, 'domains', domains
+    ) order by visitors desc, pv desc)
+    from (
+      select * from pages_agg
+      order by visitors desc, pv desc
+      limit case
+        when advertiser_urls is null or array_length(advertiser_urls, 1) is null
+        then 15 else 10000 end
+    ) p
+  ), '[]'::jsonb),
+  'domainTable', coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'domain', domain, 'pv', pv, 'visitors', visitors, 'pages', pages
+    ) order by visitors desc, pv desc)
+    from (
+      select * from domain_table
+      order by visitors desc, pv desc
+      limit case
+        when advertiser_urls is not null and array_length(advertiser_urls, 1) is not null
+        then 10000
+        when limit_domains then 3
+        else 15
+      end
+    ) d
+  ), '[]'::jsonb),
+  'industry',    coalesce((select jsonb_agg(jsonb_build_array(label, n) order by n desc) from industry_agg), '[]'::jsonb),
+  'companySize', coalesce((select jsonb_agg(jsonb_build_array(label, n) order by ord)    from size_ordered), '[]'::jsonb),
+  'revenue',     coalesce((select jsonb_agg(jsonb_build_array(label, n) order by ord)    from rev_ordered),  '[]'::jsonb),
+  'profGroup',   coalesce((select jsonb_agg(jsonb_build_array(label, n) order by n desc) from prof_agg),     '[]'::jsonb),
+  'funcArea',    coalesce((select jsonb_agg(jsonb_build_array(label, n) order by n desc) from func_agg),     '[]'::jsonb),
+  'seniority',   coalesce((select jsonb_agg(jsonb_build_array(label, n) order by n desc) from sen_agg),      '[]'::jsonb),
+  'regions',     coalesce((select jsonb_agg(jsonb_build_array(region, n) order by n desc) from region_agg),  '[]'::jsonb),
+  'meta', jsonb_build_object(
+    'rowCount',         (select page_views from kpis),
+    'fromDate',         to_char(from_date, 'YYYY-MM-DD'),
+    'toDate',           to_char(to_date,   'YYYY-MM-DD'),
+    'advertiserFilter', advertiser_urls is not null and array_length(advertiser_urls, 1) is not null,
+    'limitDomains',     limit_domains
+  )
+);
+$$;
+
+grant execute on function public.get_audience_summary(date, date, text[], boolean)
+  to authenticated, service_role;
+
+
 -- ════════════════════════════════════════════════════════════════════════
 -- DONE.
 -- ════════════════════════════════════════════════════════════════════════
