@@ -898,7 +898,7 @@
 <div class="main" id="mainContent">
   <div class="loading-screen" id="loadingScreen">
     <div class="spinner"></div>
-    <div style="font-size:14px;color:#4F606E;">Loading data from Google Sheets...</div>
+    <div style="font-size:14px;color:#4F606E;">Loading audience data…</div>
   </div>
   <div class="error-screen" id="errorScreen" style="display:none;">
     <div style="font-size:18px;font-weight:700;color:#A60E0D;">Failed to load data</div>
@@ -1750,23 +1750,29 @@ async function loadBomboraFromSupabase() {
   const out = [];
   // We only need the columns reports.html actually consumes — keeps the
   // payload small even when the table grows to 100k+ rows.
-  const cols = 'bombora_id,url,domain,ingested_at,country,industry,company_size,company_revenue,professional_group,functional_area,seniority';
+  //
+  // For "Import Date" we use universal_datetime (the actual event time set
+  // by Bombora) rather than ingested_at — otherwise the historical backfill
+  // looks like one giant spike on the day we ran the ingester. Fall back to
+  // ingested_at if universal_datetime is null (shouldn't happen in practice).
+  const cols = 'bombora_id,url,domain,universal_datetime,ingested_at,country,industry,company_size,company_revenue,professional_group,functional_area,seniority';
   // Loop with .range() until we get back fewer rows than the page size.
   // Safety cap at 200 pages (200,000 rows) so a runaway query can't lock the page.
   for (let page = 0; page < 200; page++) {
     const { data, error } = await sb
       .from('bombora_raw')
       .select(cols)
-      .order('ingested_at', { ascending: true })
+      .order('universal_datetime', { ascending: true, nullsFirst: false })
       .range(from, from + PAGE - 1);
     if (error) throw error;
     if (!data || !data.length) break;
     for (const r of data) {
+      const eventTs = r.universal_datetime || r.ingested_at;
       out.push({
         "Bombora ID":         r.bombora_id || "",
         "URL":                r.url || "",
         "Domain":             r.domain || "",
-        "Import Date":        r.ingested_at ? new Date(r.ingested_at).toISOString() : "",
+        "Import Date":        eventTs ? new Date(eventTs).toISOString() : "",
         "Country":            r.country || "",
         "Industry":           r.industry || "",
         "Company_Size":       r.company_size || "",
