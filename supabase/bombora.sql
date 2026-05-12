@@ -271,11 +271,12 @@ create or replace function public.get_audience_summary(
 returns jsonb
 language sql
 stable
-parallel safe   -- ← let Postgres use multiple worker processes for the heavy aggregations
+parallel safe
 security definer
+set work_mem = '128MB'   -- ← keep the materialised CTE in RAM; default 4 MB spills to temp files
 as $$
 with
-base as materialized (
+f as materialized (   -- merged base + f into one materialised CTE (was two)
   -- v3 perf fix: compute the stripped URL ONCE per row in the inner
   -- subquery (column `p`). The previous version called the same chain
   -- of three regexp_replace's THREE times per row (once per case branch).
@@ -336,16 +337,13 @@ base as materialized (
       and b.universal_datetime <  (to_date + 1)::timestamptz
       and lower(btrim(coalesce(b.domain, ''))) <> 'gammagroup.co'
   ) inner_base
-),
-f as materialized (
-  select b.*
-  from base b
+  -- Advertiser allowlist filter, applied AFTER path is computed (so we can match against it).
   where advertiser_urls is null
      or array_length(advertiser_urls, 1) is null
      or exists (
        select 1 from unnest(advertiser_urls) as a(allowed)
-       where b.path = a.allowed
-          or b.path like a.allowed || '/%'
+       where (lower(case when p='' then '' when left(p,1)='/' then p else '/'||p end)) = a.allowed
+          or (lower(case when p='' then '' when left(p,1)='/' then p else '/'||p end)) like a.allowed || '/%'
      )
 ),
 kpis as (
