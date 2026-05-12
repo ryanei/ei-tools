@@ -1521,46 +1521,77 @@ async function downloadAllPDFs() {
   pdfBtn.disabled = true;
   select.disabled = true;
 
+  const skipped = [];
+
   try {
     const zip = new JSZip();
     const advertisers = Object.keys(advertiserMap);
     const total = advertisers.length + 1; // +1 for "All"
+
+    // PHASE 1: warm the cache aggressively in parallel. After this, every
+    // advertiser's summary is in memory and the PDF phase becomes pure
+    // client-side render work (sub-100ms per PDF).
+    btn.textContent = `⏳ Preparing data for ${total} reports...`;
+    abortPrefetch();                // halt any running background prefetch
+    await new Promise(r => setTimeout(r, 50));   // let it actually unwind
+    // Pre-fetch the "All" view + every advertiser. Concurrency 5.
+    const from = document.getElementById("dateFrom").value;
+    const to   = document.getElementById("dateTo").value;
+    const allKey = _summaryCacheKey(from, to, null, false);
+    if (!summaryCache.has(allKey)) {
+      try {
+        summaryCache.set(allKey, await loadAudienceSummary(from, to, null, false));
+      } catch (e) { console.warn("Prefetch All failed:", e && e.message); }
+    }
+    await prefetchAdvertiserSummaries(5);
+
     let count = 0;
 
-    // First: generate "All" report. await reloadBomboraData() so the dashboard
-    // actually contains All's data before we snapshot it to PDF — under the new
-    // RPC architecture renderDashboard() reads from lastSummary, which has to
-    // be refreshed via the server call (or cache).
-    btn.textContent = `⏳ Generating 1 of ${total}...`;
+    // PHASE 2: render All
+    count++;
+    btn.textContent = `⏳ Generating ${count} of ${total}...`;
     currentAdvertiser = "";
     select.value = "";
     document.getElementById("limitDomains").checked = false;
-    await reloadBomboraData();
-    const allBlob = await generatePDFBlob();
-    zip.file(getPDFFilename(""), allBlob);
-    count++;
+    const allOk = await reloadBomboraData({silent: true});
+    if (allOk) {
+      const allBlob = await generatePDFBlob();
+      zip.file(getPDFFilename(""), allBlob);
+    } else {
+      skipped.push("All");
+    }
 
-    // Then: each advertiser. Same await pattern — the cache makes this
-    // instant if prefetch already covered them; otherwise it's the full
-    // RPC round-trip per advertiser, but always after the data is ready.
+    // PHASE 3: render each advertiser
     for (const adv of advertisers) {
       count++;
       btn.textContent = `⏳ Generating ${count} of ${total}...`;
       currentAdvertiser = adv;
       select.value = adv;
       document.getElementById("limitDomains").checked = !!limitDomainsMap[adv];
-      await reloadBomboraData();
+      const ok = await reloadBomboraData({silent: true});
+      if (!ok) {
+        skipped.push(adv);
+        continue;   // skip this PDF — don't snapshot stale data
+      }
       const blob = await generatePDFBlob();
       zip.file(getPDFFilename(adv), blob);
     }
 
     // Generate and download ZIP
     btn.textContent = "⏳ Creating ZIP...";
-    const from = document.getElementById("dateFrom").value;
-    const to = document.getElementById("dateTo").value;
-    const zipSuffix = (from && to) ? `_${from}_to_${to}` : "";
+    const zfrom = document.getElementById("dateFrom").value;
+    const zto   = document.getElementById("dateTo").value;
+    const zipSuffix = (zfrom && zto) ? `_${zfrom}_to_${zto}` : "";
     const zipBlob = await zip.generateAsync({ type: "blob" });
     saveAs(zipBlob, `Audience_Reports${zipSuffix}.zip`);
+
+    if (skipped.length) {
+      toast.error(`Skipped ${skipped.length} report(s) because their data couldn't be loaded: ` +
+                  skipped.slice(0, 5).join(", ") + (skipped.length > 5 ? ` (+${skipped.length-5} more)` : ""),
+                  { duration: 8000 });
+    } else {
+      toast.success(`All ${total} report(s) downloaded.`);
+    }
 
     // Restore to "All" view
     currentAdvertiser = "";
@@ -1628,24 +1659,25 @@ function _summaryCacheKey(from, to, advUrls, limitDomains){
 
 // Refetch the audience summary for the currently-selected filters. Called
 // whenever date range, advertiser, or limit_domains changes. Hits cache first.
-async function reloadBomboraData() {
+// Returns true on success, false on failure (caller can decide what to do).
+// `options.silent` suppresses the user-facing error toast — useful for batch
+// flows where we'd rather report errors collectively at the end.
+async function reloadBomboraData(options) {
+  options = options || {};
   const from = document.getElementById("dateFrom").value;
   const to   = document.getElementById("dateTo").value;
-  if (!from || !to) { renderDashboard(); return; }
+  if (!from || !to) { renderDashboard(); return true; }
 
-  // Resolve advertiser URL allowlist (from the still-Google-Sheets-backed
-  // advertiserMap). Normalise paths the same way the server does.
   const advUrls = (currentAdvertiser && advertiserMap[currentAdvertiser])
     ? advertiserMap[currentAdvertiser].map(p => normalizePath(p)).filter(Boolean)
     : null;
   const limitDomains = !!document.getElementById("limitDomains").checked;
 
-  // Cache hit → instant render
   const cacheKey = _summaryCacheKey(from, to, advUrls, limitDomains);
   if (summaryCache.has(cacheKey)) {
     lastSummary = summaryCache.get(cacheKey);
     renderDashboard();
-    return;
+    return true;
   }
 
   document.body.style.cursor = "wait";
@@ -1656,9 +1688,13 @@ async function reloadBomboraData() {
     summaryCache.set(cacheKey, result);
     lastSummary = result;
     renderDashboard();
+    return true;
   } catch (e) {
     console.error("Audience reload failed:", e);
-    if (window.toast) window.toast.error("Couldn't refresh audience data: " + (e.message || e));
+    if (!options.silent && window.toast) {
+      window.toast.error("Couldn't refresh audience data: " + (e.message || e));
+    }
+    return false;
   } finally {
     document.body.style.cursor = "";
     if (indicator) indicator.classList.remove("show");
@@ -1666,30 +1702,45 @@ async function reloadBomboraData() {
 }
 
 // Background prefetch — after the initial "All" view loads, quietly fetch
-// each advertiser's summary so subsequent clicks are instant. One request
-// at a time, with a small delay between, so we don't hammer the database.
-// Skips any combo already in the cache. Silent failures.
-async function prefetchAdvertiserSummaries() {
+// each advertiser's summary in parallel so subsequent clicks are instant.
+// Concurrency-limited so we don't open 70 connections at once. Continues
+// past failures (a single timeout shouldn't sink the rest).
+let _prefetchAbort = false;
+async function prefetchAdvertiserSummaries(concurrency) {
+  concurrency = concurrency || 4;
+  _prefetchAbort = false;
   const from = document.getElementById("dateFrom").value;
   const to   = document.getElementById("dateTo").value;
   if (!from || !to) return;
-  const names = Object.keys(advertiserMap || {});
-  for (const name of names) {
+  const queue = Object.keys(advertiserMap || []).slice();
+  let done = 0;
+  const total = queue.length;
+  const fetchOne = async (name) => {
     const urls = (advertiserMap[name] || []).map(p => normalizePath(p)).filter(Boolean);
-    if (!urls.length) continue;
+    if (!urls.length) { done++; return; }
     const ld = !!(limitDomainsMap && limitDomainsMap[name]);
     const key = _summaryCacheKey(from, to, urls, ld);
-    if (summaryCache.has(key)) continue;
+    if (summaryCache.has(key)) { done++; return; }
     try {
       const result = await loadAudienceSummary(from, to, urls, ld);
       summaryCache.set(key, result);
     } catch (e) {
       console.warn("Prefetch failed for", name, e && e.message);
-      break;  // bail on errors — don't keep hammering
+      // continue — don't break the chain
     }
-    await new Promise(r => setTimeout(r, 150));
-  }
+    done++;
+  };
+  const workers = Array(concurrency).fill(0).map(async () => {
+    while (queue.length && !_prefetchAbort) {
+      const name = queue.shift();
+      if (!name) continue;
+      await fetchOne(name);
+    }
+  });
+  await Promise.all(workers);
+  console.log("Prefetch complete:", done + "/" + total);
 }
+function abortPrefetch(){ _prefetchAbort = true; }
 
 // ─── JSONP loader ────────────────────────────────────────
 function loadSheetJSONP(sheetId, sheetName) {

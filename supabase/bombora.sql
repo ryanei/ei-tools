@@ -274,6 +274,7 @@ stable
 parallel safe
 security definer
 set work_mem = '128MB'   -- ← keep the materialised CTE in RAM; default 4 MB spills to temp files
+set statement_timeout = '60s'   -- ← override role default (8s) so heavy advertiser queries don't get killed
 as $$
 with
 f as materialized (   -- merged base + f into one materialised CTE (was two)
@@ -337,13 +338,16 @@ f as materialized (   -- merged base + f into one materialised CTE (was two)
       and b.universal_datetime <  (to_date + 1)::timestamptz
       and lower(btrim(coalesce(b.domain, ''))) <> 'gammagroup.co'
   ) inner_base
-  -- Advertiser allowlist filter, applied AFTER path is computed (so we can match against it).
+  -- Advertiser allowlist filter, referencing the *precomputed* `path` column
+  -- exposed by the outer select. This avoids recomputing the case-on-`p`
+  -- expression once per allowlist entry, which was killing performance for
+  -- advertisers with many URLs.
   where advertiser_urls is null
      or array_length(advertiser_urls, 1) is null
      or exists (
        select 1 from unnest(advertiser_urls) as a(allowed)
-       where (lower(case when p='' then '' when left(p,1)='/' then p else '/'||p end)) = a.allowed
-          or (lower(case when p='' then '' when left(p,1)='/' then p else '/'||p end)) like a.allowed || '/%'
+       where lower(case when p = '' then '' when left(p,1) = '/' then p else '/'||p end) = a.allowed
+          or lower(case when p = '' then '' when left(p,1) = '/' then p else '/'||p end) like a.allowed || '/%'
      )
 ),
 kpis as (
