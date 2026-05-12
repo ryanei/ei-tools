@@ -271,6 +271,7 @@ create or replace function public.get_audience_summary(
 returns jsonb
 language sql
 stable
+parallel safe   -- ← let Postgres use multiple worker processes for the heavy aggregations
 security definer
 as $$
 with
