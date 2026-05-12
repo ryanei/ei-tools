@@ -944,6 +944,9 @@
 </div>
 
 <script>
+// BOMBORA_SHEET_ID kept for reference only — Audience tab now reads from
+// Supabase bombora_raw (populated by the Plan H SFTP ingester). The Sheet
+// is still being written by Zapier as a backup during the reconciliation period.
 const BOMBORA_SHEET_ID = "12QD-qlPFpsUcpH_etqOolBGGURzYqoofXHPsWAwWFNw";
 const ADVERTISER_SHEET_ID = "1zzNNL9POaARVo-xFSKouujjpenA0yjUo2Fjq-GlEk6s";
 const PALETTE = ["#001323","#012747","#2563EB","#1D4FD7","#8093A3","#4F606E","#585C66","#E7E7E7"];
@@ -1729,6 +1732,56 @@ async function downloadAllPDFs() {
   select.disabled = false;
 }
 
+// ─── Bombora loader (Supabase) ───────────────────────────
+// Reads bombora_raw and reshapes each row to match the legacy gviz output
+// (header-cased keys: "Bombora ID", "URL", "Domain", "Import Date", …) so
+// the rest of the Audience tab's processing pipeline doesn't have to change.
+//
+// Paginates because Supabase caps each request at 1000 rows by default.
+async function loadBomboraFromSupabase() {
+  for (let i = 0; i < 40 && !(window.eitools && window.eitools.sb); i++) {
+    await new Promise(r => setTimeout(r, 25));
+  }
+  if (!(window.eitools && window.eitools.sb)) throw new Error('Supabase client not ready');
+  const sb = window.eitools.sb;
+
+  const PAGE = 1000;
+  let from = 0;
+  const out = [];
+  // We only need the columns reports.html actually consumes — keeps the
+  // payload small even when the table grows to 100k+ rows.
+  const cols = 'bombora_id,url,domain,ingested_at,country,industry,company_size,company_revenue,professional_group,functional_area,seniority';
+  // Loop with .range() until we get back fewer rows than the page size.
+  // Safety cap at 200 pages (200,000 rows) so a runaway query can't lock the page.
+  for (let page = 0; page < 200; page++) {
+    const { data, error } = await sb
+      .from('bombora_raw')
+      .select(cols)
+      .order('ingested_at', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    if (!data || !data.length) break;
+    for (const r of data) {
+      out.push({
+        "Bombora ID":         r.bombora_id || "",
+        "URL":                r.url || "",
+        "Domain":             r.domain || "",
+        "Import Date":        r.ingested_at ? new Date(r.ingested_at).toISOString() : "",
+        "Country":            r.country || "",
+        "Industry":           r.industry || "",
+        "Company_Size":       r.company_size || "",
+        "Company_Revenue":    r.company_revenue || "",
+        "Professional_Group": r.professional_group || "",
+        "Functional_Area":    r.functional_area || "",
+        "Seniority":          r.seniority || "",
+      });
+    }
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return out;
+}
+
 // ─── JSONP loader ────────────────────────────────────────
 function loadSheetJSONP(sheetId, sheetName) {
   return new Promise((resolve, reject) => {
@@ -1873,12 +1926,12 @@ async function loadData() {
   loading.style.display="flex"; error.style.display="none"; dash.style.display="none";
   try {
     const [bomboraRows, advRows, settingsRows, clickRows] = await Promise.all([
-      loadSheetJSONP(BOMBORA_SHEET_ID, "Sheet1"),
+      loadBomboraFromSupabase(),                               // ← was loadSheetJSONP(BOMBORA_SHEET_ID, "Sheet1")
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet1"),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet2"),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet3"),
     ]);
-    if (!bomboraRows.length) throw new Error("Bombora sheet returned no data");
+    if (!bomboraRows.length) throw new Error("No Bombora data — has the ingester run yet?");
     allBomboraRows = bomboraRows;
     advertiserMap = parseAdvertiserSheet(advRows);
     limitDomainsMap = parseAdvertiserSettings(settingsRows);
