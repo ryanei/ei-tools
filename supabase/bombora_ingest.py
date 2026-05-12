@@ -348,12 +348,14 @@ def main():
         run_local_file(args.local_file, secret_key)
         return
 
-    host = os.environ.get("BOMBORA_SFTP_HOST")
-    user = os.environ.get("BOMBORA_SFTP_USER")
-    password = os.environ.get("BOMBORA_SFTP_PASS")
-    key_text = os.environ.get("BOMBORA_SFTP_KEY")
-    port = int(os.environ.get("BOMBORA_SFTP_PORT", "22"))
-    remote_dir = os.environ.get("BOMBORA_SFTP_DIR", ".")
+    # GitHub Actions sets unset secrets to '' (not unset/None), so use `or DEFAULT`
+    # rather than the dict default to fall back when the secret is empty.
+    host = (os.environ.get("BOMBORA_SFTP_HOST") or "").strip()
+    user = (os.environ.get("BOMBORA_SFTP_USER") or "").strip()
+    password = os.environ.get("BOMBORA_SFTP_PASS") or None
+    key_text = os.environ.get("BOMBORA_SFTP_KEY") or None
+    port = int((os.environ.get("BOMBORA_SFTP_PORT") or "22").strip())
+    remote_dir = (os.environ.get("BOMBORA_SFTP_DIR") or ".").strip()
 
     missing = [k for k, v in [
         ("BOMBORA_SFTP_HOST", host),
