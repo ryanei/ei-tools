@@ -2151,21 +2151,35 @@ function normalizeClickRows(rows) {
 }
 function _normalizeMonth(v) {
   if (v == null || v === '') return null;
+  // SheetJS returns Date objects in LOCAL time when cellDates:true, so
+  // we have to read them with the local-time methods. Calling getUTC*
+  // here was producing the previous-month bug for users in UTC+
+  // timezones (BST on the same day rolls back to the previous month).
   if (v instanceof Date) {
     if (isNaN(v)) return null;
-    return v.getUTCFullYear() + '-' + String(v.getUTCMonth() + 1).padStart(2, '0') + '-01';
+    return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-01';
   }
   if (typeof v === 'number') {
-    // Excel serial date (days since 1899-12-30 with the 1900 leap bug)
-    const d = new Date((v - 25569) * 86400 * 1000);
+    // Excel serial date. Build the Date in local time (mirroring what
+    // SheetJS does with cellDates:true) so the rest of the pipeline
+    // behaves consistently.
+    const d = new Date(1899, 11, 30);                  // 1899-12-30 local
+    d.setDate(d.getDate() + Math.floor(v));
     if (isNaN(d)) return null;
-    return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
   }
   const s = String(v).trim();
-  if (/^\d{4}-\d{2}$/.test(s)) return s + '-01';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7) + '-01';
+  // Manual parsers for the common ISO / US shapes — never round-trip
+  // through `new Date(...)` for these because that introduces TZ drift.
+  let m = s.match(/^(\d{4})-(\d{2})$/);
+  if (m) return m[1] + '-' + m[2] + '-01';
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return m[1] + '-' + m[2] + '-01';
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);          // M/D/YYYY (US)
+  if (m) return m[3] + '-' + String(parseInt(m[1], 10)).padStart(2, '0') + '-01';
+  // Last-resort fallback for free-form strings like "April 2026"
   const d = new Date(s);
-  if (!isNaN(d)) return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+  if (!isNaN(d)) return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01';
   return null;
 }
 
