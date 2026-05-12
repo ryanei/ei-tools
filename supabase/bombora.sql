@@ -236,10 +236,13 @@ grant execute on function public.get_intent_summary(int) to authenticated, servi
 
 
 -- ── 4. Supporting index for the date predicate ────────────────────────
--- get_audience_summary() filters on coalesce(universal_datetime, ingested_at)::date.
--- Without this expression index, Postgres scans the whole table for every call.
-create index if not exists idx_bombora_raw_event_date
-  on public.bombora_raw ((coalesce(universal_datetime, ingested_at)::date));
+-- (Removed: Postgres won't index `coalesce(timestamptz, timestamptz)::date`
+--  because the cast is timezone-dependent (STABLE, not IMMUTABLE). The
+--  existing idx_bombora_raw_ingested_at index gets used for ingested_at-only
+--  predicates; for the date-bounded filter in get_audience_summary the
+--  planner falls back to a seq scan. On 38k rows that's still <100ms.
+--  When the table grows past a million rows we'd want to revisit — likely
+--  by adding a generated `event_date date` column that we index normally.)
 
 
 -- ── 5. get_audience_summary() ─────────────────────────────────────────
