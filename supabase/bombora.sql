@@ -236,13 +236,11 @@ grant execute on function public.get_intent_summary(int) to authenticated, servi
 
 
 -- ── 4. Supporting index for the date predicate ────────────────────────
--- (Removed: Postgres won't index `coalesce(timestamptz, timestamptz)::date`
---  because the cast is timezone-dependent (STABLE, not IMMUTABLE). The
---  existing idx_bombora_raw_ingested_at index gets used for ingested_at-only
---  predicates; for the date-bounded filter in get_audience_summary the
---  planner falls back to a seq scan. On 38k rows that's still <100ms.
---  When the table grows past a million rows we'd want to revisit — likely
---  by adding a generated `event_date date` column that we index normally.)
+-- get_audience_summary's WHERE uses universal_datetime (timestamptz) with a
+-- sargable >=/< predicate so this btree index gets used directly.
+create index if not exists idx_bombora_raw_universal_datetime
+  on public.bombora_raw (universal_datetime)
+  where universal_datetime is not null;
 
 
 -- ── 5. get_audience_summary() ─────────────────────────────────────────
@@ -275,20 +273,61 @@ language sql
 stable
 security definer
 as $$
-with
-base as (
+base as materialized (
+  -- Filter to the date window FIRST (sargable predicate on universal_datetime
+  -- with index support), then compute the per-row derived columns once.
+  -- The `as materialized` hint forces a single pass — downstream CTEs read
+  -- this snapshot instead of recomputing the filter + URL normalisation +
+  -- industry split + seniority normalisation for every aggregation.
   select
     b.bombora_id,
     b.domain,
-    coalesce(b.universal_datetime, b.ingested_at)::date as event_date,
-    -- URL normalisation: mirrors normalizePath() in reports.html (~line 991)
-    (
-      with u0 as (select coalesce(b.url, '') as u),
-           u1 as (select regexp_replace(u, '^https?://expertinsights\.com', '') as u from u0),
-           u2 as (select split_part(split_part(u, '#', 1), '?', 1) as u from u1),
-           u3 as (select case when u = '' or u like '/%' then u else '/' || u end as u from u2),
-           u4 as (select case when length(u) > 1 and right(u, 1) = '/' then left(u, length(u)-1) else u end as u from u3)
-      select lower(u) from u4
+    b.universal_datetime::date as event_date,
+    -- URL normalisation (matches normalizePath() in reports.html).
+    -- Done inline with chained regexp_replace + case — avoids the
+    -- correlated subquery / nested CTE chain that crippled the v1 of
+    -- this function (8s on 38k rows).
+    lower(
+      case
+        -- Strip protocol+domain, then query/fragment, then trailing '/'.
+        -- After that, ensure leading '/' for paths that don't start with one.
+        when
+          regexp_replace(
+            regexp_replace(
+              regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
+              '[?#].*$', ''
+            ),
+            '/+$', ''
+          ) = ''
+        then ''
+        when
+          left(
+            regexp_replace(
+              regexp_replace(
+                regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
+                '[?#].*$', ''
+              ),
+              '/+$', ''
+            ),
+            1
+          ) = '/'
+        then
+          regexp_replace(
+            regexp_replace(
+              regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
+              '[?#].*$', ''
+            ),
+            '/+$', ''
+          )
+        else
+          '/' || regexp_replace(
+            regexp_replace(
+              regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
+              '[?#].*$', ''
+            ),
+            '/+$', ''
+          )
+      end
     ) as path,
     b.country,
     nullif(btrim(split_part(split_part(coalesce(b.industry, ''), '|', 1), '>', 1)), '') as industry_top,
@@ -304,10 +343,12 @@ base as (
       else nullif(btrim(coalesce(b.seniority, '')), '')
     end as seniority
   from public.bombora_raw b
-  where coalesce(b.universal_datetime, b.ingested_at)::date between from_date and to_date
+  where b.universal_datetime is not null
+    and b.universal_datetime >= from_date::timestamptz
+    and b.universal_datetime <  (to_date + 1)::timestamptz
     and lower(btrim(coalesce(b.domain, ''))) <> 'gammagroup.co'
 ),
-f as (
+f as materialized (
   select b.*
   from base b
   where advertiser_urls is null
