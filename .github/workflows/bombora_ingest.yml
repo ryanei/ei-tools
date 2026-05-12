@@ -1,0 +1,51 @@
+name: Bombora ingest
+
+# Runs the SFTP → Supabase Bombora ingester once a day. Replaces the existing
+# Zapier zap + Apps Script CSV importer combo. The Zapier zap stays live as a
+# backup during the reconciliation period — see supabase/bombora_ingest.py.
+
+on:
+  schedule:
+    # 08:30 UTC daily (30 mins after Bombora typically lands the file at 08:00).
+    # The existing Apps Script importer runs at 08:00; we deliberately offset
+    # so any drift in the SFTP drop time doesn't catch us before the file
+    # is fully written.
+    - cron: '30 8 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (list SFTP files only, no inserts)'
+        type: boolean
+        default: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install paramiko
+
+      - name: Run ingester
+        env:
+          BOMBORA_SFTP_HOST: ${{ secrets.BOMBORA_SFTP_HOST }}
+          BOMBORA_SFTP_PORT: ${{ secrets.BOMBORA_SFTP_PORT }}
+          BOMBORA_SFTP_USER: ${{ secrets.BOMBORA_SFTP_USER }}
+          BOMBORA_SFTP_PASS: ${{ secrets.BOMBORA_SFTP_PASS }}
+          BOMBORA_SFTP_KEY:  ${{ secrets.BOMBORA_SFTP_KEY }}
+          BOMBORA_SFTP_DIR:  ${{ secrets.BOMBORA_SFTP_DIR }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python3 supabase/bombora_ingest.py --dry-run
+          else
+            python3 supabase/bombora_ingest.py
+          fi
