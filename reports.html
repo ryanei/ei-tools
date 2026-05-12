@@ -803,12 +803,40 @@
 .topbar-logout{font-size:11px !important;color:rgba(255,255,255,0.45) !important;background:none !important;border:none !important;cursor:pointer;font-family:inherit !important;font-weight:500 !important;padding:6px 10px !important;border-radius:6px !important;text-transform:uppercase !important;letter-spacing:0.06em !important;}
 .topbar-logout:hover{color:#fff !important;background:rgba(255,255,255,0.08) !important;}
 
+/* ── Click upload modal ─────────────────────────────────── */
+.click-modal-backdrop{position:fixed;inset:0;background:rgba(1,19,35,0.55);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;animation:fadeIn 120ms ease;}
+.click-modal-backdrop.show{display:flex;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.click-modal{background:#FFFFFF;border-radius:8px;width:100%;max-width:560px;box-shadow:0 24px 60px -16px rgba(0,0,0,0.35);overflow:hidden;font-family:'Inter Tight',sans-serif;}
+.click-modal-header{padding:18px 22px 14px;border-bottom:1px solid #EEF1F4;display:flex;justify-content:space-between;align-items:flex-start;}
+.click-modal-header h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#0F1A2A;}
+.click-modal-header p{margin:4px 0 0;font-size:12px;color:#4F606E;line-height:1.5;}
+.click-modal-close{background:none;border:none;color:#8093A3;font-size:18px;cursor:pointer;line-height:1;padding:0 4px;}
+.click-modal-close:hover{color:#0F1A2A;}
+.click-modal-body{padding:18px 22px;}
+.click-drop{border:2px dashed #C6D0DA;border-radius:8px;padding:32px 18px;text-align:center;cursor:pointer;transition:border-color 120ms ease,background 120ms ease;}
+.click-drop:hover,.click-drop.dragging{border-color:#2563EB;background:#F4F8FC;}
+.click-drop-icon{font-size:28px;color:#8093A3;margin-bottom:8px;}
+.click-drop-main{font-size:14px;font-weight:500;color:#0F1A2A;margin-bottom:4px;}
+.click-drop-sub{font-size:12px;color:#4F606E;}
+.click-preview{background:#F7F8FA;border:1px solid #EEF1F4;border-radius:6px;padding:12px 14px;margin-top:14px;font-size:12px;color:#0F1A2A;line-height:1.55;}
+.click-preview strong{color:#012747;font-weight:600;}
+.click-preview-rows{font-family:'JetBrains Mono',monospace;font-size:11px;color:#4F606E;margin-top:6px;max-height:120px;overflow:auto;}
+.click-modal-footer{padding:14px 22px 18px;border-top:1px solid #EEF1F4;display:flex;justify-content:flex-end;gap:8px;background:#FAFBFC;}
+.click-modal-footer .btn-secondary{background:#fff;color:#4F606E;border:1px solid #C6D0DA;}
+.click-modal-footer .btn-primary{background:#2563EB;color:#fff;border:1px solid #2563EB;}
+.click-modal-footer .btn-primary:disabled{background:#C6D0DA;border-color:#C6D0DA;cursor:not-allowed;}
+
 </style>
 </head>
 <body>
 <!-- Supabase client (Phase 3b) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
+<!-- SheetJS — parses XLSX/XLS uploads in the click-data modal. CSV is
+     parsed by our own one-pass parser so the library only loads when
+     someone actually drops an Excel file. -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 (async function(){
   for (var i=0; i<40 && !(window.eitools && window.eitools.sb); i++) {
@@ -891,8 +919,35 @@
   <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="hideWeekly" onchange="renderDashboard()" style="cursor:pointer;" /><span class="filter-label" style="font-weight:500;">Hide weekly chart</span></label>
   <div><span class="filter-label">Rows:</span> <span id="rowCount">–</span></div>
   <button class="btn" onclick="loadData()">↻ Refresh</button>
+  <button class="btn" onclick="openClickUpload()" title="Upload CTA click data from CSV or XLSX">⤒ Upload Clicks</button>
   <button class="btn btn-pdf" id="pdfBtn" onclick="downloadPDF()">⤓ Save as PDF</button>
   <button class="btn btn-pdf" id="pdfAllBtn" onclick="downloadAllPDFs()" style="background:#2563EB;border-color:#2563EB;">⤓ Download All Reports</button>
+</div>
+
+<!-- Click data upload modal — opened by the "Upload Clicks" button -->
+<div class="click-modal-backdrop" id="clickModal" onclick="if(event.target===this)closeClickUpload()">
+  <div class="click-modal">
+    <div class="click-modal-header">
+      <div>
+        <h3>Upload CTA click data</h3>
+        <p>Drop a CSV or XLSX with columns <strong>Month, Advertiser, Slug, Clicks</strong>. Rows with the same (month, advertiser, slug) are upserted.</p>
+      </div>
+      <button class="click-modal-close" onclick="closeClickUpload()" aria-label="Close">×</button>
+    </div>
+    <div class="click-modal-body">
+      <label class="click-drop" id="clickDrop">
+        <input type="file" id="clickFile" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" />
+        <div class="click-drop-icon">⤒</div>
+        <div class="click-drop-main">Drop a CSV or XLSX here, or click to browse</div>
+        <div class="click-drop-sub">Required columns: Month · Advertiser · Slug · Clicks</div>
+      </label>
+      <div class="click-preview" id="clickPreview" style="display:none;"></div>
+    </div>
+    <div class="click-modal-footer">
+      <button class="btn btn-secondary" onclick="closeClickUpload()">Cancel</button>
+      <button class="btn btn-primary" id="clickUploadBtn" onclick="confirmClickUpload()" disabled>Upload</button>
+    </div>
+  </div>
 </div>
 
 <div class="main" id="mainContent">
@@ -1464,7 +1519,7 @@ function renderDashboard() {
   const showClicks = currentAdvertiser && isFullCalendarMonth();
   const month = getSelectedMonth();
 
-  // Compute click totals for urlTable rows (clicks come from Sheet3, unchanged)
+  // Compute click totals for urlTable rows (clicks come from bombora_clicks)
   let totalClicks = 0;
   if (showClicks) {
     d.urlTable.forEach(row => {
@@ -1898,29 +1953,220 @@ function parseAdvertiserSettings(rows) {
   return map;
 }
 
-function parseClickSheet(rows) {
-  // Sheet3 columns: Month, Advertiser, Slug, Clicks
-  // Returns { advertiser: { "YYYY-MM|slug": clicks, slug: clicks } }
-  const data = {};
-  rows.forEach(r => {
-    const adv = (r["Advertiser"]||"").trim();
-    const slug = (r["Slug"]||"").trim().toLowerCase();
-    const clicks = parseInt(r["Clicks"]||"0", 10) || 0;
-    let month = (r["Month"]||"").trim();
-    if (!adv || !slug) return;
-    // Normalise month: Google Sheets may store as date string or YYYY-MM
-    if (month.length > 7) {
-      // Try to parse as date and extract YYYY-MM
-      const d = new Date(month);
-      if (!isNaN(d)) month = d.toISOString().slice(0,7);
-    }
-    if (!data[adv]) data[adv] = {};
-    if (month) data[adv][month + "|" + slug] = clicks;
-    // Also store slug-only (latest/total) for fallback
-    data[adv][slug] = (data[adv][slug] || 0) + clicks;
+// ─── Click data: Supabase loader ─────────────────────────────
+// Returns a { advertiser: { "YYYY-MM|slug": clicks, slug: clicks } } map
+// so getClicksForPath() can look up clicks by both (month, slug) and slug
+// alone (the latter is a fallback when the dashboard isn't bounded to a
+// full calendar month).
+async function loadClicksFromSupabase() {
+  const sb = window.eitools && window.eitools.sb;
+  if (!sb) return {};
+  const { data, error } = await sb.from('bombora_clicks')
+    .select('month, advertiser, slug, clicks');
+  if (error) { console.error('Click data fetch failed:', error); return {}; }
+  const map = {};
+  (data || []).forEach(r => {
+    const adv  = r.advertiser; if (!adv) return;
+    const slug = (r.slug || '').toLowerCase(); if (!slug) return;
+    const monthKey = (r.month || '').slice(0, 7);   // "2026-04-01" → "2026-04"
+    const clicks = r.clicks | 0;
+    if (!map[adv]) map[adv] = {};
+    if (monthKey) map[adv][monthKey + '|' + slug] = clicks;
+    map[adv][slug] = (map[adv][slug] || 0) + clicks;
   });
-  console.log("Parsed click data:", JSON.stringify(data));
-  return data;
+  return map;
+}
+
+// ─── Click upload modal ─────────────────────────────────────
+let _pendingClickRows = null;
+
+function openClickUpload() {
+  _pendingClickRows = null;
+  const modal   = document.getElementById('clickModal');
+  const preview = document.getElementById('clickPreview');
+  const btn     = document.getElementById('clickUploadBtn');
+  if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+  if (btn)     { btn.disabled = true; btn.textContent = 'Upload'; }
+  document.getElementById('clickFile').value = '';
+  modal.classList.add('show');
+
+  // Idempotent listener attach — _attached flag prevents duplicates if
+  // the modal is opened/closed many times in a session.
+  const drop = document.getElementById('clickDrop');
+  if (!drop._attached) {
+    document.getElementById('clickFile').addEventListener('change', _onClickFileChosen);
+    drop.addEventListener('dragover',  _onClickDragOver);
+    drop.addEventListener('dragleave', _onClickDragLeave);
+    drop.addEventListener('drop',      _onClickDrop);
+    drop._attached = true;
+  }
+}
+function closeClickUpload() {
+  document.getElementById('clickModal').classList.remove('show');
+}
+function _onClickDragOver(e)  { e.preventDefault(); document.getElementById('clickDrop').classList.add('dragging'); }
+function _onClickDragLeave(e) { e.preventDefault(); document.getElementById('clickDrop').classList.remove('dragging'); }
+function _onClickDrop(e) {
+  e.preventDefault();
+  document.getElementById('clickDrop').classList.remove('dragging');
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) _ingestClickFile(file);
+}
+function _onClickFileChosen(e) {
+  const file = e.target.files && e.target.files[0];
+  if (file) _ingestClickFile(file);
+}
+
+async function _ingestClickFile(file) {
+  const preview = document.getElementById('clickPreview');
+  const btn     = document.getElementById('clickUploadBtn');
+  preview.style.display = 'block';
+  preview.innerHTML = `<strong>Parsing</strong> ${file.name}…`;
+  btn.disabled = true;
+  try {
+    const rows = await parseClicksFile(file);
+    if (!rows.length) throw new Error('No valid rows found. Required columns: Month, Advertiser, Slug, Clicks');
+    _pendingClickRows = rows;
+    const sample = rows.slice(0, 3).map(r =>
+      `${r.month}  ${r.advertiser}  ${r.slug}  ${r.clicks}`
+    ).join('\n');
+    const more = rows.length > 3 ? `\n… +${rows.length - 3} more` : '';
+    preview.innerHTML = `<strong>${rows.length} row${rows.length === 1 ? '' : 's'} parsed</strong> from <em>${file.name}</em>.<div class="click-preview-rows">${sample}${more}</div>`;
+    btn.disabled = false;
+  } catch (err) {
+    _pendingClickRows = null;
+    preview.innerHTML = `<strong style="color:#A60E0D;">Couldn't parse:</strong> ${err.message || err}`;
+  }
+}
+
+async function confirmClickUpload() {
+  if (!_pendingClickRows || !_pendingClickRows.length) return;
+  const btn     = document.getElementById('clickUploadBtn');
+  const preview = document.getElementById('clickPreview');
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+  try {
+    const n = await uploadClicks(_pendingClickRows);
+    closeClickUpload();
+    if (window.toast) window.toast.success(`Uploaded ${n} click row${n === 1 ? '' : 's'} to Supabase.`);
+    // Refresh the in-memory map so the dashboard reflects the new clicks.
+    clickData = await loadClicksFromSupabase();
+    renderDashboard();
+  } catch (err) {
+    console.error('Click upload failed:', err);
+    preview.innerHTML = `<strong style="color:#A60E0D;">Upload failed:</strong> ${err.message || err}`;
+    btn.disabled = false;
+    btn.textContent = 'Upload';
+  }
+}
+
+async function uploadClicks(rows) {
+  const sb = window.eitools && window.eitools.sb;
+  if (!sb) throw new Error('Supabase client not ready');
+  const user = await window.eitools.getUser();
+  const uid = user && user.id;
+  const enriched = rows.map(r => ({ ...r, uploaded_by: uid || null }));
+  const CHUNK = 500;
+  let total = 0;
+  for (let i = 0; i < enriched.length; i += CHUNK) {
+    const chunk = enriched.slice(i, i + CHUNK);
+    const { error } = await sb.from('bombora_clicks')
+      .upsert(chunk, { onConflict: 'month,advertiser,slug' });
+    if (error) throw error;
+    total += chunk.length;
+  }
+  return total;
+}
+
+// File parsing — CSV uses our own one-pass parser; XLSX/XLS uses SheetJS.
+async function parseClicksFile(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.csv')) {
+    const text = await file.text();
+    return normalizeClickRows(parseCsvText(text));
+  }
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    if (typeof XLSX === 'undefined') throw new Error('XLSX library failed to load — try a CSV instead');
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: true });
+    return normalizeClickRows(rows);
+  }
+  throw new Error('Unsupported file — please upload a CSV or XLSX');
+}
+
+function parseCsvText(text) {
+  const lines = text.split(/\r?\n/);
+  let h = 0;
+  while (h < lines.length && !lines[h].trim()) h++;
+  if (h >= lines.length) return [];
+  const headers = _parseCsvLine(lines[h]);
+  const out = [];
+  for (let i = h + 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cells = _parseCsvLine(lines[i]);
+    const obj = {};
+    headers.forEach((h2, j) => { obj[h2] = (cells[j] == null ? '' : cells[j]); });
+    out.push(obj);
+  }
+  return out;
+}
+function _parseCsvLine(line) {
+  const out = []; let cur = ''; let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (inQuotes) {
+      if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (c === '"') inQuotes = false;
+      else cur += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+// Map raw row objects (any case-mix on headers, Excel-or-string Month)
+// → { month: 'YYYY-MM-01', advertiser, slug, clicks }.
+function normalizeClickRows(rows) {
+  const out = [];
+  rows.forEach(r => {
+    const keys = {};
+    Object.keys(r).forEach(k => { keys[k.toLowerCase().trim()] = k; });
+    const get = (name) => r[keys[name.toLowerCase()]];
+
+    const adv  = String(get('Advertiser') || '').trim();
+    const slug = String(get('Slug') || '').trim().toLowerCase();
+    const clicksRaw = get('Clicks');
+    const clicks = parseInt(String(clicksRaw == null ? '' : clicksRaw).replace(/[, ]/g, ''), 10) || 0;
+    const monthStr = _normalizeMonth(get('Month'));
+    if (!adv || !slug || !monthStr) return;
+    out.push({ month: monthStr, advertiser: adv, slug: slug, clicks: clicks });
+  });
+  return out;
+}
+function _normalizeMonth(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date) {
+    if (isNaN(v)) return null;
+    return v.getUTCFullYear() + '-' + String(v.getUTCMonth() + 1).padStart(2, '0') + '-01';
+  }
+  if (typeof v === 'number') {
+    // Excel serial date (days since 1899-12-30 with the 1900 leap bug)
+    const d = new Date((v - 25569) * 86400 * 1000);
+    if (isNaN(d)) return null;
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+  }
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}$/.test(s)) return s + '-01';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7) + '-01';
+  const d = new Date(s);
+  if (!isNaN(d)) return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-01';
+  return null;
 }
 
 function getClicksForPath(advertiser, path, month) {
@@ -1979,12 +2225,13 @@ async function loadData() {
     const presetEl = document.getElementById("datePreset");
     if (presetEl) presetEl.value = "lastmonth";
 
-    // One RPC for the rows + min/max bounds + 3 Sheet reads in parallel.
-    const [rows, advRows, settingsRows, clickRows, bounds] = await Promise.all([
+    // Audience RPC + Bombora date bounds + 2 Sheet reads + click data
+    // (now from Supabase), all in parallel.
+    const [rows, advRows, settingsRows, clicks, bounds] = await Promise.all([
       loadBomboraFromSupabase(initFrom, initTo),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet1"),
       loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet2"),
-      loadSheetJSONP(ADVERTISER_SHEET_ID, "Sheet3"),
+      loadClicksFromSupabase(),
       loadBomboraDateBounds(),
     ]);
     bomboraDateBounds = bounds;
@@ -1995,8 +2242,7 @@ async function loadData() {
     }
     advertiserMap = parseAdvertiserSheet(advRows);
     limitDomainsMap = parseAdvertiserSettings(settingsRows);
-    console.log("Sheet3 raw rows:", clickRows.length, clickRows.length ? JSON.stringify(clickRows[0]) : "empty");
-    clickData = parseClickSheet(clickRows);
+    clickData = clicks;
     populateDropdown();
     if (currentAdvertiser && advertiserMap[currentAdvertiser]) {
       document.getElementById("advertiserSelect").value = currentAdvertiser;

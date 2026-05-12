@@ -566,5 +566,40 @@ grant execute on function public.refresh_bombora_daily_summary()
 
 
 -- ════════════════════════════════════════════════════════════════════════
+-- ── 8. CTA click data (replaces Sheet3 of the Advertiser Settings sheet)
+-- ════════════════════════════════════════════════════════════════════════
+-- One row per (month, advertiser, slug) carrying click totals. Uploaded
+-- by humans via the drag-and-drop CSV/XLSX modal in reports.html.
+-- `month` is normalised to the first of the month (YYYY-MM-01) so
+-- "April 2026" becomes 2026-04-01 regardless of upload format.
+create table if not exists public.bombora_clicks (
+  id          bigserial   primary key,
+  month       date        not null,
+  advertiser  text        not null,
+  slug        text        not null,
+  clicks      int         not null default 0,
+  uploaded_at timestamptz not null default now(),
+  uploaded_by uuid        references auth.users(id) on delete set null,
+  unique (month, advertiser, slug)
+);
+
+create index if not exists bombora_clicks_month_idx
+  on public.bombora_clicks (month);
+create index if not exists bombora_clicks_advertiser_idx
+  on public.bombora_clicks (advertiser);
+
+alter table public.bombora_clicks enable row level security;
+
+drop policy if exists authenticated_all on public.bombora_clicks;
+create policy authenticated_all on public.bombora_clicks
+  for all to authenticated using (true) with check (true);
+
+grant select, insert, update, delete on public.bombora_clicks
+  to authenticated, service_role;
+grant usage, select on sequence public.bombora_clicks_id_seq
+  to authenticated, service_role;
+
+
+-- ════════════════════════════════════════════════════════════════════════
 -- DONE.
 -- ════════════════════════════════════════════════════════════════════════
