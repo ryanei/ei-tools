@@ -273,6 +273,7 @@ language sql
 stable
 security definer
 as $$
+with
 base as materialized (
   -- Filter to the date window FIRST (sargable predicate on universal_datetime
   -- with index support), then compute the per-row derived columns once.
