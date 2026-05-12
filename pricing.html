@@ -156,8 +156,15 @@ td.col-vendor .vname.proposed{color:var(--amber);}
 td.col-vendor .vname.proposed::after{content:"·";color:var(--amber);font-weight:700;margin:0 4px;}
 td.col-vendor .vname.proposed::before{content:"P ";font-family:var(--mono);font-size:9px;font-weight:600;color:var(--amber);background:var(--amber-bg);padding:1px 4px;border-radius:3px;letter-spacing:0.04em;margin-right:5px;}
 
-/* Row-end action cell */
-td.col-actions{width:30px;text-align:center;padding:6px 4px;}
+/* Row-end action cell (sticky to the right edge, mirrors the sticky title column on the left) */
+table.sheet thead th.col-actions,table.sheet tbody td.col-actions{
+  position:sticky;right:0;width:36px;text-align:center;padding:6px 4px;
+  background:#fff;border-left:1px solid var(--line);border-right:none;
+}
+table.sheet thead th.col-actions{z-index:6;background:var(--paper-2);}
+table.sheet tbody td.col-actions{z-index:2;}
+table.sheet tbody tr:hover td.col-actions{background:#fbfaf6;}
+table.sheet tbody tr.archived td.col-actions{background:#fff;}
 .row-menu-btn{background:none;border:none;color:var(--mute);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;line-height:1;}
 .row-menu-btn:hover{background:var(--ei-blue);color:#fff;}
 
