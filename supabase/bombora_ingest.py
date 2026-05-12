@@ -444,6 +444,21 @@ def main():
         process_file(filename, content, secret_key)
     print("✓ Bombora ingest complete")
 
+    # Rebuild the daily summary materialized view that the reports.html
+    # Audience tab reads. CONCURRENTLY so live reads aren't blocked.
+    # Done after the inserts so the summary reflects the new rows.
+    print("  · Refreshing bombora_daily_summary…")
+    t0 = time.time()
+    try:
+        sb_request("POST", "/rest/v1/rpc/refresh_bombora_daily_summary",
+                   body={}, secret_key=secret_key)
+        print(f"    refreshed in {int((time.time() - t0) * 1000)} ms")
+    except Exception as e:
+        # Don't fail the whole ingest if the refresh hiccups — the inserts
+        # already landed, and the next nightly run will retry. The reports
+        # page will just show slightly stale data until then.
+        print(f"    WARN: refresh failed: {e}", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()

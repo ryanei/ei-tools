@@ -344,5 +344,227 @@ grant execute on function public.get_audience_rows_v2(date, date)
 
 
 -- ════════════════════════════════════════════════════════════════════════
+-- ── 7. Daily pre-aggregated summary ───────────────────────────────────
+-- ════════════════════════════════════════════════════════════════════════
+-- Replaces "load 86k raw rows every time the page opens" with "load
+-- ~5-10k pre-aggregated buckets for the date range". One row per
+-- (event_date, path, domain) carrying:
+--   • page_views — count of rows in this bucket
+--   • visitor_ids — array of distinct bombora_ids (so unique-visitor
+--                   counts stay accurate when summed across days)
+--   • industries / sizes / revenues / prof_groups / func_areas /
+--     seniorities / countries — small jsonb dicts like {"Tech":5}
+--
+-- Path is pre-normalised the same way the JS normalizePath() did
+-- (strip prefix, query, fragment, trailing slash, lowercase) so the
+-- advertiser allowlist filter works identically.
+-- gammagroup.co is hard-excluded for parity with the other functions.
+-- Seniority is normalised to "C-Suite" / "Management" buckets matching
+-- the JS rules.
+-- Professional group is exploded on '|' before counting (parseMulti).
+
+-- 7a. Path normaliser — IMMUTABLE so it can be used in indexes / MV.
+create or replace function public.bombora_normalize_path(p text)
+returns text
+language sql
+immutable
+parallel safe
+as $$
+  select lower(
+    case
+      when stripped = '' then ''
+      when stripped like '/%' then
+        case when length(stripped) > 1 and right(stripped, 1) = '/'
+          then left(stripped, length(stripped) - 1)
+          else stripped
+        end
+      else
+        case when length(stripped) > 1 and right(stripped, 1) = '/'
+          then '/' || left(stripped, length(stripped) - 1)
+          else '/' || stripped
+        end
+    end
+  )
+  from (
+    select split_part(split_part(
+      regexp_replace(coalesce(p, ''), '^https?://expertinsights\.com', '', 'i'),
+      '#', 1
+    ), '?', 1) as stripped
+  ) s;
+$$;
+
+-- 7b. Materialized view — the heavy aggregation lives here.
+drop materialized view if exists public.bombora_daily_summary cascade;
+
+create materialized view public.bombora_daily_summary as
+with norm as (
+  select
+    coalesce(b.universal_datetime, b.ingested_at)::date as event_date,
+    public.bombora_normalize_path(b.url) as path,
+    lower(btrim(coalesce(b.domain, ''))) as domain,
+    nullif(btrim(coalesce(b.bombora_id, '')), '') as bombora_id,
+    nullif(btrim(coalesce(b.country, '')), '') as country,
+    nullif(btrim(split_part(split_part(coalesce(b.industry, ''), '|', 1), '>', 1)), '') as industry_top,
+    nullif(btrim(coalesce(b.company_size, '')), '') as company_size,
+    nullif(btrim(coalesce(b.company_revenue, '')), '') as company_revenue,
+    coalesce(b.professional_group, '') as professional_group_raw,
+    nullif(btrim(coalesce(b.functional_area, '')), '') as functional_area,
+    case
+      when lower(coalesce(b.seniority, '')) like '%csuite%'    then 'C-Suite'
+      when lower(coalesce(b.seniority, '')) like '%c-suite%'   then 'C-Suite'
+      when lower(coalesce(b.seniority, '')) like '%board%'     then 'Management'
+      when lower(coalesce(b.seniority, '')) like '%ownership%' then 'Management'
+      else nullif(btrim(coalesce(b.seniority, '')), '')
+    end as seniority
+  from public.bombora_raw b
+  where lower(btrim(coalesce(b.domain, ''))) <> 'gammagroup.co'
+),
+prof_exploded as (
+  select n.event_date, n.path, n.domain,
+         nullif(btrim(pg), '') as prof_group
+  from norm n,
+       lateral unnest(string_to_array(n.professional_group_raw, '|')) as pg
+  where btrim(coalesce(pg, '')) <> ''
+),
+base as (
+  select event_date, path, domain,
+    count(*)::int as page_views,
+    coalesce(array_agg(distinct bombora_id) filter (where bombora_id is not null),
+             array[]::text[]) as visitor_ids
+  from norm
+  group by event_date, path, domain
+),
+industries as (
+  select event_date, path, domain, jsonb_object_agg(industry_top, n) as v
+  from (select event_date, path, domain, industry_top, count(*) as n
+        from norm where industry_top is not null
+        group by event_date, path, domain, industry_top) s
+  group by event_date, path, domain
+),
+sizes as (
+  select event_date, path, domain, jsonb_object_agg(company_size, n) as v
+  from (select event_date, path, domain, company_size, count(*) as n
+        from norm where company_size is not null
+        group by event_date, path, domain, company_size) s
+  group by event_date, path, domain
+),
+revenues as (
+  select event_date, path, domain, jsonb_object_agg(company_revenue, n) as v
+  from (select event_date, path, domain, company_revenue, count(*) as n
+        from norm where company_revenue is not null
+        group by event_date, path, domain, company_revenue) s
+  group by event_date, path, domain
+),
+prof_groups as (
+  select event_date, path, domain, jsonb_object_agg(prof_group, n) as v
+  from (select event_date, path, domain, prof_group, count(*) as n
+        from prof_exploded
+        group by event_date, path, domain, prof_group) s
+  group by event_date, path, domain
+),
+func_areas as (
+  select event_date, path, domain, jsonb_object_agg(functional_area, n) as v
+  from (select event_date, path, domain, functional_area, count(*) as n
+        from norm where functional_area is not null
+        group by event_date, path, domain, functional_area) s
+  group by event_date, path, domain
+),
+seniorities as (
+  select event_date, path, domain, jsonb_object_agg(seniority, n) as v
+  from (select event_date, path, domain, seniority, count(*) as n
+        from norm where seniority is not null
+        group by event_date, path, domain, seniority) s
+  group by event_date, path, domain
+),
+countries as (
+  select event_date, path, domain, jsonb_object_agg(country, n) as v
+  from (select event_date, path, domain, country, count(*) as n
+        from norm where country is not null
+        group by event_date, path, domain, country) s
+  group by event_date, path, domain
+)
+select
+  b.event_date,
+  b.path,
+  b.domain,
+  b.page_views,
+  b.visitor_ids,
+  coalesce(i.v,  '{}'::jsonb) as industries,
+  coalesce(sz.v, '{}'::jsonb) as sizes,
+  coalesce(rv.v, '{}'::jsonb) as revenues,
+  coalesce(pg.v, '{}'::jsonb) as prof_groups,
+  coalesce(fa.v, '{}'::jsonb) as func_areas,
+  coalesce(sn.v, '{}'::jsonb) as seniorities,
+  coalesce(c.v,  '{}'::jsonb) as countries
+from base b
+left join industries  i  using (event_date, path, domain)
+left join sizes       sz using (event_date, path, domain)
+left join revenues    rv using (event_date, path, domain)
+left join prof_groups pg using (event_date, path, domain)
+left join func_areas  fa using (event_date, path, domain)
+left join seniorities sn using (event_date, path, domain)
+left join countries   c  using (event_date, path, domain);
+
+-- Unique index is required for REFRESH MATERIALIZED VIEW CONCURRENTLY.
+create unique index bombora_daily_summary_pk
+  on public.bombora_daily_summary (event_date, path, domain);
+
+create index bombora_daily_summary_date_idx
+  on public.bombora_daily_summary (event_date);
+
+grant select on public.bombora_daily_summary
+  to authenticated, service_role;
+
+-- 7c. RPC the front-end calls.
+create or replace function public.get_audience_summary_rows(
+  from_date date,
+  to_date   date
+)
+returns table (
+  event_date  date,
+  path        text,
+  domain      text,
+  page_views  int,
+  visitor_ids text[],
+  industries  jsonb,
+  sizes       jsonb,
+  revenues    jsonb,
+  prof_groups jsonb,
+  func_areas  jsonb,
+  seniorities jsonb,
+  countries   jsonb
+)
+language sql
+stable
+security definer
+parallel safe
+as $$
+  select event_date, path, domain, page_views, visitor_ids,
+         industries, sizes, revenues, prof_groups, func_areas,
+         seniorities, countries
+  from public.bombora_daily_summary
+  where event_date between from_date and to_date;
+$$;
+
+grant execute on function public.get_audience_summary_rows(date, date)
+  to authenticated, service_role;
+
+-- 7d. Refresh helper, called by the Python ingester after each successful
+-- run. CONCURRENTLY so reads during the rebuild aren't blocked.
+create or replace function public.refresh_bombora_daily_summary()
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  refresh materialized view concurrently public.bombora_daily_summary;
+end;
+$$;
+
+grant execute on function public.refresh_bombora_daily_summary()
+  to service_role;
+
+
+-- ════════════════════════════════════════════════════════════════════════
 -- DONE.
 -- ════════════════════════════════════════════════════════════════════════

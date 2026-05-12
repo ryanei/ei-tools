@@ -952,9 +952,9 @@ const ADVERTISER_SHEET_ID = "1zzNNL9POaARVo-xFSKouujjpenA0yjUo2Fjq-GlEk6s";
 const PALETTE = ["#001323","#012747","#2563EB","#1D4FD7","#8093A3","#4F606E","#585C66","#E7E7E7"];
 
 // One fetch per date range. Switching advertisers / toggling limit_domains
-// re-renders from the same in-memory rows — instant. The single
-// get_audience_rows RPC replaces the old paginated .range() loop that
-// was making 12+ sequential round-trips for one month.
+// re-renders from the same in-memory rows — instant. We pull from a
+// pre-aggregated daily summary (one row per event_date × path × domain
+// bucket) so the payload stays small and the SQL stays cheap.
 let allBomboraRows = [];
 let advertiserMap = {};
 let limitDomainsMap = {};
@@ -1084,75 +1084,92 @@ const ADVERTISER_DOMAINS = new Set([
   "traceable.ai","tuskira.com","valence.security","veriti.ai","wiz.io",
 ]);
 
-function processData(rows) {
-  const uv=new Set(), doms=new Set(); let pv=0;
-  const daily={}, urlStats={}, industryC={}, sizeC={}, revC={}, profC={}, funcC={}, senC={}, countryC={};
-  const domVis={}, domPV={}, domPages={};
+// processSummary works on summary rows produced by the
+// public.bombora_daily_summary materialized view. Each row is a bucket
+// of (event_date, path, domain) and carries:
+//   • page_views — count of original rows in this bucket
+//   • visitor_ids — array of distinct bombora_ids in this bucket
+//   • industries / sizes / revenues / prof_groups / func_areas /
+//     seniorities / countries — small jsonb dicts like {"Tech": 5}
+//
+// We union the visitor_ids sets to get accurate unique-visitor counts,
+// and sum the dict values to get accurate demographic totals.
+function processSummary(rows) {
+  const uv = new Set(), doms = new Set();
+  let pv = 0;
+  const daily = {}, urlStats = {}, industryC = {}, sizeC = {}, revC = {},
+        profC = {}, funcC = {}, senC = {}, countryC = {};
+  const domVis = {}, domPV = {}, domCats = {};
 
   // Pre-seed urlStats with all mapped advertiser paths so 0-visit pages still appear
   if (currentAdvertiser && advertiserMap[currentAdvertiser]) {
     advertiserMap[currentAdvertiser].forEach(p => {
       const path = normalizePath(p);
-      if (path && !urlStats[path]) urlStats[path] = {pv:0, vis:new Set(), dom:new Set()};
+      if (path && !urlStats[path]) urlStats[path] = { pv:0, vis:new Set(), dom:new Set() };
     });
   }
 
-  // Excluded domains — filtered from all stats (gammagroup.co is also
-  // dropped at the SQL layer, but we keep this for parity / belt-and-braces)
-  const EXCLUDED_DOMAINS = new Set(["gammagroup.co"]);
+  const mergeDict = (target, src) => {
+    if (!src) return;
+    for (const k in src) target[k] = (target[k] || 0) + src[k];
+  };
 
   rows.forEach(r => {
-    const bid=r["Bombora ID"]||"", url=r["URL"]||"", domain=r["Domain"]||"", importDate=r["Import Date"]||"";
-    const country=r["Country"]||"", industry=r["Industry"]||"";
-    const compSize=r["Company_Size"]||"", compRev=r["Company_Revenue"]||"";
-    const profGroup=r["Professional_Group"]||"", funcArea=r["Functional_Area"]||"", seniority=r["Seniority"]||"";
+    const path = r.path || "";
+    const domain = r.domain || "";
+    const dk = r.event_date;   // "YYYY-MM-DD" from Postgres date
+    const vids = r.visitor_ids || [];
+    const rPv = r.page_views | 0;
 
-    if (EXCLUDED_DOMAINS.has(domain)) return;
-    pv++;
-    if(bid) uv.add(bid);
-    if(domain) doms.add(domain);
+    pv += rPv;
+    vids.forEach(v => uv.add(v));
+    if (domain) doms.add(domain);
 
-    const dk=getDayKey(importDate);
-    if(dk){
-      if(!daily[dk]) daily[dk]={pv:0,vis:new Set(),dom:new Set()};
-      daily[dk].pv++; if(bid) daily[dk].vis.add(bid); if(domain) daily[dk].dom.add(domain);
+    if (dk) {
+      if (!daily[dk]) daily[dk] = { pv:0, vis:new Set(), dom:new Set() };
+      daily[dk].pv += rPv;
+      vids.forEach(v => daily[dk].vis.add(v));
+      if (domain) daily[dk].dom.add(domain);
     }
 
-    if(url){
-      const path=normalizePath(url);
-      if(!urlStats[path]) urlStats[path]={pv:0,vis:new Set(),dom:new Set()};
-      urlStats[path].pv++; if(bid) urlStats[path].vis.add(bid); if(domain) urlStats[path].dom.add(domain);
+    if (path) {
+      if (!urlStats[path]) urlStats[path] = { pv:0, vis:new Set(), dom:new Set() };
+      urlStats[path].pv += rPv;
+      vids.forEach(v => urlStats[path].vis.add(v));
+      if (domain) urlStats[path].dom.add(domain);
 
-      // Track pages per domain
-      if(domain) {
-        if(!domPages[domain]) domPages[domain]={};
-        if(!domPages[domain][path]) domPages[domain][path]=0;
-        domPages[domain][path]++;
+      // Domain → first-segment categories
+      if (domain) {
+        const seg = path.split("/").filter(Boolean)[0];
+        if (seg) {
+          if (!domCats[domain]) domCats[domain] = new Set();
+          domCats[domain].add(seg);
+        }
       }
     }
 
-    if(industry){ const top=industry.split("|")[0].split(">")[0].trim(); if(top) industryC[top]=(industryC[top]||0)+1; }
-    if(compSize) sizeC[compSize]=(sizeC[compSize]||0)+1;
-    if(compRev) revC[compRev]=(revC[compRev]||0)+1;
-    parseMulti(profGroup).forEach(pg=>{ profC[pg]=(profC[pg]||0)+1; });
-    if(funcArea) funcC[funcArea]=(funcC[funcArea]||0)+1;
-    if(seniority) {
-      let senKey = seniority.trim();
-      if(senKey.toLowerCase().includes("csuite") || senKey.toLowerCase().includes("c-suite")) senKey = "C-Suite";
-      else if(senKey.toLowerCase().includes("board") || senKey.toLowerCase().includes("ownership")) senKey = "Management";
-      senC[senKey]=(senC[senKey]||0)+1;
+    if (domain) {
+      if (!domVis[domain]) domVis[domain] = new Set();
+      vids.forEach(v => domVis[domain].add(v));
+      domPV[domain] = (domPV[domain] || 0) + rPv;
     }
-    if(country) countryC[country]=(countryC[country]||0)+1;
-    if(domain){ if(!domVis[domain]) domVis[domain]=new Set(); if(bid) domVis[domain].add(bid); domPV[domain]=(domPV[domain]||0)+1; }
+
+    mergeDict(industryC, r.industries);
+    mergeDict(sizeC,     r.sizes);
+    mergeDict(revC,      r.revenues);
+    mergeDict(profC,     r.prof_groups);
+    mergeDict(funcC,     r.func_areas);
+    mergeDict(senC,      r.seniorities);
+    mergeDict(countryC,  r.countries);
   });
 
-  const days=Object.keys(daily).sort();
-  // Aggregate into weeks (Mon-Sun)
+  // Weekly aggregation (Mon–Sun)
+  const days = Object.keys(daily).sort();
   const weekMap = {};
   days.forEach(dk => {
     const d = new Date(dk + "T00:00:00");
-    const day = d.getDay(); // 0=Sun
-    const diff = (day === 0 ? -6 : 1) - day; // shift to Monday
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
     const mon = new Date(d);
     mon.setDate(mon.getDate() + diff);
     const wk = mon.toISOString().slice(0,10);
@@ -1163,42 +1180,38 @@ function processData(rows) {
   });
   const weeks = Object.keys(weekMap).sort().map(wk => {
     const d = new Date(wk + "T00:00:00");
-    const end = new Date(d); end.setDate(end.getDate() + 6);
-    const label = d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    const label = d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
     return { week:wk, label, pageViews:weekMap[wk].pv, visitors:weekMap[wk].vis.size, domains:weekMap[wk].dom.size };
   });
-  const urlTableAll=Object.entries(urlStats).map(([p,s])=>({path:p,pv:s.pv,visitors:s.vis.size,domains:s.dom.size})).sort((a,b)=>b.visitors-a.visitors);
-  const urlTable=currentAdvertiser ? urlTableAll : urlTableAll.slice(0,15);
-  const domainTableRaw=Object.keys(domVis).map(d=>{
-    const pages = domPages[d] ? Object.entries(domPages[d]) : [];
-    // Extract distinct categories (first path segment)
-    const cats = new Set();
-    pages.forEach(([p]) => {
-      const seg = p.split("/").filter(Boolean)[0];
-      if (seg) cats.add(seg);
-    });
-    const pagesHtml = [...cats].map(c => {
-      const title = c.replace(/-/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
-      return title;
-    }).join(", ");
-    return {domain:d, visitors:domVis[d].size, pv:domPV[d]||0, pages:pagesHtml};
-  }).sort((a,b)=>b.visitors-a.visitors);
-  // Filter advertiser/vendor domains from Top Business Domains when viewing an advertiser
+
+  const urlTableAll = Object.entries(urlStats)
+    .map(([p,s]) => ({ path:p, pv:s.pv, visitors:s.vis.size, domains:s.dom.size }))
+    .sort((a,b) => b.visitors - a.visitors);
+  const urlTable = currentAdvertiser ? urlTableAll : urlTableAll.slice(0,15);
+
+  const domainTableRaw = Object.keys(domVis).map(d => {
+    const cats = domCats[d] ? [...domCats[d]] : [];
+    const pagesHtml = cats.map(c =>
+      c.replace(/-/g, " ").replace(/\b\w/g, ch => ch.toUpperCase())
+    ).join(", ");
+    return { domain:d, visitors:domVis[d].size, pv:domPV[d] || 0, pages:pagesHtml };
+  }).sort((a,b) => b.visitors - a.visitors);
   const domainFiltered = currentAdvertiser
     ? domainTableRaw.filter(d => !ADVERTISER_DOMAINS.has(d.domain.toLowerCase()))
     : domainTableRaw;
   const domainTable = currentAdvertiser ? domainFiltered : domainFiltered.slice(0,15);
-  const regionC={};
-  Object.entries(countryC).forEach(([c,n])=>{
-    const r=REGION_MAP[c]||"Other";
-    regionC[r]=(regionC[r]||0)+n;
+
+  const regionC = {};
+  Object.entries(countryC).forEach(([c,n]) => {
+    const r = REGION_MAP[c] || "Other";
+    regionC[r] = (regionC[r] || 0) + n;
   });
 
   return {
-    pageViews:pv, uniqueVisitors:uv.size, businessDomains:doms.size, weeks, urlTable, domainTable,
-    industry:topN(industryC,8), companySize:sortByOrder(sizeC, SIZE_ORDER), revenue:sortByOrder(revC, REV_ORDER),
-    profGroup:topN(profC,3), funcArea:topN(funcC,3), seniority:topN(senC,5),
-    countries:topN(countryC,9), regions:topN(regionC,5),
+    pageViews: pv, uniqueVisitors: uv.size, businessDomains: doms.size, weeks, urlTable, domainTable,
+    industry: topN(industryC, 8), companySize: sortByOrder(sizeC, SIZE_ORDER), revenue: sortByOrder(revC, REV_ORDER),
+    profGroup: topN(profC, 3), funcArea: topN(funcC, 3), seniority: topN(senC, 5),
+    countries: topN(countryC, 9), regions: topN(regionC, 5),
   };
 }
 
@@ -1206,8 +1219,10 @@ function getFilteredRows() {
   let rows = allBomboraRows;
   if (currentAdvertiser && advertiserMap[currentAdvertiser]) {
     const allowed = advertiserMap[currentAdvertiser].map(p => p.toLowerCase());
+    // Summary rows store path pre-normalised (matches the JS normalizePath
+    // output) so we compare directly without re-normalising.
     rows = rows.filter(r => {
-      const rp = normalizePath(r["URL"]||"");
+      const rp = r.path || "";
       return allowed.some(ap => rp === ap || rp.startsWith(ap + "/"));
     });
   }
@@ -1430,9 +1445,11 @@ function section(title,subtitle,content) {
 
 function renderDashboard() {
   const filtered = getFilteredRows();
-  const d = processData(filtered);
+  const d = processSummary(filtered);
 
-  document.getElementById("rowCount").textContent = fmt(filtered.length);
+  // Show total page views (was raw row count — same number when working
+  // with raw rows; with summary rows it's the sum of bucket page_views).
+  document.getElementById("rowCount").textContent = fmt(d.pageViews);
   const loadTimeEl = document.getElementById("loadTime");
   if (loadTimeEl) loadTimeEl.textContent = "Loaded " + new Date().toLocaleTimeString();
 
@@ -1731,49 +1748,27 @@ async function downloadAllPDFs() {
 }
 
 // ─── Bombora loader (Supabase) ───────────────────────────
-// One RPC call returns ALL bombora rows for the chosen date window as a
-// single jsonb array. The page then filters/crunches that array client-side
-// for every advertiser, every limitDomains toggle, every PDF in the batch
-// loop. Switching back to a date range we already loaded is a no-op.
+// One RPC call returns the pre-aggregated daily summary for the chosen
+// date window (one row per event_date × path × domain bucket, with
+// visitor_ids[] and pre-counted demographic dicts). The page then
+// filters by advertiser and crunches the buckets via processSummary()
+// for every advertiser, every limitDomains toggle, every PDF in the
+// batch loop. Re-fetching only happens when the date range changes.
 //
-// Mirrors the shape the old gviz loader produced so processData() works
-// unchanged ("Bombora ID", "URL", "Domain", "Import Date", …).
+// The materialized view that backs this RPC is rebuilt nightly by the
+// Python ingester after it lands new CSVs (see supabase/bombora_ingest.py).
 async function loadBomboraFromSupabase(fromDate, toDate) {
   for (let i = 0; i < 40 && !(window.eitools && window.eitools.sb); i++) {
     await new Promise(r => setTimeout(r, 25));
   }
   if (!(window.eitools && window.eitools.sb)) throw new Error('Supabase client not ready');
   const sb = window.eitools.sb;
-  // v2 returns rows (returns table) rather than a single jsonb_agg blob —
-  // ~4× faster server-side because Postgres streams rows as it reads
-  // them instead of building one giant JSON object up front (18.6s → 4.8s
-  // on a 86k-row month).
-  const { data, error } = await sb.rpc('get_audience_rows_v2', {
+  const { data, error } = await sb.rpc('get_audience_summary_rows', {
     from_date: fromDate,
     to_date:   toDate,
   });
   if (error) throw error;
-  // Reshape: Supabase column names → legacy gviz-style keys expected by
-  // processData(). One pass, no extra allocations beyond the output array.
-  const rows = data || [];
-  const out = new Array(rows.length);
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    out[i] = {
-      "Bombora ID":         r.bombora_id || "",
-      "URL":                r.url || "",
-      "Domain":             r.domain || "",
-      "Import Date":        r.event_date || "",
-      "Country":            r.country || "",
-      "Industry":           r.industry || "",
-      "Company_Size":       r.company_size || "",
-      "Company_Revenue":    r.company_revenue || "",
-      "Professional_Group": r.professional_group || "",
-      "Functional_Area":    r.functional_area || "",
-      "Seniority":          r.seniority || "",
-    };
-  }
-  return out;
+  return data || [];
 }
 
 // Quick min/max query so the "All" preset and the date inputs know the
