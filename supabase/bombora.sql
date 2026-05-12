@@ -276,79 +276,66 @@ security definer
 as $$
 with
 base as materialized (
-  -- Filter to the date window FIRST (sargable predicate on universal_datetime
-  -- with index support), then compute the per-row derived columns once.
-  -- The `as materialized` hint forces a single pass — downstream CTEs read
-  -- this snapshot instead of recomputing the filter + URL normalisation +
-  -- industry split + seniority normalisation for every aggregation.
+  -- v3 perf fix: compute the stripped URL ONCE per row in the inner
+  -- subquery (column `p`). The previous version called the same chain
+  -- of three regexp_replace's THREE times per row (once per case branch).
+  -- Also swapped regex for cheap string ops (substring/like/split_part/
+  -- rtrim). Brings 86k-row aggregation from ~5s down to well under 1s.
   select
-    b.bombora_id,
-    b.domain,
-    b.universal_datetime::date as event_date,
-    -- URL normalisation (matches normalizePath() in reports.html).
-    -- Done inline with chained regexp_replace + case — avoids the
-    -- correlated subquery / nested CTE chain that crippled the v1 of
-    -- this function (8s on 38k rows).
-    lower(
+    bombora_id,
+    domain,
+    event_date,
+    lower(case
+      when p = ''            then ''
+      when left(p, 1) = '/'  then p
+      else                        '/' || p
+    end) as path,
+    country,
+    industry_top,
+    company_size,
+    revenue,
+    professional_group_raw,
+    functional_area,
+    seniority
+  from (
+    select
+      b.bombora_id,
+      b.domain,
+      b.universal_datetime::date as event_date,
+      -- Strip prefix, query, fragment, trailing slash — once.
+      rtrim(
+        split_part(
+          split_part(
+            case
+              when b.url like 'https://expertinsights.com%' then substring(b.url from 27)
+              when b.url like 'http://expertinsights.com%'  then substring(b.url from 26)
+              else coalesce(b.url, '')
+            end,
+            '?', 1
+          ),
+          '#', 1
+        ),
+        '/'
+      ) as p,
+      b.country,
+      nullif(btrim(split_part(split_part(coalesce(b.industry, ''), '|', 1), '>', 1)), '') as industry_top,
+      nullif(btrim(coalesce(b.company_size, '')),    '') as company_size,
+      nullif(btrim(coalesce(b.company_revenue, '')), '') as revenue,
+      nullif(btrim(coalesce(b.professional_group, '')), '') as professional_group_raw,
+      nullif(btrim(coalesce(b.functional_area, '')), '') as functional_area,
       case
-        -- Strip protocol+domain, then query/fragment, then trailing '/'.
-        -- After that, ensure leading '/' for paths that don't start with one.
-        when
-          regexp_replace(
-            regexp_replace(
-              regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
-              '[?#].*$', ''
-            ),
-            '/+$', ''
-          ) = ''
-        then ''
-        when
-          left(
-            regexp_replace(
-              regexp_replace(
-                regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
-                '[?#].*$', ''
-              ),
-              '/+$', ''
-            ),
-            1
-          ) = '/'
-        then
-          regexp_replace(
-            regexp_replace(
-              regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
-              '[?#].*$', ''
-            ),
-            '/+$', ''
-          )
-        else
-          '/' || regexp_replace(
-            regexp_replace(
-              regexp_replace(coalesce(b.url, ''), '^https?://expertinsights\.com', ''),
-              '[?#].*$', ''
-            ),
-            '/+$', ''
-          )
-      end
-    ) as path,
-    b.country,
-    nullif(btrim(split_part(split_part(coalesce(b.industry, ''), '|', 1), '>', 1)), '') as industry_top,
-    nullif(btrim(coalesce(b.company_size, '')),    '') as company_size,
-    nullif(btrim(coalesce(b.company_revenue, '')), '') as revenue,
-    nullif(btrim(coalesce(b.professional_group, '')), '') as professional_group_raw,
-    nullif(btrim(coalesce(b.functional_area, '')), '') as functional_area,
-    case
-      when lower(coalesce(b.seniority, '')) like '%csuite%'    then 'C-Suite'
-      when lower(coalesce(b.seniority, '')) like '%c-suite%'   then 'C-Suite'
-      when lower(coalesce(b.seniority, '')) like '%board%'     then 'Management'
-      when lower(coalesce(b.seniority, '')) like '%ownership%' then 'Management'
-      else nullif(btrim(coalesce(b.seniority, '')), '')
-    end as seniority
-  from public.bombora_raw b
-  where b.universal_datetime is not null
-    and b.universal_datetime >= from_date::timestamptz
-    and b.universal_datetime <  (to_date + 1)::timestamptz
-    and lower(btrim(coalesce(b.domain, ''))) <> 'gammagroup.co'
+        when lower(coalesce(b.seniority, '')) like '%csuite%'    then 'C-Suite'
+        when lower(coalesce(b.seniority, '')) like '%c-suite%'   then 'C-Suite'
+        when lower(coalesce(b.seniority, '')) like '%board%'     then 'Management'
+        when lower(coalesce(b.seniority, '')) like '%ownership%' then 'Management'
+        else nullif(btrim(coalesce(b.seniority, '')), '')
+      end as seniority
+    from public.bombora_raw b
+    where b.universal_datetime is not null
+      and b.universal_datetime >= from_date::timestamptz
+      and b.universal_datetime <  (to_date + 1)::timestamptz
+      and lower(btrim(coalesce(b.domain, ''))) <> 'gammagroup.co'
+  ) inner_base
 ),
 f as materialized (
   select b.*
