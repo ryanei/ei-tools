@@ -259,8 +259,18 @@ def parse_csv_text(text):
 # SFTP
 # ────────────────────────────────────────────────────────────────────────
 
-def list_and_fetch_sftp(host, port, user, password, key_text, remote_dir):
-    """Returns (filename, bytes_content) tuples, sorted by filename ascending."""
+def _is_dir(entry):
+    """Whether an SFTPAttributes entry is a directory."""
+    return entry.st_mode is not None and (entry.st_mode & 0o170000) == 0o040000
+
+
+def list_and_fetch_sftp(host, port, user, password, key_text, remote_dir, verbose=False, fetch=True):
+    """Connect, navigate to remote_dir, list .csv files. If fetch=True, also
+       download them. If verbose=True, print the full directory listing
+       (files + dirs) and peek into any subdirectories one level deep.
+
+       Returns (filename, bytes_content) tuples; bytes_content is None if
+       fetch=False."""
     try:
         import paramiko
     except ImportError:
@@ -278,14 +288,46 @@ def list_and_fetch_sftp(host, port, user, password, key_text, remote_dir):
         sftp = paramiko.SFTPClient.from_transport(transport)
         try:
             sftp.chdir(remote_dir)
+            cwd = sftp.getcwd()
             entries = sftp.listdir_attr()
+
+            if verbose:
+                print(f"  · cwd after chdir({remote_dir!r}): {cwd}")
+                print(f"  · {len(entries)} entries in {cwd}:")
+                for e in sorted(entries, key=lambda x: (not _is_dir(x), x.filename)):
+                    kind = "DIR " if _is_dir(e) else "file"
+                    size = "" if _is_dir(e) else f"  {e.st_size:>14,} bytes"
+                    print(f"      {kind}  {e.filename}{size}")
+                # Peek into any subdirectories one level deep, so we can see if
+                # Bombora drops files in /outbox/ or /visitor_insight/ etc.
+                for e in entries:
+                    if not _is_dir(e):
+                        continue
+                    try:
+                        sub = sftp.listdir_attr(e.filename)
+                    except IOError as ex:
+                        print(f"      (couldn't list {e.filename}: {ex})")
+                        continue
+                    print(f"  · {len(sub)} entries inside {e.filename}/:")
+                    for s in sorted(sub, key=lambda x: (not _is_dir(x), x.filename))[:30]:
+                        kind = "DIR " if _is_dir(s) else "file"
+                        size = "" if _is_dir(s) else f"  {s.st_size:>14,} bytes"
+                        print(f"      {kind}  {e.filename}/{s.filename}{size}")
+                    if len(sub) > 30:
+                        print(f"      … and {len(sub) - 30} more")
+
             files = []
             for e in entries:
-                # Skip directories, hidden dotfiles, anything not a CSV
+                if _is_dir(e):
+                    continue
                 if not e.filename.lower().endswith(".csv"):
                     continue
                 files.append(e.filename)
             files.sort()
+
+            if not fetch:
+                return [(f, None) for f in files]
+
             out = []
             for f in files:
                 buf = io.BytesIO()
@@ -367,13 +409,17 @@ def main():
         print(f"ERROR: missing env vars: {', '.join(missing)}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Connecting to {user}@{host}:{port}{remote_dir}")
-    files = list_and_fetch_sftp(host, port, user, password, key_text, remote_dir)
-    print(f"  · {len(files)} CSV file(s) on SFTP")
+    print(f"Connecting to {user}@{host}:{port} (dir: {remote_dir})")
+    files = list_and_fetch_sftp(
+        host, port, user, password, key_text, remote_dir,
+        verbose=args.dry_run,           # full directory listing only in dry-run
+        fetch=not args.dry_run,         # don't download in dry-run
+    )
+    print(f"  · {len(files)} CSV file(s) directly in {remote_dir!r}")
 
     if args.dry_run:
-        for f, content in files:
-            print(f"    [dry-run] {f}  {len(content):,} bytes")
+        for f, _ in files:
+            print(f"    [dry-run] {f}")
         return
 
     already = processed_filenames(secret_key)
