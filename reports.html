@@ -1019,6 +1019,15 @@ let currentAdvertiser = "";
 function fmt(n) { return n == null ? "0" : Number(n).toLocaleString("en-US"); }
 function pct(p, t) { return t ? Math.round((p/t)*100) : 0; }
 function topN(map, n=10) { return Object.entries(map).filter(([k])=>k&&k.trim()).sort((a,b)=>b[1]-a[1]).slice(0,n); }
+// LOCAL-time YYYY-MM-DD formatter. Use this instead of toISOString().slice(0,10)
+// for Date objects built from local-time constructors (new Date(y,m,d) etc.) —
+// in UTC+ timezones (e.g. BST), .toISOString() rolls midnight back to the
+// previous day, which has bitten us on the "Last month" preset.
+function fmtLocalDate(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 
 const SIZE_ORDER = ["Micro","Small","Medium-Small","Medium","Medium-Large","Large","XLarge","XXLarge"];
 const REV_ORDER = ["Micro","Small","Medium-Small","Medium-Large","Large","XLarge","XXLarge"];
@@ -1307,15 +1316,15 @@ function applyDatePreset(val) {
     const now = new Date();
     const from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const to = new Date(now.getFullYear(), now.getMonth(), 0);
-    fromEl.value = from.toISOString().slice(0, 10);
-    toEl.value = to.toISOString().slice(0, 10);
+    fromEl.value = fmtLocalDate(from);
+    toEl.value   = fmtLocalDate(to);
   } else {
     const days = parseInt(val);
     const to = new Date();
     const from = new Date();
     from.setDate(from.getDate() - days);
-    fromEl.value = from.toISOString().slice(0, 10);
-    toEl.value = to.toISOString().slice(0, 10);
+    fromEl.value = fmtLocalDate(from);
+    toEl.value   = fmtLocalDate(to);
   }
 
   updateDateRangeDisplay();
@@ -2232,8 +2241,8 @@ async function loadData() {
     const _now = new Date();
     const _from = new Date(_now.getFullYear(), _now.getMonth() - 1, 1);
     const _to   = new Date(_now.getFullYear(), _now.getMonth(), 0);
-    const initFrom = _from.toISOString().slice(0, 10);
-    const initTo   = _to.toISOString().slice(0, 10);
+    const initFrom = fmtLocalDate(_from);
+    const initTo   = fmtLocalDate(_to);
     document.getElementById("dateFrom").value = initFrom;
     document.getElementById("dateTo").value   = initTo;
     const presetEl = document.getElementById("datePreset");
