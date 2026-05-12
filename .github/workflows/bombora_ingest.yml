@@ -43,9 +43,10 @@ jobs:
           BOMBORA_SFTP_KEY:  ${{ secrets.BOMBORA_SFTP_KEY }}
           BOMBORA_SFTP_DIR:  ${{ secrets.BOMBORA_SFTP_DIR }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          PYTHONUNBUFFERED: '1'   # show live progress in GitHub Actions logs
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            python3 supabase/bombora_ingest.py --dry-run
+            python3 -u supabase/bombora_ingest.py --dry-run
           else
-            python3 supabase/bombora_ingest.py
+            python3 -u supabase/bombora_ingest.py
           fi
