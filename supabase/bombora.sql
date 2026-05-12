@@ -293,6 +293,56 @@ grant execute on function public.get_audience_rows(date, date)
   to authenticated, service_role;
 
 
+-- ── 6. get_audience_rows_v2() ─────────────────────────────────────────
+-- Same data as get_audience_rows, but `returns table(...)` instead of
+-- jsonb_agg. Postgres streams rows as it reads them rather than packing
+-- 86k rows into one giant jsonb object up front — measured 18.6s → 4.8s
+-- on a real month of data (May 2026). The page calls this one; the
+-- jsonb version above is kept as a fallback for one release in case
+-- Supabase's PostgREST row cap bites us.
+create or replace function public.get_audience_rows_v2(
+  from_date date,
+  to_date   date
+)
+returns table (
+  bombora_id         text,
+  url                text,
+  domain             text,
+  event_date         timestamptz,
+  country            text,
+  industry           text,
+  company_size       text,
+  company_revenue    text,
+  professional_group text,
+  functional_area    text,
+  seniority          text
+)
+language sql
+stable
+security definer
+parallel safe
+as $$
+  select
+    b.bombora_id,
+    b.url,
+    b.domain,
+    coalesce(b.universal_datetime, b.ingested_at) as event_date,
+    b.country,
+    b.industry,
+    b.company_size,
+    b.company_revenue,
+    b.professional_group,
+    b.functional_area,
+    b.seniority
+  from public.bombora_raw b
+  where coalesce(b.universal_datetime, b.ingested_at)::date between from_date and to_date
+    and lower(btrim(coalesce(b.domain,''))) <> 'gammagroup.co';
+$$;
+
+grant execute on function public.get_audience_rows_v2(date, date)
+  to authenticated, service_role;
+
+
 -- ════════════════════════════════════════════════════════════════════════
 -- DONE.
 -- ════════════════════════════════════════════════════════════════════════

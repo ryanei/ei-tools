@@ -1744,7 +1744,11 @@ async function loadBomboraFromSupabase(fromDate, toDate) {
   }
   if (!(window.eitools && window.eitools.sb)) throw new Error('Supabase client not ready');
   const sb = window.eitools.sb;
-  const { data, error } = await sb.rpc('get_audience_rows', {
+  // v2 returns rows (returns table) rather than a single jsonb_agg blob —
+  // ~4× faster server-side because Postgres streams rows as it reads
+  // them instead of building one giant JSON object up front (18.6s → 4.8s
+  // on a 86k-row month).
+  const { data, error } = await sb.rpc('get_audience_rows_v2', {
     from_date: fromDate,
     to_date:   toDate,
   });
