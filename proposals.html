@@ -862,42 +862,26 @@ const ACCOUNTS_SHEET_ID = '1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4';
 let ADVERTISERS = [];
 let advertiserByName = {};
 
-function loadAdvertisersFromSheet() {
-  const cb = 'advCb_' + Date.now();
-  const url = 'https://docs.google.com/spreadsheets/d/' + ACCOUNTS_SHEET_ID + '/gviz/tq?tqx=out:json;responseHandler:' + cb + '&sheet=Advertisers&headers=1';
-  const s = document.createElement('script');
-  window[cb] = function(response) {
-    delete window[cb];
-    if (s.parentNode) s.parentNode.removeChild(s);
-    try {
-      if (!response || response.status === 'error') return;
-      const table = response.table;
-      const colMap = {};
-      table.cols.forEach(function(c, i) { if (c.label) colMap[c.label.toLowerCase().replace(/\s+/g,'_')] = i; });
-      const idIdx = colMap.id;
-      const nameIdx = colMap.name;
-      if (idIdx === undefined || nameIdx === undefined) return;
-      const list = [];
-      const map = {};
-      table.rows.forEach(function(row) {
-        if (!row.c[idIdx] || !row.c[nameIdx]) return;
-        const id = String(row.c[idIdx].v || '').trim();
-        const name = String(row.c[nameIdx].v || '').trim();
-        if (!id || !name) return;
-        list.push({ id: id, name: name });
-        map[name.toLowerCase()] = id;
-      });
-      list.sort(function(a,b){ return a.name.localeCompare(b.name); });
-      ADVERTISERS = list;
-      advertiserByName = map;
-      renderAdvertiserList();
-      // Re-check current input in case user already typed something matching
-      onVendorInput();
-    } catch(e) {}
-  };
-  s.src = url;
-  s.onerror = function(){ delete window[cb]; };
-  document.body.appendChild(s);
+async function loadAdvertisersFromSheet() {
+  // Phase 3c: pulls from Supabase instead of gviz on the (now-locked-down) Accounts sheet.
+  // Function name kept for compat with init() and other callers.
+  try {
+    for (let i = 0; i < 40 && !(window.eitools && window.eitools.sb); i++) {
+      await new Promise(r => setTimeout(r, 25));
+    }
+    const sb = window.eitools && window.eitools.sb;
+    if (!sb) return;
+    const { data, error } = await sb.from('advertisers').select('id,name').order('name', { ascending: true });
+    if (error) { console.error('Advertiser list load failed:', error); return; }
+    const list = (data || []).filter(r => r.id && r.name).map(r => ({ id: r.id, name: r.name }));
+    const map = {};
+    list.forEach(r => { map[r.name.toLowerCase()] = r.id; });
+    ADVERTISERS = list;
+    advertiserByName = map;
+    renderAdvertiserList();
+    // Re-check current input in case user already typed something matching
+    onVendorInput();
+  } catch(e) { console.error('Advertiser autocomplete failed:', e); }
 }
 
 function renderAdvertiserList() {
