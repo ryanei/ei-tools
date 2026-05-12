@@ -22,12 +22,16 @@
     return;
   }
 
+  // Implicit flow (vs PKCE) so the magic-link email can be clicked from any
+  // browser — including the default OS browser when the user clicks from Outlook,
+  // even if they originally requested the link in an incognito window. PKCE
+  // requires the same-browser code_verifier and breaks across browsers.
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      flowType: 'pkce'
+      flowType: 'implicit'
     }
   });
 
