@@ -35,6 +35,7 @@ Local single-file run (skip SFTP, ingest a local CSV):
 import os
 import sys
 import csv
+import gzip
 import io
 import time
 import json
@@ -320,7 +321,9 @@ def list_and_fetch_sftp(host, port, user, password, key_text, remote_dir, verbos
             for e in entries:
                 if _is_dir(e):
                     continue
-                if not e.filename.lower().endswith(".csv"):
+                fn = e.filename.lower()
+                # Bombora ships .csv.gz; accept plain .csv too just in case
+                if not (fn.endswith(".csv") or fn.endswith(".csv.gz")):
                     continue
                 files.append(e.filename)
             files.sort()
@@ -360,6 +363,15 @@ def run_local_file(path, secret_key):
 def process_file(filename, content, secret_key):
     t0 = time.time()
     bytes_len = len(content)
+    # Bombora ships .csv.gz — decompress transparently
+    if filename.lower().endswith(".gz"):
+        try:
+            content = gzip.decompress(content)
+        except OSError as e:
+            print(f"  ✗ {filename}: gzip decompression failed: {e}", file=sys.stderr)
+            log_ingest(filename, bytes_len, 0, int((time.time() - t0) * 1000),
+                       f"gzip decompression failed: {e}", secret_key)
+            return
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:
