@@ -1609,8 +1609,16 @@ async function loadBomboraDateBounds() {
 // Cached date bounds — fetched once at page load, used by the "All" preset.
 let bomboraDateBounds = { min: null, max: null };
 
+// In-memory cache of RPC results keyed by (date range + advertiser + limit_domains).
+// Switching back to a previously-viewed advertiser is instant. Cache lives for the
+// session only; survives advertiser/date toggles but not page reloads.
+const summaryCache = new Map();
+function _summaryCacheKey(from, to, advUrls, limitDomains){
+  return JSON.stringify([from, to, advUrls || null, !!limitDomains]);
+}
+
 // Refetch the audience summary for the currently-selected filters. Called
-// whenever date range, advertiser, or limit_domains changes. One RPC call.
+// whenever date range, advertiser, or limit_domains changes. Hits cache first.
 async function reloadBomboraData() {
   const from = document.getElementById("dateFrom").value;
   const to   = document.getElementById("dateTo").value;
@@ -1623,15 +1631,51 @@ async function reloadBomboraData() {
     : null;
   const limitDomains = !!document.getElementById("limitDomains").checked;
 
+  // Cache hit → instant render
+  const cacheKey = _summaryCacheKey(from, to, advUrls, limitDomains);
+  if (summaryCache.has(cacheKey)) {
+    lastSummary = summaryCache.get(cacheKey);
+    renderDashboard();
+    return;
+  }
+
   document.body.style.cursor = "wait";
   try {
-    lastSummary = await loadAudienceSummary(from, to, advUrls, limitDomains);
+    const result = await loadAudienceSummary(from, to, advUrls, limitDomains);
+    summaryCache.set(cacheKey, result);
+    lastSummary = result;
     renderDashboard();
   } catch (e) {
     console.error("Audience reload failed:", e);
     if (window.toast) window.toast.error("Couldn't refresh audience data: " + (e.message || e));
   } finally {
     document.body.style.cursor = "";
+  }
+}
+
+// Background prefetch — after the initial "All" view loads, quietly fetch
+// each advertiser's summary so subsequent clicks are instant. One request
+// at a time, with a small delay between, so we don't hammer the database.
+// Skips any combo already in the cache. Silent failures.
+async function prefetchAdvertiserSummaries() {
+  const from = document.getElementById("dateFrom").value;
+  const to   = document.getElementById("dateTo").value;
+  if (!from || !to) return;
+  const names = Object.keys(advertiserMap || {});
+  for (const name of names) {
+    const urls = (advertiserMap[name] || []).map(p => normalizePath(p)).filter(Boolean);
+    if (!urls.length) continue;
+    const ld = !!(limitDomainsMap && limitDomainsMap[name]);
+    const key = _summaryCacheKey(from, to, urls, ld);
+    if (summaryCache.has(key)) continue;
+    try {
+      const result = await loadAudienceSummary(from, to, urls, ld);
+      summaryCache.set(key, result);
+    } catch (e) {
+      console.warn("Prefetch failed for", name, e && e.message);
+      break;  // bail on errors — don't keep hammering
+    }
+    await new Promise(r => setTimeout(r, 150));
   }
 }
 
@@ -1805,6 +1849,8 @@ async function loadData() {
       console.warn("Audience summary is empty for", initFrom, "→", initTo);
     }
     lastSummary = summary;
+    // Seed the cache so a later toggle back to "All" is instant.
+    summaryCache.set(_summaryCacheKey(initFrom, initTo, null, false), summary);
     advertiserMap = parseAdvertiserSheet(advRows);
     limitDomainsMap = parseAdvertiserSettings(settingsRows);
     console.log("Sheet3 raw rows:", clickRows.length, clickRows.length ? JSON.stringify(clickRows[0]) : "empty");
@@ -1819,6 +1865,9 @@ async function loadData() {
     // since that would refetch the same window we just loaded.
     updateDateRangeDisplay();
     renderDashboard();
+    // Fire-and-forget background prefetch so subsequent advertiser clicks
+    // are instant. Caps at the current date range; ignores errors.
+    prefetchAdvertiserSummaries().catch(()=>{});
   } catch(err) {
     loading.style.display="none"; error.style.display="flex";
     document.getElementById("errorMsg").textContent = err.message;
