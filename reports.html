@@ -803,9 +803,15 @@
 .topbar-logout{font-size:11px !important;color:rgba(255,255,255,0.45) !important;background:none !important;border:none !important;cursor:pointer;font-family:inherit !important;font-weight:500 !important;padding:6px 10px !important;border-radius:6px !important;text-transform:uppercase !important;letter-spacing:0.06em !important;}
 .topbar-logout:hover{color:#fff !important;background:rgba(255,255,255,0.08) !important;}
 
+/* Floating loading indicator — shown while a Bombora reload is in flight */
+#reloadingIndicator{position:fixed;top:80px;right:20px;background:#012747;color:#fff;padding:9px 16px 9px 36px;border-radius:24px;font-family:'Inter Tight',sans-serif;font-size:12.5px;font-weight:500;letter-spacing:-0.005em;z-index:60;opacity:0;transform:translateY(-8px);transition:opacity 180ms ease,transform 180ms ease;pointer-events:none;box-shadow:0 6px 24px -6px rgba(1,39,71,0.45);}
+#reloadingIndicator.show{opacity:1;transform:translateY(0);}
+#reloadingIndicator::before{content:"";position:absolute;left:14px;top:50%;width:12px;height:12px;margin-top:-6px;border:2px solid rgba(255,255,255,0.25);border-top-color:#fff;border-radius:50%;animation:reloadSpin 0.7s linear infinite;}
+@keyframes reloadSpin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
+<div id="reloadingIndicator" role="status" aria-live="polite">Refreshing data…</div>
 <!-- Supabase client (Phase 3b) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
@@ -1521,26 +1527,29 @@ async function downloadAllPDFs() {
     const total = advertisers.length + 1; // +1 for "All"
     let count = 0;
 
-    // First: generate "All" report
+    // First: generate "All" report. await reloadBomboraData() so the dashboard
+    // actually contains All's data before we snapshot it to PDF — under the new
+    // RPC architecture renderDashboard() reads from lastSummary, which has to
+    // be refreshed via the server call (or cache).
     btn.textContent = `⏳ Generating 1 of ${total}...`;
     currentAdvertiser = "";
     select.value = "";
     document.getElementById("limitDomains").checked = false;
-    renderDashboard();
-    await new Promise(r => setTimeout(r, 300));
+    await reloadBomboraData();
     const allBlob = await generatePDFBlob();
     zip.file(getPDFFilename(""), allBlob);
     count++;
 
-    // Then: each advertiser
+    // Then: each advertiser. Same await pattern — the cache makes this
+    // instant if prefetch already covered them; otherwise it's the full
+    // RPC round-trip per advertiser, but always after the data is ready.
     for (const adv of advertisers) {
       count++;
       btn.textContent = `⏳ Generating ${count} of ${total}...`;
       currentAdvertiser = adv;
       select.value = adv;
       document.getElementById("limitDomains").checked = !!limitDomainsMap[adv];
-      renderDashboard();
-      await new Promise(r => setTimeout(r, 300));
+      await reloadBomboraData();
       const blob = await generatePDFBlob();
       zip.file(getPDFFilename(adv), blob);
     }
@@ -1640,6 +1649,8 @@ async function reloadBomboraData() {
   }
 
   document.body.style.cursor = "wait";
+  const indicator = document.getElementById("reloadingIndicator");
+  if (indicator) indicator.classList.add("show");
   try {
     const result = await loadAudienceSummary(from, to, advUrls, limitDomains);
     summaryCache.set(cacheKey, result);
@@ -1650,6 +1661,7 @@ async function reloadBomboraData() {
     if (window.toast) window.toast.error("Couldn't refresh audience data: " + (e.message || e));
   } finally {
     document.body.style.cursor = "";
+    if (indicator) indicator.classList.remove("show");
   }
 }
 
