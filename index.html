@@ -339,6 +339,15 @@ function logActivity(page,type){var s=getSession();if(!s)return;fetch(ACTIVITY_E
      1. A legacy localStorage session (set by old login form — still works during transition)
      2. A Supabase session (set by login.html magic-link flow), which we bridge into the legacy format
    so existing hub init code works unchanged. Phase 3b will rewrite this. */
+// Admin allowlist — derived from email prefix (the part before @).
+// The old login system used "relliott" as a hand-typed username; under
+// Supabase magic-link auth the username is the email prefix, so we list
+// both legacy and current shapes. Keep in sync with applyToolPerms below.
+var ADMIN_USERS = ["relliott", "ryan.elliott"];
+function _isAdminUsername(u) {
+  return ADMIN_USERS.indexOf((u || "").toLowerCase()) >= 0;
+}
+
 // Build the "session" object the hub UI needs from a Supabase session.
 // Resolution order for the display name:
 //   1. user_metadata.full_name / name (if set)
@@ -346,7 +355,8 @@ function logActivity(page,type){var s=getSession();if(!s)return;fetch(ACTIVITY_E
 //   3. Email prefix parsed on "." "_" "-" ("ryan.elliott" → "Ryan Elliott")
 //   4. Fall back to the raw email prefix
 // showHub() reads `s.name` for both the greeting and the avatar initials,
-// so getting `name` right fixes both at once.
+// so getting `name` right fixes both at once. We also set s.role here so
+// the admin section gate (`if (s.role === "admin")`) lights up correctly.
 function _hubSessionFromSupabase(session) {
   var um = (session && session.user && session.user.user_metadata) || {};
   var email = (session && session.user && session.user.email) || "";
@@ -373,6 +383,7 @@ function _hubSessionFromSupabase(session) {
     email: email,
     name: full,
     firstName: first || full.split(" ")[0],
+    role: _isAdminUsername(prefix) ? "admin" : "user",
     supabase: true
   };
 }
@@ -752,8 +763,12 @@ function fetchSheet(sheetName,cb){var n="cb"+Date.now()+Math.random().toString(3
 // (the bridge above redirects to login.html before DOM paints), but in case it
 // does, the submit handler just bounces to the real login page.
 function doLogin(){ window.location.replace("login.html"); }
-var ADMIN_USERS=["relliott"];var RESTRICTED_TOOLS=["pipeline.html","accounts.html","pricing.html"];
-function applyToolPerms(s){var isAdmin=ADMIN_USERS.indexOf((s.username||"").toLowerCase())>=0;if(isAdmin){var mb=document.getElementById("announceManageBtn");if(mb)mb.classList.add("visible");}if(isAdmin)return;document.querySelectorAll("a.tool-card").forEach(function(card){if(RESTRICTED_TOOLS.indexOf(card.getAttribute("href"))<0)return;card.classList.add("card-planned");card.removeAttribute("href");var st=card.querySelector(".tool-card-status");if(st){st.textContent="Coming Soon";st.classList.remove("status-live");st.classList.add("status-planned");}})}
+// ADMIN_USERS / _isAdminUsername are defined at the top of this script
+// (the Supabase auth bridge needs them earlier than this declaration would
+// reach). The list is the source of truth — adding a name there flips both
+// the tool-card gate and the admin-section gate at once.
+var RESTRICTED_TOOLS=["pipeline.html","accounts.html","pricing.html"];
+function applyToolPerms(s){var isAdmin=_isAdminUsername(s.username);if(isAdmin){var mb=document.getElementById("announceManageBtn");if(mb)mb.classList.add("visible");}if(isAdmin)return;document.querySelectorAll("a.tool-card").forEach(function(card){if(RESTRICTED_TOOLS.indexOf(card.getAttribute("href"))<0)return;card.classList.add("card-planned");card.removeAttribute("href");var st=card.querySelector(".tool-card-status");if(st){st.textContent="Coming Soon";st.classList.remove("status-live");st.classList.add("status-planned");}})}
 function showHub(s){document.getElementById("loginScreen").style.display="none";document.getElementById("hub").classList.add("visible");var ini=(s.name||"U").split(" ").map(function(w){return w[0]}).join("").toUpperCase().substring(0,2);document.getElementById("userAvatar").textContent=ini;document.getElementById("userName").textContent=s.name||s.username;var fn=(s.name||s.username).split(" ")[0];var hr=new Date().getHours();var gr=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";document.getElementById("heroTitle").innerHTML=gr+', <span class="accent">'+fn.replace(/[<>"']/g,"")+'.</span><br>Pick up where the team left off.';var d=new Date().toLocaleDateString("en-GB",{weekday:"long",month:"long",day:"numeric"});document.getElementById("heroDate").textContent=d;document.getElementById("versionLabel").textContent=HUB_VERSION;applyToolPerms(s);if(s.role==="admin"){document.getElementById("adminSection").classList.add("visible");loadActivity()}loadAnnouncements();loadHubWidgets();logActivity("hub","pageview")}
 function doLogout(){
   // Phase 3 transitional: also sign out of Supabase so the bridge doesn't re-auth us on reload
