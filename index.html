@@ -339,9 +339,59 @@ function logActivity(page,type){var s=getSession();if(!s)return;fetch(ACTIVITY_E
      1. A legacy localStorage session (set by old login form — still works during transition)
      2. A Supabase session (set by login.html magic-link flow), which we bridge into the legacy format
    so existing hub init code works unchanged. Phase 3b will rewrite this. */
+// Build the "session" object the hub UI needs from a Supabase session.
+// Resolution order for the display name:
+//   1. user_metadata.full_name / name (if set)
+//   2. user_metadata.first_name + user_metadata.last_name
+//   3. Email prefix parsed on "." "_" "-" ("ryan.elliott" → "Ryan Elliott")
+//   4. Fall back to the raw email prefix
+// showHub() reads `s.name` for both the greeting and the avatar initials,
+// so getting `name` right fixes both at once.
+function _hubSessionFromSupabase(session) {
+  var um = (session && session.user && session.user.user_metadata) || {};
+  var email = (session && session.user && session.user.email) || "";
+  var prefix = email.split("@")[0] || "user";
+  var cap = function(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : ""; };
+
+  // 1 + 2: explicit metadata wins
+  var first = (um.first_name || "").trim();
+  var last  = (um.last_name  || "").trim();
+  var full  = (um.full_name || um.name || "").trim();
+
+  // 3: derive from email prefix when metadata is absent
+  if (!full && !first) {
+    var parts = prefix.split(/[._-]+/).filter(Boolean);
+    if (parts.length >= 1) first = cap(parts[0]);
+    if (parts.length >= 2) last  = parts.slice(1).map(cap).join(" ");
+  }
+
+  if (!full) full = last ? (first + " " + last) : first;
+  if (!full) full = cap(prefix);   // 4: last-resort fallback
+
+  return {
+    username: prefix,
+    email: email,
+    name: full,
+    firstName: first || full.split(" ")[0],
+    supabase: true
+  };
+}
+
 (function(){
   var legacy = getSession();
   if (legacy) {
+    // Heal sessions cached by older versions of the bridge: they may have
+    // `username` and `email` but no `name`, which made showHub() fall back
+    // to the literal "U" for the avatar and the email-prefix for the
+    // greeting ("Good morning, ryan.elliott"). Re-derive once.
+    if (!legacy.name) {
+      var healed = _hubSessionFromSupabase({
+        user: { email: legacy.email || "", user_metadata: {} }
+      });
+      // Preserve any fields the legacy object had that we don't compute
+      legacy = Object.assign({}, legacy, healed);
+      try { localStorage.setItem("eitools_session", JSON.stringify(legacy)); } catch(e){}
+    }
     document.addEventListener("DOMContentLoaded", function(){ showHub(legacy); });
     return;
   }
@@ -355,12 +405,7 @@ function logActivity(page,type){var s=getSession();if(!s)return;fetch(ACTIVITY_E
         var res = await window.eitools.sb.auth.getSession();
         var session = res && res.data && res.data.session;
         if (session && session.user) {
-          var u = {
-            username: (session.user.email || "").split("@")[0] || "user",
-            email: session.user.email,
-            firstName: ((session.user.user_metadata && session.user.user_metadata.first_name) || ""),
-            supabase: true
-          };
+          var u = _hubSessionFromSupabase(session);
           try { localStorage.setItem("eitools_session", JSON.stringify(u)); } catch(e){}
           showHub(u);
           return;
