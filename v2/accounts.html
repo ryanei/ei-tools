@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Advertiser campaign database — packages, sponsored articles, contacts, contracts, and account history.">
+<title>Accounts · EI Tools</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%232563EB'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='800' font-size='14'%3EEI%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0C1222;--ink-soft:#3A4258;--ink-muted:#6B7490;--surface:#F7F8FB;--surface-raised:#FFF;--border:#E2E5EF;--border-hover:#C8CCDA;--accent:#2563EB;--accent-hover:#1D4FD7;--accent-soft:#EEF4FF;--green:#0D9B5C;--green-soft:#EDFCF4;--amber:#D97706;--amber-soft:#FFF9EB;--red:#DC2626;--red-soft:#FEF2F2;--purple:#7C3AED;--purple-soft:#F3F0FF;--teal:#0891B2;--teal-soft:#ECFEFF;--radius:14px;--radius-sm:8px;--shadow-md:0 4px 16px rgba(12,18,34,0.06),0 1px 4px rgba(12,18,34,0.04);--shadow-lg:0 8px 32px rgba(12,18,34,0.08),0 2px 8px rgba(12,18,34,0.04);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--surface);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* Topbar */
+.topbar{background:linear-gradient(135deg,#0C1222 0%,#162040 50%,#1a2d5a 100%);padding:0 40px;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-brand{display:flex;align-items:center;gap:12px;}
+.topbar-logo{display:flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--accent);border-radius:6px;color:white;font-weight:800;font-size:13px;letter-spacing:-0.3px;}
+.topbar-title{font-size:15px;font-weight:700;color:white;letter-spacing:-0.3px;}
+.topbar-title a{color:white;text-decoration:none;}
+.topbar-title span{color:rgba(255,255,255,0.4);font-weight:500;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.topbar-env{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:#34d399;background:rgba(52,211,153,0.1);padding:4px 10px;border-radius:20px;}
+.back-link{color:rgba(255,255,255,0.5);text-decoration:none;font-size:13px;font-weight:500;transition:color 0.15s;}
+.back-link:hover{color:white;}
+.topbar-tools{display:flex;align-items:center;gap:4px;margin-left:8px;}
+.topbar-tool{padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);text-decoration:none;transition:all 0.15s;}
+.topbar-tool:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.06);}
+.topbar-tool.active{color:white;background:rgba(255,255,255,0.1);font-weight:600;}
+
+/* Main */
+.main{max-width:1320px;margin:0 auto;padding:32px 40px;}
+
+/* KPI strip */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.kpi-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;}
+.kpi-card.teal{border-left:3px solid var(--teal);}
+.kpi-card.green{border-left:3px solid var(--green);}
+.kpi-card.accent{border-left:3px solid var(--accent);}
+.kpi-card.amber{border-left:3px solid var(--amber);}
+.kpi-label{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.kpi-value{font-size:28px;font-weight:800;letter-spacing:-0.5px;}
+.kpi-sub{font-size:12px;color:var(--ink-muted);margin-top:4px;}
+
+/* Section */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:18px;font-weight:800;letter-spacing:-0.3px;}
+.section-actions{display:flex;gap:10px;}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:var(--surface-raised);color:var(--ink);transition:all 0.15s;}
+.btn:hover{border-color:var(--border-hover);box-shadow:var(--shadow-md);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{color:var(--red);border-color:rgba(220,38,38,0.3);}
+.btn-danger:hover{background:var(--red-soft);}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--ink-muted);}
+.btn-ghost:hover{background:var(--surface);color:var(--ink);}
+
+/* Filters */
+.filters{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-select{padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;}
+.filter-search{padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;width:300px;}
+.filter-search:focus,.filter-select:focus{border-color:var(--accent);}
+
+/* Table */
+.table-wrap{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;}
+tbody td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr{cursor:pointer;transition:background 0.1s;}
+tbody tr:hover{background:var(--accent-soft);}
+tbody tr:last-child td{border-bottom:none;}
+
+.adv-cell-name{font-weight:700;color:var(--ink);}
+.adv-cell-contact{font-size:12px;color:var(--ink-muted);margin-top:2px;}
+
+/* Badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-active{background:var(--green-soft);color:var(--green);}
+.badge-negotiation{background:var(--amber-soft);color:var(--amber);}
+.badge-paused{background:var(--accent-soft);color:var(--accent);}
+.badge-churned{background:var(--red-soft);color:var(--red);}
+.badge-yes{background:var(--green-soft);color:var(--green);}
+.badge-no{background:var(--surface);color:var(--ink-muted);border:1px solid var(--border);}
+.badge-inactive{background:var(--surface);color:var(--ink-muted);}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface-raised);border-radius:var(--radius);width:880px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);padding:0;display:flex;flex-direction:column;}
+.modal-header{padding:24px 32px 16px;border-bottom:1px solid var(--border);}
+.modal-title{font-size:20px;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close-x{background:none;border:none;font-size:22px;color:var(--ink-muted);cursor:pointer;padding:4px 10px;border-radius:6px;}
+.modal-close-x:hover{background:var(--surface);}
+.modal-body{padding:24px 32px;flex:1;overflow-y:auto;}
+.modal-footer{padding:16px 32px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);}
+.modal-footer-actions{display:flex;gap:10px;}
+
+/* Wizard */
+.wizard-steps{display:flex;align-items:center;gap:8px;margin-top:18px;}
+.wizard-step{display:flex;align-items:center;gap:8px;color:var(--ink-muted);font-size:12px;font-weight:600;}
+.wizard-step-num{width:24px;height:24px;border-radius:50%;background:var(--surface);color:var(--ink-muted);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:1.5px solid var(--border);}
+.wizard-step.active .wizard-step-num{background:var(--accent);color:white;border-color:var(--accent);}
+.wizard-step.done .wizard-step-num{background:var(--green);color:white;border-color:var(--green);}
+.wizard-step.active{color:var(--ink);}
+.wizard-step-line{flex:1;height:1.5px;background:var(--border);}
+.wizard-pane{display:none;}
+.wizard-pane.active{display:block;}
+
+/* Forms */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:12px;font-weight:600;color:var(--ink-soft);}
+.form-label .req{color:var(--red);}
+.form-input,.form-select,.form-textarea{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface-raised);color:var(--ink);outline:none;transition:border-color 0.15s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-input:disabled{background:var(--surface);color:var(--ink-muted);cursor:not-allowed;}
+.form-textarea{resize:vertical;min-height:60px;}
+.form-help{font-size:11px;color:var(--ink-muted);}
+.form-checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);}
+.form-checkbox-row input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);}
+
+/* Dynamic blocks */
+.dyn-block{margin-top:18px;}
+.dyn-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.dyn-block-title{font-size:13px;font-weight:700;color:var(--ink);}
+.dyn-block-sub{font-size:12px;color:var(--ink-muted);font-weight:500;}
+.dyn-empty{padding:14px;text-align:center;color:var(--ink-muted);font-size:12px;border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--surface);}
+
+.dyn-row{display:grid;gap:10px;align-items:end;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:10px;position:relative;}
+.dyn-row.contact{grid-template-columns:1fr 1fr 1.4fr 36px;}
+.dyn-row.service{grid-template-columns:1fr 2fr 36px;}
+.dyn-row .form-input,.dyn-row .form-select{padding:8px 10px;font-size:13px;}
+.dyn-row .form-label{font-size:10px;letter-spacing:0.4px;text-transform:uppercase;}
+.dyn-remove{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);color:var(--red);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+.dyn-remove:hover{background:var(--red-soft);border-color:rgba(220,38,38,0.3);}
+
+/* Article rows */
+.article-row{display:grid;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;}
+.article-row.standalone{grid-template-columns:22px 1fr 80px 110px 110px 36px;}
+.article-row.in-package{grid-template-columns:22px 1fr 80px 110px 36px;background:transparent;border:none;padding:6px 0;margin-bottom:4px;}
+.article-row.selected{background:var(--accent-soft);border-color:var(--accent);}
+.article-row .form-input,.article-row .form-select{padding:7px 10px;font-size:13px;}
+.article-checkbox{width:18px;height:18px;accent-color:var(--accent);cursor:pointer;}
+
+/* Package wrapper */
+.pkg-wrapper{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--purple);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;}
+.pkg-wrapper-header{display:grid;grid-template-columns:1fr 130px 110px auto auto;gap:10px;align-items:center;margin-bottom:12px;}
+.pkg-wrapper-name{font-size:14px;font-weight:700;color:var(--ink);padding:8px 10px;}
+.pkg-wrapper-name-input{padding:7px 10px;font-size:14px;font-weight:700;border:1px solid transparent;background:transparent;color:var(--ink);outline:none;border-radius:var(--radius-sm);}
+.pkg-wrapper-name-input:hover{background:var(--surface-raised);border-color:var(--border);}
+.pkg-wrapper-name-input:focus{background:var(--surface-raised);border-color:var(--accent);}
+.pkg-wrapper-articles{padding:0 6px;}
+
+/* Selection action bar */
+.selection-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--accent);color:white;border-radius:var(--radius-sm);margin-bottom:14px;font-size:13px;}
+.selection-bar.warn{background:var(--amber);}
+.selection-bar .form-input{padding:7px 10px;font-size:13px;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:white;}
+.selection-bar .form-input::placeholder{color:rgba(255,255,255,0.7);}
+.selection-bar .form-input:focus{border-color:white;background:rgba(255,255,255,0.25);}
+.selection-bar .btn{background:white;color:var(--accent);border-color:white;}
+.selection-bar .btn:hover{background:rgba(255,255,255,0.9);}
+.selection-bar .btn-ghost{background:transparent;color:white;border-color:transparent;}
+.selection-bar .btn-ghost:hover{background:rgba(255,255,255,0.1);color:white;}
+.selection-bar.warn .btn{color:var(--amber);}
+.selection-bar-msg{flex:1;}
+
+/* Drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(12,18,34,0.4);z-index:90;display:none;backdrop-filter:blur(4px);}
+.drawer-overlay.active{display:block;}
+.drawer{position:fixed;top:0;right:0;width:760px;max-width:100vw;height:100vh;background:var(--surface);box-shadow:-8px 0 32px rgba(12,18,34,0.12);z-index:91;transform:translateX(100%);transition:transform 0.25s ease;display:flex;flex-direction:column;overflow:hidden;}
+.drawer.active{transform:translateX(0);}
+.drawer-header{padding:24px 28px;border-bottom:1px solid var(--border);background:var(--surface-raised);}
+.drawer-title-row{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.drawer-title{font-size:22px;font-weight:800;letter-spacing:-0.3px;}
+.drawer-close{background:none;border:none;font-size:22px;color:var(--ink-muted);cursor:pointer;padding:4px 10px;border-radius:6px;}
+.drawer-close:hover{background:var(--surface);color:var(--ink);}
+.drawer-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;}
+.drawer-actions{display:flex;gap:8px;margin-top:16px;}
+.drawer-body{flex:1;overflow-y:auto;padding:24px 28px 80px;}
+.drawer-section{margin-bottom:28px;}
+.drawer-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.drawer-section-title{font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.8px;}
+.drawer-section-meta{font-size:12px;color:var(--ink-muted);font-weight:500;}
+
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;}
+.detail-item{display:flex;flex-direction:column;gap:3px;}
+.detail-item.full{grid-column:1/-1;}
+.detail-label{font-size:11px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.4px;}
+.detail-value{font-size:13px;color:var(--ink);font-weight:500;}
+
+.contact-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.contact-card.primary{border-left:3px solid var(--accent);}
+.contact-name{font-weight:700;font-size:14px;}
+.contact-email{font-size:12px;color:var(--ink-muted);font-family:'JetBrains Mono',monospace;}
+.contact-tag{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px;}
+
+.pkg-detail{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;}
+.pkg-detail.inactive{opacity:0.6;}
+.pkg-detail-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.pkg-detail-name{font-weight:700;font-size:15px;}
+.pkg-detail-price{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--ink);}
+.pkg-detail-articles{margin-top:8px;}
+.pkg-detail-article{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px dashed var(--border);font-size:13px;}
+.pkg-detail-article:first-child{border-top:none;}
+.pkg-article-pos{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);font-weight:600;min-width:24px;}
+.pkg-article-link{flex:1;color:var(--accent);text-decoration:none;word-break:break-all;}
+.pkg-article-link:hover{text-decoration:underline;}
+
+.articles-table{width:100%;border-collapse:collapse;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.articles-table th{font-size:10px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;text-align:left;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);}
+.articles-table td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.articles-table tr:last-child td{border-bottom:none;}
+.articles-table .article-inactive{opacity:0.55;}
+.articles-table .article-link{color:var(--accent);text-decoration:none;}
+.articles-table .article-link:hover{text-decoration:underline;}
+.articles-table .article-inactive .article-link{text-decoration:line-through;}
+.articles-totals{font-weight:700;background:var(--surface);}
+
+.service-card{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;margin-bottom:8px;}
+.service-name{font-weight:700;font-size:14px;}
+.service-details{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
+
+.note-add-box{background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+.note-add-box textarea{width:100%;border:none;outline:none;resize:vertical;font-family:inherit;font-size:13px;color:var(--ink);background:transparent;min-height:50px;}
+.note-add-actions{display:flex;justify-content:flex-end;margin-top:8px;}
+.note-item{padding:14px 18px;background:var(--surface-raised);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;position:relative;}
+.note-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-muted);margin-bottom:6px;}
+.note-time{font-family:'JetBrains Mono',monospace;}
+.note-author{font-weight:600;}
+.note-body{font-size:13px;color:var(--ink-soft);line-height:1.55;white-space:pre-wrap;}
+.note-delete{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--ink-muted);cursor:pointer;font-size:14px;padding:4px 8px;border-radius:4px;opacity:0;transition:all 0.15s;}
+.note-item:hover .note-delete{opacity:1;}
+.note-delete:hover{background:var(--red-soft);color:var(--red);}
+
+.empty{padding:24px;text-align:center;color:var(--ink-muted);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius);background:var(--surface-raised);}
+.loading{text-align:center;padding:60px 20px;color:var(--ink-muted);font-size:14px;}
+.error-msg{text-align:center;padding:40px;color:var(--red);}
+
+.footer{max-width:1320px;margin:0 auto;padding:20px 40px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.footer-left{font-size:12px;color:var(--ink-muted);}
+.footer-right{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-muted);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.kpi-row{animation:fadeUp 0.4s ease both;}
+.table-wrap{animation:fadeUp 0.5s ease 0.1s both;}
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var s;try{s=JSON.parse(sessionStorage.getItem("eitools_session"))}catch(e){}
+  if(!s||!s.username){window.location.href="index.html";return;}
+  window.__session = s;
+  var EP="https://script.google.com/macros/s/AKfycbybSDjUUB_t4jR252ATCu5VI6L7KkQrzQ0GB6TuB3Y38YxlDNptP2eg77M725uOJlnx/exec";
+  fetch(EP+"?action=log&username="+encodeURIComponent(s.username)+"&page=accounts&type=pageview",{mode:"no-cors"}).catch(function(){});
+})();
+</script>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">EI</div>
+    <div class="topbar-title"><a href="index.html">Tools</a> <span>/ Accounts</span></div>
+  </div>
+  <nav class="topbar-tools">
+    <a href="dashboard.html" class="topbar-tool">Dashboard</a>
+    <a href="pipeline.html" class="topbar-tool">Pipeline</a>
+    <a href="proposals.html" class="topbar-tool">Proposals</a>
+    <a href="accounts.html" class="topbar-tool active">Accounts</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="topbar-env">LIVE</div>
+    <a href="index.html" class="back-link">&#8592; Hub</a>
+  </div>
+</div>
+
+<div class="main">
+  <div id="kpis"></div>
+
+  <div class="section-header">
+    <div class="section-title">Advertisers</div>
+    <div class="section-actions">
+      <button class="btn btn-primary" onclick="openWizard()">+ New Advertiser</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <input type="text" class="filter-search" id="filterSearch" placeholder="Search advertisers, contacts, packages, or articles…" oninput="renderTable()">
+    <select class="filter-select" id="filterStatus" onchange="renderTable()">
+      <option value="">All statuses</option>
+      <option value="Active">Active</option>
+      <option value="In Negotiation">In Negotiation</option>
+      <option value="Paused">Paused</option>
+      <option value="Churned">Churned</option>
+    </select>
+    <button class="btn btn-ghost" onclick="reload()">Refresh</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Advertiser</th>
+          <th>Status</th>
+          <th>PAR</th>
+          <th>Articles</th>
+          <th>Monthly</th>
+          <th>Renewal</th>
+          <th>Term</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="advertisersBody">
+        <tr><td colspan="8" class="loading">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Wizard modal -->
+<div class="modal-overlay" id="wizardModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span id="wizardTitle">New Advertiser</span>
+        <button class="modal-close-x" onclick="closeWizard()">&times;</button>
+      </div>
+      <div class="wizard-steps" id="wizardSteps">
+        <div class="wizard-step active" data-step="1"><div class="wizard-step-num">1</div>Details</div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step" data-step="2"><div class="wizard-step-num">2</div>Contacts</div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step" data-step="3"><div class="wizard-step-num">3</div>Campaign Items</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <!-- STEP 1 -->
+      <div class="wizard-pane active" data-pane="1">
+        <div class="form-row">
+          <div class="form-group full">
+            <label class="form-label">Name <span class="req">*</span></label>
+            <input type="text" class="form-input" id="fName" placeholder="ManageEngine">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="fStatus">
+              <option value="Active">Active</option>
+              <option value="In Negotiation">In Negotiation</option>
+              <option value="Paused">Paused</option>
+              <option value="Churned">Churned</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">PAR Live</label>
+            <select class="form-select" id="fPAR">
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Campaign Start</label>
+            <input type="date" class="form-input" id="fStart" oninput="recomputeRenewal()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Term Type</label>
+            <select class="form-select" id="fTermType" onchange="onTermTypeChange()">
+              <option value="Monthly Rolling">Monthly Rolling</option>
+              <option value="Quarterly Rolling">Quarterly Rolling</option>
+              <option value="Fixed">Fixed Term</option>
+            </select>
+          </div>
+          <div class="form-group" id="fFixedMonthsGroup" style="display:none;">
+            <label class="form-label">Fixed length (months)</label>
+            <input type="number" min="1" step="1" class="form-input" id="fFixedMonths" placeholder="e.g. 12" oninput="recomputeRenewal()">
+          </div>
+          <div class="form-group" id="fRenewalGroup" style="display:none;">
+            <label class="form-label">Renewal Date <span class="form-help" style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-muted);">(auto-computed)</span></label>
+            <input type="date" class="form-input" id="fRenewal" disabled>
+          </div>
+          <div class="form-group full" id="fFixedThenRollingGroup" style="display:none;">
+            <label class="form-checkbox-row">
+              <input type="checkbox" id="fFixedThenRolling">
+              <span>Transitions to monthly rolling after the fixed term</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="wizard-pane" data-pane="2">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Primary First Name</label>
+            <input type="text" class="form-input" id="fPrimaryFirst" placeholder="Rahul">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Primary Last Name</label>
+            <input type="text" class="form-input" id="fPrimaryLast" placeholder="Sharma">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Primary Email</label>
+            <input type="email" class="form-input" id="fPrimaryEmail" placeholder="rahul@advertiser.com">
+          </div>
+        </div>
+        <div class="dyn-block">
+          <div class="dyn-block-header">
+            <div>
+              <div class="dyn-block-title">Additional contacts</div>
+              <div class="dyn-block-sub">Anyone else worth keeping on file</div>
+            </div>
+            <button class="btn btn-sm" onclick="addContactRow()">+ Add Contact</button>
+          </div>
+          <div id="contactsList"></div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="wizard-pane" data-pane="3">
+        <div class="dyn-block" style="margin-top:0;">
+          <div class="dyn-block-header">
+            <div>
+              <div class="dyn-block-title">Articles</div>
+              <div class="dyn-block-sub">Tick two or more articles, then click "Group as package" to bundle them under one monthly price.</div>
+            </div>
+            <button class="btn btn-sm" onclick="addArticle()">+ Add Article</button>
+          </div>
+          <div id="articlesList"></div>
+        </div>
+
+        <div class="dyn-block">
+          <div class="dyn-block-header">
+            <div>
+              <div class="dyn-block-title">Additional services</div>
+              <div class="dyn-block-sub">Newsletter, podcast, MQLs, etc.</div>
+            </div>
+            <button class="btn btn-sm" onclick="addServiceRow()">+ Add Service</button>
+          </div>
+          <div id="servicesList"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="wizardDeleteBtn" onclick="deleteAdvertiser()" style="display:none;">Delete</button>
+      <span style="flex:1;"></span>
+      <div class="modal-footer-actions">
+        <button class="btn" id="wizardBackBtn" onclick="wizardBack()" style="display:none;">Back</button>
+        <button class="btn btn-primary" id="wizardNextBtn" onclick="wizardNext()">Next →</button>
+        <button class="btn btn-primary" id="wizardSaveBtn" onclick="saveBundle()" style="display:none;">Save Advertiser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header" id="drawerHeader"></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<div class="footer">
+  <div class="footer-left">Expert Insights &middot; Accounts</div>
+  <div class="footer-right">v2.4.0</div>
+</div>
+
+<script>
+// ── Config ──
+const ACCOUNTS_SHEET_ID = "1eKicwsnuaPBK6_cNf8oMScJqGVH4ioQQjkCKNO9-xG4";
+const ACCOUNTS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcwZhAgCsZxFQ-dl7gKv6StZC2en_QVzgtrp5aBHYPg4In-9A9Zk4iv7C_lxGZ_SvY/exec";
+const PROPOSALS_SHEET_ID = "12JC_3Y52i1qrMcKtXk7dYvzhqyU6RijB6ybq0wNP18M";
+
+let proposalsByAdvertiser = null; // populated lazily on first drawer open
+
+// ── State ──
+let advertisers = [], contacts = [], packages = [], articles = [], services = [], notes = [];
+let currentDrawerId = null;
+let wizard = {
+  mode: 'new', step: 1, editingId: null,
+  contacts: [], articles: [], services: [],
+  packageMeta: {}  // lowerCaseTag -> { name, monthly_price, status, notes, _origId }
+};
+
+// ── Helpers ──
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function fmtMoney(n){return "$" + (Math.round((parseFloat(n)||0)*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDate(d){if(!d)return"";if(typeof d==="string"&&d.startsWith("Date(")){const m=d.match(/Date\((\d+),(\d+),(\d+)/);if(m)return `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;}const dt=new Date(d);if(isNaN(dt))return String(d);return dt.toISOString().slice(0,10);}
+function fmtDateLong(d){const s=fmtDate(d);if(!s)return"—";const dt=new Date(s);if(isNaN(dt))return s;return dt.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
+function fmtTime(d){if(!d)return"";const dt=new Date(d);if(isNaN(dt))return String(d);return dt.toLocaleString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});}
+function genId(p){return p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
+function isTrue(v){return v && String(v).toUpperCase()==="TRUE";}
+function daysUntil(d){const s=fmtDate(d);if(!s)return null;const dt=new Date(s);if(isNaN(dt))return null;return Math.ceil((dt-new Date())/(1000*60*60*24));}
+function fullName(first,last){return [first,last].filter(Boolean).join(" ");}
+function urlLabel(u){if(!u)return"(no URL)";try{const url=new URL(u);const slug=url.pathname.split("/").filter(Boolean).pop();return slug?slug.replace(/-/g," "):url.hostname;}catch(e){return u;}}
+function tagKey(t){return (t||"").trim().toLowerCase();}
+
+// ── Proposals (cross-tool linkage) ──
+function loadProposalsSheet(){
+  const cb = "_propCb_" + Date.now() + Math.floor(Math.random()*1000);
+  const url = `https://docs.google.com/spreadsheets/d/${PROPOSALS_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=Proposals&headers=1`;
+  return new Promise((resolve) => {
+    window[cb] = function(data){
+      try {
+        if (!data || !data.table) { resolve({}); return; }
+        const cols = data.table.cols.map(c => (c.label || c.id || "").toString());
+        const colIdx = {};
+        cols.forEach((label, i) => { colIdx[label.toLowerCase().replace(/\s+/g,"_")] = i; });
+        const idIdx = colIdx["proposal_id"] !== undefined ? colIdx["proposal_id"] : colIdx["id"];
+        const vendorIdx = colIdx["vendor"];
+        const dateIdx = colIdx["date_created"];
+        const totalIdx = colIdx["monthly_total"];
+        const statusIdx = colIdx["status"];
+        const advIdx = colIdx["advertiser_id"];
+        if (advIdx === undefined) { resolve({}); return; }
+        const map = {};
+        (data.table.rows || []).forEach(r => {
+          const cell = (i) => (i !== undefined && r.c[i]) ? r.c[i].v : "";
+          const advId = String(cell(advIdx) || "").trim();
+          if (!advId) return;
+          (map[advId] = map[advId] || []).push({
+            id: String(cell(idIdx) || ""),
+            vendor: String(cell(vendorIdx) || ""),
+            date: String(cell(dateIdx) || ""),
+            monthly_total: Number(cell(totalIdx)) || 0,
+            status: String(cell(statusIdx) || "")
+          });
+        });
+        // Newest first within each advertiser
+        Object.keys(map).forEach(k => map[k].sort((a,b) => String(b.date).localeCompare(String(a.date))));
+        resolve(map);
+      } catch(e) { resolve({}); }
+      delete window[cb];
+      document.getElementById("_sc_" + cb)?.remove();
+    };
+    const script = document.createElement("script");
+    script.id = "_sc_" + cb;
+    script.src = url;
+    script.onerror = () => { resolve({}); };
+    document.body.appendChild(script);
+  });
+}
+
+function proposalStatusBadge(status){
+  const s = (status||"").toLowerCase();
+  let cls = "badge-prospect";
+  if (s === "accepted") cls = "badge-active";
+  else if (s === "sent") cls = "badge-negotiation";
+  else if (s === "rejected") cls = "badge-churned";
+  return `<span class="badge ${cls}">${esc(status||"Draft")}</span>`;
+}
+
+async function refreshDrawerProposals(advertiserId){
+  const section = document.getElementById("drawerProposalsSection");
+  if (!section) return;
+  if (!proposalsByAdvertiser) {
+    proposalsByAdvertiser = await loadProposalsSheet();
+  }
+  const list = proposalsByAdvertiser[advertiserId] || [];
+  const body = document.getElementById("drawerProposalsBody");
+  const meta = document.getElementById("drawerProposalsMeta");
+  if (meta) meta.textContent = list.length;
+  if (!body) return;
+  if (!list.length) {
+    body.innerHTML = `<div class="empty">No proposals linked yet. Create one in the Proposals tool and pick this advertiser from the dropdown.</div>`;
+    return;
+  }
+  body.innerHTML = list.map(p => `
+    <div class="service-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="min-width:0;flex:1;">
+        <a href="proposals.html?edit=${encodeURIComponent(p.id)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:700;font-size:14px;">${esc(p.vendor || "(no vendor)")}</a>
+        <div class="service-details">${esc(fmtDateLong(p.date))} · ${fmtMoney(p.monthly_total)}/mo</div>
+      </div>
+      <div style="flex-shrink:0;">${proposalStatusBadge(p.status)}</div>
+    </div>
+  `).join("");
+}
+
+// ── Loading ──
+function loadSheet(sheetName){
+  const cb = "_acctCb_" + sheetName.replace(/\W/g,"") + "_" + Date.now() + Math.floor(Math.random()*1000);
+  const url = `https://docs.google.com/spreadsheets/d/${ACCOUNTS_SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}&sheet=${encodeURIComponent(sheetName)}&headers=1`;
+  return new Promise((resolve, reject) => {
+    window[cb] = function(data){
+      try {
+        if (!data || !data.table) { resolve([]); return; }
+        const cols = data.table.cols.map(c => c.label || c.id);
+        const rows = (data.table.rows || []).map((r, idx) => {
+          const obj = { _rowIndex: idx };
+          r.c.forEach((cell, i) => {
+            let v = cell ? (cell.v != null ? cell.v : "") : "";
+            if (typeof v === "string" && v.startsWith("Date(")) {
+              const m = v.match(/Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?/);
+              if (m) {
+                if (m[4] !== undefined) v = `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")} ${String(m[4]).padStart(2,"0")}:${String(m[5]).padStart(2,"0")}:${String(m[6]).padStart(2,"0")}`;
+                else v = `${m[1]}-${String(+m[2]+1).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`;
+              }
+            }
+            obj[cols[i]] = v;
+          });
+          return obj;
+        });
+        resolve(rows);
+      } catch(e) { reject(e); }
+      delete window[cb];
+      document.getElementById("_sc_" + cb)?.remove();
+    };
+    const script = document.createElement("script");
+    script.id = "_sc_" + cb;
+    script.src = url;
+    script.onerror = () => reject(new Error("Failed to load " + sheetName));
+    document.body.appendChild(script);
+  });
+}
+
+async function reload(){
+  document.getElementById("advertisersBody").innerHTML = '<tr><td colspan="8" class="loading">Loading…</td></tr>';
+  try {
+    const [a, c, pk, ar, sv, n] = await Promise.all([
+      loadSheet("Advertisers"), loadSheet("Contacts"), loadSheet("Packages"),
+      loadSheet("Articles"), loadSheet("Services"), loadSheet("Notes")
+    ]);
+    advertisers = a; contacts = c; packages = pk; articles = ar; services = sv; notes = n;
+    indexChildren();
+    renderKpis();
+    renderTable();
+    if (currentDrawerId) openDrawer(currentDrawerId, true);
+  } catch(e) {
+    document.getElementById("advertisersBody").innerHTML = `<tr><td colspan="8" class="error-msg">Failed to load: ${esc(e.message)}.</td></tr>`;
+  }
+}
+
+function indexChildren(){
+  advertisers.forEach(a => {
+    a._contacts = contacts.filter(c => c.advertiser_id === a.id);
+    a._packages = packages.filter(pk => pk.advertiser_id === a.id);
+    a._articles = articles.filter(x => x.advertiser_id === a.id);
+    a._services = services.filter(s => s.advertiser_id === a.id);
+    a._notes = notes.filter(nn => nn.advertiser_id === a.id).sort((x, y) => String(y.timestamp||"").localeCompare(String(x.timestamp||"")));
+
+    a._activePackages = a._packages.filter(pk => (pk.status||"Active") === "Active");
+    a._packageRevenue = a._activePackages.reduce((s, pk) => s + (parseFloat(pk.monthly_price)||0), 0);
+
+    a._standaloneArticles = a._articles.filter(x => !x.package_id);
+    a._activeStandaloneArticles = a._standaloneArticles.filter(x => isTrue(x.active));
+    a._standaloneRevenue = a._activeStandaloneArticles.reduce((s, x) => s + (parseFloat(x.monthly_price)||0), 0);
+
+    a._monthlyRevenue = a._packageRevenue + a._standaloneRevenue;
+
+    a._totalActiveArticles = a._articles.filter(x => {
+      if (x.package_id) {
+        const pk = a._packages.find(p => p.id === x.package_id);
+        return pk && (pk.status||"Active") === "Active";
+      }
+      return isTrue(x.active);
+    }).length;
+
+    a._primaryName = fullName(a.primary_contact_first_name, a.primary_contact_last_name);
+  });
+}
+
+// ── KPIs ──
+function renderKpis(){
+  const active = advertisers.filter(a => a.status === "Active");
+  const totalRevenue = active.reduce((s, a) => s + a._monthlyRevenue, 0);
+  const totalArticles = advertisers.reduce((s, a) => s + a._totalActiveArticles, 0);
+  const renewing = advertisers.filter(a => {
+    if (a.term_type !== "Fixed") return false;
+    const d = daysUntil(a.renewal_date);
+    return d !== null && d >= 0 && d <= 30;
+  }).length;
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi-row">
+      <div class="kpi-card teal"><div class="kpi-label">Active Advertisers</div><div class="kpi-value">${active.length}</div><div class="kpi-sub">of ${advertisers.length} total</div></div>
+      <div class="kpi-card green"><div class="kpi-label">Monthly Revenue</div><div class="kpi-value">${fmtMoney(totalRevenue)}</div><div class="kpi-sub">packages + standalone articles</div></div>
+      <div class="kpi-card accent"><div class="kpi-label">Articles Sponsored</div><div class="kpi-value">${totalArticles}</div><div class="kpi-sub">across active campaigns</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Renewals (30 days)</div><div class="kpi-value">${renewing}</div><div class="kpi-sub">fixed-term campaigns ending</div></div>
+    </div>`;
+}
+
+// ── Table ──
+function termSummary(a){
+  if (a.term_type === "Monthly Rolling") return "Monthly Rolling";
+  if (a.term_type === "Quarterly Rolling") return "Quarterly Rolling";
+  if (a.term_type === "Fixed") {
+    const m = parseInt(a.fixed_months) || 0;
+    const base = m ? `${m}-month fixed` : "Fixed";
+    return isTrue(a.fixed_then_rolling) ? `${base} → rolling` : base;
+  }
+  return a.term_type || "—";
+}
+
+function renderTable(){
+  const search = document.getElementById("filterSearch").value.toLowerCase().trim();
+  const status = document.getElementById("filterStatus").value;
+
+  let filtered = advertisers.filter(a => {
+    if (status && a.status !== status) return false;
+    if (search) {
+      const hay = [
+        a.name||"", a._primaryName||"", a.primary_contact_email||"",
+        ...(a._contacts||[]).map(c => fullName(c.first_name,c.last_name)+" "+c.email),
+        ...(a._packages||[]).map(pk => pk.name||""),
+        ...(a._articles||[]).map(x => x.url||"")
+      ].join(" ").toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    const order = {"Active":0,"In Negotiation":1,"Paused":2,"Churned":3};
+    const oa = order[a.status] ?? 4, ob = order[b.status] ?? 4;
+    if (oa !== ob) return oa - ob;
+    return (a.name||"").localeCompare(b.name||"");
+  });
+
+  const tbody = document.getElementById("advertisersBody");
+  if (!filtered.length){
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--ink-muted);">No advertisers found. Click "+ New Advertiser" to add one.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(a => {
+    const isFixed = a.term_type === "Fixed";
+    const renewalDays = isFixed ? daysUntil(a.renewal_date) : null;
+    let renewalCell = isFixed && a.renewal_date ? fmtDateLong(a.renewal_date) : "—";
+    if (renewalDays !== null && renewalDays >= 0 && renewalDays <= 30) renewalCell += ` <span style="color:var(--amber);font-weight:600;">(${renewalDays}d)</span>`;
+    else if (renewalDays !== null && renewalDays < 0) renewalCell += ` <span style="color:var(--red);font-weight:600;">overdue</span>`;
+    const pkgCount = a._activePackages.length;
+    const standCount = a._activeStandaloneArticles.length;
+    const breakdownParts = [];
+    if (pkgCount) breakdownParts.push(`${pkgCount} pkg${pkgCount>1?"s":""}`);
+    if (standCount) breakdownParts.push(`${standCount} standalone`);
+    const breakdown = breakdownParts.join(" · ") || "—";
+    return `
+      <tr onclick="openDrawer('${esc(a.id)}')">
+        <td>
+          <div class="adv-cell-name">${esc(a.name||"(unnamed)")}</div>
+          ${a._primaryName ? `<div class="adv-cell-contact">${esc(a._primaryName)}${a.primary_contact_email ? " · "+esc(a.primary_contact_email) : ""}</div>` : ""}
+        </td>
+        <td>${statusBadge(a.status)}</td>
+        <td>${parBadge(a.par_live)}</td>
+        <td><strong>${a._totalActiveArticles}</strong> <span style="color:var(--ink-muted);font-size:11px;">articles</span><div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">${breakdown}</div></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${a._monthlyRevenue ? fmtMoney(a._monthlyRevenue) : "—"}</td>
+        <td style="font-size:12px;">${renewalCell}</td>
+        <td><span style="font-size:12px;color:var(--ink-muted);">${esc(termSummary(a))}</span></td>
+        <td onclick="event.stopPropagation();"><button class="btn btn-sm" onclick="openWizard('${esc(a.id)}')">Edit</button></td>
+      </tr>`;
+  }).join("");
+}
+
+function statusBadge(s){
+  const cls = {"Active":"badge-active","In Negotiation":"badge-negotiation","Paused":"badge-paused","Churned":"badge-churned"};
+  return `<span class="badge ${cls[s]||""}">${esc(s||"—")}</span>`;
+}
+function parBadge(v){ return v==="Yes" ? `<span class="badge badge-yes">Yes</span>` : `<span class="badge badge-no">No</span>`; }
+
+// ── Wizard ──
+function onTermTypeChange(){
+  const t = document.getElementById("fTermType").value;
+  const isFixed = t === "Fixed";
+  document.getElementById("fFixedMonthsGroup").style.display = isFixed ? "" : "none";
+  document.getElementById("fRenewalGroup").style.display = isFixed ? "" : "none";
+  document.getElementById("fFixedThenRollingGroup").style.display = isFixed ? "" : "none";
+  if (!isFixed) {
+    document.getElementById("fRenewal").value = "";
+    document.getElementById("fFixedMonths").value = "";
+    document.getElementById("fFixedThenRolling").checked = false;
+  } else {
+    recomputeRenewal();
+  }
+}
+
+function recomputeRenewal(){
+  if (document.getElementById("fTermType").value !== "Fixed") return;
+  const start = document.getElementById("fStart").value;
+  const months = parseInt(document.getElementById("fFixedMonths").value) || 0;
+  if (!start || !months) { document.getElementById("fRenewal").value = ""; return; }
+  const d = new Date(start);
+  d.setMonth(d.getMonth() + months);
+  document.getElementById("fRenewal").value = d.toISOString().slice(0, 10);
+}
+
+function openWizard(id){
+  wizard.mode = id ? 'edit' : 'new';
+  wizard.editingId = id || null;
+  wizard.step = 1;
+
+  const a = id ? advertisers.find(x => x.id === id) : null;
+  document.getElementById("wizardTitle").textContent = a ? "Edit Advertiser" : "New Advertiser";
+  document.getElementById("wizardDeleteBtn").style.display = a ? "" : "none";
+
+  // Step 1
+  document.getElementById("fName").value = a ? (a.name||"") : "";
+  document.getElementById("fStatus").value = a ? (a.status||"Active") : "Active";
+  document.getElementById("fPAR").value = a ? (a.par_live||"No") : "No";
+  document.getElementById("fStart").value = a ? fmtDate(a.start_date) : "";
+  document.getElementById("fTermType").value = a ? (a.term_type||"Monthly Rolling") : "Monthly Rolling";
+  document.getElementById("fFixedMonths").value = a ? (a.fixed_months||"") : "";
+  document.getElementById("fFixedThenRolling").checked = a ? isTrue(a.fixed_then_rolling) : false;
+  document.getElementById("fRenewal").value = a ? fmtDate(a.renewal_date) : "";
+  onTermTypeChange();
+
+  // Step 2
+  document.getElementById("fPrimaryFirst").value = a ? (a.primary_contact_first_name||"") : "";
+  document.getElementById("fPrimaryLast").value = a ? (a.primary_contact_last_name||"") : "";
+  document.getElementById("fPrimaryEmail").value = a ? (a.primary_contact_email||"") : "";
+  wizard.contacts = a ? a._contacts.map(c => ({id: c.id || genId("con"), first_name: c.first_name||"", last_name: c.last_name||"", email: c.email||""})) : [];
+  renderContactsList();
+
+  // Step 3 — populate packageMeta and articles
+  wizard.packageMeta = {};
+  if (a) {
+    a._packages.forEach(pk => {
+      const k = tagKey(pk.name);
+      if (k) wizard.packageMeta[k] = {
+        name: pk.name || "",
+        monthly_price: pk.monthly_price || "",
+        notes: pk.notes || "",
+        _origId: pk.id
+      };
+    });
+    wizard.articles = a._articles
+      .sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99))
+      .map(art => {
+        const pkg = art.package_id ? a._packages.find(p => p.id === art.package_id) : null;
+        return {
+          id: art.id || genId("art"),
+          url: art.url || "",
+          position: String(art.position || "1"),
+          package_tag: pkg ? (pkg.name || "") : "",
+          monthly_price: pkg ? "" : (art.monthly_price || ""),
+          active: isTrue(art.active) ? "TRUE" : "FALSE",
+          _selected: false
+        };
+      });
+    wizard.services = a._services.map(s => ({ id: s.id || genId("svc"), name: s.name||"", details: s.details||"" }));
+  } else {
+    wizard.articles = [];
+    wizard.services = [];
+  }
+  renderArticlesList();
+  renderServicesList();
+
+  showWizardStep(1);
+  document.getElementById("wizardModal").classList.add("active");
+}
+
+function closeWizard(){ document.getElementById("wizardModal").classList.remove("active"); }
+function showWizardStep(step){
+  wizard.step = step;
+  document.querySelectorAll(".wizard-step").forEach(el => {
+    const n = parseInt(el.dataset.step);
+    el.classList.toggle("active", n === step);
+    el.classList.toggle("done", n < step);
+  });
+  document.querySelectorAll(".wizard-pane").forEach(el => {
+    el.classList.toggle("active", parseInt(el.dataset.pane) === step);
+  });
+  document.getElementById("wizardBackBtn").style.display = step > 1 ? "" : "none";
+  document.getElementById("wizardNextBtn").style.display = step < 3 ? "" : "none";
+  document.getElementById("wizardSaveBtn").style.display = step === 3 ? "" : "none";
+}
+function wizardNext(){
+  if (wizard.step === 1) {
+    const name = document.getElementById("fName").value.trim();
+    if (!name) { alert("Name is required."); return; }
+  }
+  showWizardStep(wizard.step + 1);
+}
+function wizardBack(){ if (wizard.step > 1) showWizardStep(wizard.step - 1); }
+
+// ── Wizard: contacts ──
+function addContactRow(){ wizard.contacts.push({ id: genId("con"), first_name: "", last_name: "", email: "" }); renderContactsList(); }
+function removeContactRow(i){ wizard.contacts.splice(i, 1); renderContactsList(); }
+function updateContactField(i, field, val){ wizard.contacts[i][field] = val; }
+function renderContactsList(){
+  const el = document.getElementById("contactsList");
+  if (!wizard.contacts.length) { el.innerHTML = `<div class="dyn-empty">No additional contacts yet.</div>`; return; }
+  el.innerHTML = wizard.contacts.map((c, i) => `
+    <div class="dyn-row contact">
+      <div class="form-group"><label class="form-label">First name</label><input class="form-input" type="text" value="${esc(c.first_name||"")}" oninput="updateContactField(${i},'first_name',this.value)" placeholder="First"></div>
+      <div class="form-group"><label class="form-label">Last name</label><input class="form-input" type="text" value="${esc(c.last_name||"")}" oninput="updateContactField(${i},'last_name',this.value)" placeholder="Last"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" value="${esc(c.email||"")}" oninput="updateContactField(${i},'email',this.value)" placeholder="email@advertiser.com"></div>
+      <button class="dyn-remove" onclick="removeContactRow(${i})" title="Remove">×</button>
+    </div>`).join("");
+}
+
+// ── Wizard: articles + packages (checkbox-driven) ──
+function addArticle(){
+  wizard.articles.push({ id: genId("art"), url: "", position: "1", package_tag: "", monthly_price: "", active: "TRUE", _selected: false });
+  renderArticlesList();
+}
+function removeArticle(i){ wizard.articles.splice(i, 1); renderArticlesList(); }
+function updateArticleField(i, field, val){ wizard.articles[i][field] = val; }
+function toggleSelection(i, checked){ wizard.articles[i]._selected = checked; renderArticlesList(); }
+function clearSelection(){ wizard.articles.forEach(a => a._selected = false); renderArticlesList(); }
+
+function nextAutoPackageName(){
+  let n = 1;
+  while (wizard.packageMeta[("package " + n)]) n++;
+  return "Package " + n;
+}
+
+function groupSelectedAsPackage(){
+  const priceInput = document.getElementById("groupPriceInput");
+  const price = priceInput ? priceInput.value.trim() : "";
+  if (!price) { alert("Enter a monthly price for the package."); priceInput?.focus(); return; }
+  const selectedIdxs = wizard.articles.map((a,i)=>a._selected?i:-1).filter(i=>i>=0);
+  if (selectedIdxs.length < 2) return;
+  const name = nextAutoPackageName();
+  const k = tagKey(name);
+  wizard.packageMeta[k] = { name: name, monthly_price: price, notes: "" };
+  selectedIdxs.forEach(i => {
+    wizard.articles[i].package_tag = name;
+    wizard.articles[i]._selected = false;
+    // Keep article's monthly_price in state but it won't be used while in package
+  });
+  renderArticlesList();
+}
+
+function ungroupSelected(){
+  wizard.articles.forEach(a => { if (a._selected) { a.package_tag = ""; a._selected = false; }});
+  renderArticlesList();
+}
+
+function ungroupPackage(key){
+  if (!confirm("Ungroup this package? Articles will become standalone (with empty prices).")) return;
+  wizard.articles.forEach(a => { if (tagKey(a.package_tag) === key) a.package_tag = ""; });
+  delete wizard.packageMeta[key];
+  renderArticlesList();
+}
+
+function updatePackageMeta(key, field, val){
+  if (!wizard.packageMeta[key]) return;
+  wizard.packageMeta[key][field] = val;
+}
+
+function renamePackage(oldKey){
+  const meta = wizard.packageMeta[oldKey];
+  if (!meta) return;
+  const newName = prompt("Rename package", meta.name || "");
+  if (newName === null) return;
+  const trimmed = newName.trim();
+  if (!trimmed) { alert("Name cannot be empty."); return; }
+  const newKey = tagKey(trimmed);
+  if (newKey !== oldKey && wizard.packageMeta[newKey]) {
+    alert("A package with that name already exists.");
+    return;
+  }
+  // Move metadata
+  wizard.packageMeta[newKey] = { ...meta, name: trimmed };
+  if (newKey !== oldKey) delete wizard.packageMeta[oldKey];
+  // Update articles
+  wizard.articles.forEach(a => { if (tagKey(a.package_tag) === oldKey) a.package_tag = trimmed; });
+  renderArticlesList();
+}
+
+function setPackageStatus(key, status){
+  // Bulk set article status for all articles in the package
+  wizard.articles.forEach(a => { if (tagKey(a.package_tag) === key) a.active = status; });
+  renderArticlesList();
+}
+
+function renderArticlesList(){
+  const el = document.getElementById("articlesList");
+  const positions = ["1","2","3","4","5","6","7","8","9","10"];
+
+  // Group articles
+  const groups = {};
+  const groupOrder = [];
+  const standalone = [];
+  wizard.articles.forEach((a, idx) => {
+    const k = tagKey(a.package_tag);
+    if (k) {
+      if (!groups[k]) { groups[k] = []; groupOrder.push(k); }
+      groups[k].push({ ...a, _idx: idx });
+    } else {
+      standalone.push({ ...a, _idx: idx });
+    }
+  });
+
+  // Selection analysis
+  const selIdxs = wizard.articles.map((a,i)=>a._selected?i:-1).filter(i=>i>=0);
+  const selCount = selIdxs.length;
+  const selTags = new Set(selIdxs.map(i => tagKey(wizard.articles[i].package_tag)));
+
+  // Action bar
+  let actionBar = "";
+  if (selCount > 0) {
+    const allStandalone = selTags.size === 1 && selTags.has("");
+    const allInOnePackage = selTags.size === 1 && !selTags.has("");
+    if (allStandalone && selCount >= 2) {
+      actionBar = `
+        <div class="selection-bar">
+          <span class="selection-bar-msg"><strong>${selCount}</strong> articles selected — group them as a package:</span>
+          <input class="form-input" id="groupPriceInput" type="number" step="0.01" placeholder="Monthly $" style="width:130px;">
+          <button class="btn btn-sm" onclick="groupSelectedAsPackage()">Group as package</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Cancel</button>
+        </div>`;
+    } else if (allStandalone && selCount === 1) {
+      actionBar = `
+        <div class="selection-bar warn">
+          <span class="selection-bar-msg"><strong>1</strong> selected — pick at least one more standalone article to group.</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Cancel</button>
+        </div>`;
+    } else if (allInOnePackage) {
+      const tagName = wizard.packageMeta[[...selTags][0]]?.name || [...selTags][0];
+      actionBar = `
+        <div class="selection-bar">
+          <span class="selection-bar-msg"><strong>${selCount}</strong> selected from "${esc(tagName)}":</span>
+          <button class="btn btn-sm" onclick="ungroupSelected()">Remove from package</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Cancel</button>
+        </div>`;
+    } else {
+      actionBar = `
+        <div class="selection-bar warn">
+          <span class="selection-bar-msg">Selection mixes packages — clear and re-select to group or ungroup.</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Clear</button>
+        </div>`;
+    }
+  }
+
+  // Render package wrappers
+  let pkgHtml = "";
+  groupOrder.forEach(k => {
+    const arts = groups[k];
+    const meta = wizard.packageMeta[k] || { name: arts[0]?.package_tag || "Package", monthly_price: "", notes: "" };
+    // Derived status: active if any article is active
+    const derivedActive = arts.some(a => a.active === "TRUE");
+    pkgHtml += `
+      <div class="pkg-wrapper">
+        <div class="pkg-wrapper-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <strong style="font-size:14px;">${esc(meta.name)}</strong>
+            <button class="btn btn-ghost btn-sm" onclick="renamePackage('${esc(k)}')" title="Rename">✏</button>
+          </div>
+          <input class="form-input" type="number" step="0.01" value="${esc(meta.monthly_price||"")}" placeholder="Monthly $" oninput="updatePackageMeta('${esc(k)}','monthly_price',this.value)">
+          <select class="form-select" onchange="setPackageStatus('${esc(k)}',this.value)">
+            <option value="TRUE" ${derivedActive?"selected":""}>Active</option>
+            <option value="FALSE" ${!derivedActive?"selected":""}>Inactive</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="ungroupPackage('${esc(k)}')">Ungroup</button>
+          <span></span>
+        </div>
+        <div class="pkg-wrapper-articles">
+          ${arts.map(a => `
+            <div class="article-row in-package ${a._selected?"selected":""}">
+              <input type="checkbox" class="article-checkbox" ${a._selected?"checked":""} onchange="toggleSelection(${a._idx}, this.checked)">
+              <input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateArticleField(${a._idx},'url',this.value)" placeholder="https://expertinsights.com/...">
+              <select class="form-select" onchange="updateArticleField(${a._idx},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select>
+              <select class="form-select" onchange="updateArticleField(${a._idx},'active',this.value)">
+                <option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option>
+                <option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option>
+              </select>
+              <button class="dyn-remove" onclick="removeArticle(${a._idx})" title="Remove">×</button>
+            </div>`).join("")}
+        </div>
+      </div>`;
+  });
+
+  // Render standalone articles
+  let standHtml = "";
+  if (standalone.length) {
+    standHtml = standalone.map(a => `
+      <div class="article-row standalone ${a._selected?"selected":""}">
+        <input type="checkbox" class="article-checkbox" ${a._selected?"checked":""} onchange="toggleSelection(${a._idx}, this.checked)">
+        <input class="form-input" type="url" value="${esc(a.url||"")}" oninput="updateArticleField(${a._idx},'url',this.value)" placeholder="https://expertinsights.com/...">
+        <select class="form-select" onchange="updateArticleField(${a._idx},'position',this.value)">${positions.map(p=>`<option value="${p}" ${String(a.position)===p?"selected":""}>#${p}</option>`).join("")}</select>
+        <input class="form-input" type="number" step="0.01" value="${esc(a.monthly_price||"")}" oninput="updateArticleField(${a._idx},'monthly_price',this.value)" placeholder="Monthly $">
+        <select class="form-select" onchange="updateArticleField(${a._idx},'active',this.value)">
+          <option value="TRUE" ${a.active==="TRUE"?"selected":""}>Active</option>
+          <option value="FALSE" ${a.active==="FALSE"?"selected":""}>Inactive</option>
+        </select>
+        <button class="dyn-remove" onclick="removeArticle(${a._idx})" title="Remove">×</button>
+      </div>`).join("");
+  }
+
+  if (!groupOrder.length && !standalone.length) {
+    el.innerHTML = `<div class="dyn-empty">Click "+ Add Article" to start.</div>`;
+    return;
+  }
+
+  el.innerHTML = actionBar + pkgHtml + standHtml;
+}
+
+// ── Wizard: services ──
+function addServiceRow(){ wizard.services.push({ id: genId("svc"), name: "", details: "" }); renderServicesList(); }
+function removeServiceRow(i){ wizard.services.splice(i, 1); renderServicesList(); }
+function updateServiceField(i, field, val){ wizard.services[i][field] = val; }
+function renderServicesList(){
+  const el = document.getElementById("servicesList");
+  if (!wizard.services.length) { el.innerHTML = `<div class="dyn-empty">No additional services yet.</div>`; return; }
+  el.innerHTML = wizard.services.map((s, i) => `
+    <div class="dyn-row service">
+      <div class="form-group"><label class="form-label">Service</label><input class="form-input" type="text" value="${esc(s.name||"")}" oninput="updateServiceField(${i},'name',this.value)" placeholder="Newsletter, Podcast, MQLs…"></div>
+      <div class="form-group"><label class="form-label">Details</label><input class="form-input" type="text" value="${esc(s.details||"")}" oninput="updateServiceField(${i},'details',this.value)" placeholder="Volume / frequency / scope"></div>
+      <button class="dyn-remove" onclick="removeServiceRow(${i})" title="Remove">×</button>
+    </div>`).join("");
+}
+
+// ── Save ──
+async function saveBundle(){
+  const btn = document.getElementById("wizardSaveBtn");
+  const name = document.getElementById("fName").value.trim();
+  if (!name) { alert("Name is required."); showWizardStep(1); return; }
+
+  btn.disabled = true; btn.textContent = "Saving…";
+  const id = wizard.editingId || genId("adv");
+  const now = new Date().toISOString().replace("T"," ").slice(0,19);
+
+  // Determine which package_tags are actually used
+  const usedTags = new Set(wizard.articles.filter(a => a.url && a.package_tag).map(a => tagKey(a.package_tag)));
+
+  // Build packages from packageMeta for used tags
+  const cleanPackages = [];
+  usedTags.forEach(k => {
+    const meta = wizard.packageMeta[k];
+    if (!meta) return;
+    const arts = wizard.articles.filter(a => tagKey(a.package_tag) === k);
+    const status = arts.some(a => a.active === "TRUE") ? "Active" : "Inactive";
+    cleanPackages.push({
+      id: meta._origId || genId("pkg"),
+      name: meta.name || k,
+      monthly_price: meta.monthly_price || "",
+      status: status,
+      notes: meta.notes || ""
+    });
+  });
+
+  // Map tag -> package id for article linking
+  const tagToPkgId = {};
+  cleanPackages.forEach(p => { tagToPkgId[tagKey(p.name)] = p.id; });
+
+  const allArticles = wizard.articles.filter(a => a.url).map(a => {
+    const k = tagKey(a.package_tag);
+    const pkgId = k ? tagToPkgId[k] : "";
+    return {
+      id: a.id,
+      package_id: pkgId || "",
+      url: a.url,
+      position: a.position,
+      monthly_price: pkgId ? "" : (a.monthly_price||""),
+      active: a.active
+    };
+  });
+
+  const termType = document.getElementById("fTermType").value;
+  const isFixed = termType === "Fixed";
+
+  const payload = {
+    action: "saveAdvertiserBundle",
+    id: id,
+    name: name,
+    status: document.getElementById("fStatus").value,
+    par_live: document.getElementById("fPAR").value,
+    start_date: document.getElementById("fStart").value,
+    renewal_date: isFixed ? document.getElementById("fRenewal").value : "",
+    term_type: termType,
+    fixed_months: isFixed ? (document.getElementById("fFixedMonths").value || "") : "",
+    fixed_then_rolling: isFixed && document.getElementById("fFixedThenRolling").checked ? "TRUE" : "FALSE",
+    primary_contact_first_name: document.getElementById("fPrimaryFirst").value.trim(),
+    primary_contact_last_name: document.getElementById("fPrimaryLast").value.trim(),
+    primary_contact_email: document.getElementById("fPrimaryEmail").value.trim(),
+    created_at: wizard.mode === "edit" ? "" : now,
+    updated_at: now,
+    contacts_json: JSON.stringify(wizard.contacts.filter(c => c.first_name || c.last_name || c.email)),
+    packages_json: JSON.stringify(cleanPackages),
+    articles_json: JSON.stringify(allArticles),
+    services_json: JSON.stringify(wizard.services.filter(s => s.name))
+  };
+
+  try {
+    await fetch(ACCOUNTS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {"Content-Type": "application/x-www-form-urlencoded"},
+      body: new URLSearchParams(payload).toString()
+    });
+    await new Promise(r => setTimeout(r, 700));
+    await reload();
+    closeWizard();
+    if (wizard.mode === "new") openDrawer(id);
+  } catch(e) {
+    alert("Error saving: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Save Advertiser";
+  }
+}
+
+async function deleteAdvertiser(){
+  const id = wizard.editingId;
+  if (!id) return;
+  const a = advertisers.find(x => x.id === id);
+  const childCount = (a?._contacts.length||0) + (a?._packages.length||0) + (a?._articles.length||0) + (a?._services.length||0) + (a?._notes.length||0);
+  const msg = childCount ? `Delete this advertiser and ${childCount} associated record${childCount>1?"s":""}? This cannot be undone.` : "Delete this advertiser? This cannot be undone.";
+  if (!confirm(msg)) return;
+  const btn = document.getElementById("wizardDeleteBtn");
+  btn.disabled = true; btn.textContent = "Deleting…";
+  try {
+    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({action:"deleteAdvertiser", id:id}).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 700));
+    await reload();
+    closeWizard(); closeDrawer();
+  } catch(e) {
+    alert("Error: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Delete";
+  }
+}
+
+// ── Drawer ──
+function openDrawer(id, refresh){
+  const a = advertisers.find(x => x.id === id);
+  if (!a) { closeDrawer(); return; }
+  currentDrawerId = id;
+
+  const monthly = a._monthlyRevenue ? `<span style="font-size:12px;color:var(--ink);font-weight:700;font-family:'JetBrains Mono',monospace;">${fmtMoney(a._monthlyRevenue)}/mo</span>` : "";
+
+  document.getElementById("drawerHeader").innerHTML = `
+    <div class="drawer-title-row">
+      <div class="drawer-title">${esc(a.name||"(unnamed)")}</div>
+      <button class="drawer-close" onclick="closeDrawer()">&times;</button>
+    </div>
+    <div class="drawer-meta">
+      ${statusBadge(a.status)}
+      <span class="badge ${a.par_live==="Yes"?"badge-yes":"badge-no"}">PAR ${esc(a.par_live||"No")}</span>
+      <span style="font-size:12px;color:var(--ink-muted);">${esc(termSummary(a))}</span>
+      ${monthly}
+    </div>
+    <div class="drawer-actions">
+      <button class="btn btn-sm" onclick="openWizard('${esc(a.id)}')">✏ Edit</button>
+      <button class="btn btn-sm btn-danger" onclick="quickDeleteAdvertiser('${esc(a.id)}')">Delete</button>
+    </div>
+  `;
+
+  const isFixed = a.term_type === "Fixed";
+  const renewalRow = isFixed ? `<div class="detail-item"><div class="detail-label">Renewal Date</div><div class="detail-value">${fmtDateLong(a.renewal_date)}${renewalChip(a.renewal_date)}${isTrue(a.fixed_then_rolling)?` <span class="badge badge-paused" style="margin-left:6px;">then rolling</span>`:""}</div></div>` : "";
+
+  const detailHtml = `
+    <div class="drawer-section">
+      <div class="drawer-section-header"><div class="drawer-section-title">Campaign Details</div></div>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Campaign Start</div><div class="detail-value">${fmtDateLong(a.start_date)}</div></div>
+        <div class="detail-item"><div class="detail-label">Term</div><div class="detail-value">${esc(termSummary(a))}</div></div>
+        ${renewalRow}
+        <div class="detail-item"><div class="detail-label">PAR Live</div><div class="detail-value">${esc(a.par_live||"No")}</div></div>
+      </div>
+    </div>`;
+
+  // Contacts
+  const allContacts = [];
+  if (a._primaryName || a.primary_contact_email) allContacts.push({ first_name: a.primary_contact_first_name, last_name: a.primary_contact_last_name, email: a.primary_contact_email, primary: true });
+  a._contacts.forEach(c => allContacts.push({ ...c, primary: false }));
+  const contactsHtml = `
+    <div class="drawer-section">
+      <div class="drawer-section-header"><div class="drawer-section-title">Contacts</div><div class="drawer-section-meta">${allContacts.length}</div></div>
+      ${allContacts.length ? allContacts.map(c => {
+        const name = fullName(c.first_name, c.last_name) || "(no name)";
+        return `
+        <div class="contact-card ${c.primary?"primary":""}">
+          <div>
+            <div class="contact-name">${esc(name)}${c.primary?` <span class="contact-tag">primary</span>`:""}</div>
+            ${c.email ? `<div class="contact-email">${esc(c.email)}</div>` : ""}
+          </div>
+          ${c.email ? `<a class="btn btn-sm" href="mailto:${esc(c.email)}">Email</a>` : ""}
+        </div>`;
+      }).join("") : `<div class="empty">No contacts on file.</div>`}
+    </div>`;
+
+  // Packages
+  const sortedPackages = [...a._packages].sort((x, y) => {
+    const xa = (x.status||"Active") === "Active" ? 0 : 1;
+    const ya = (y.status||"Active") === "Active" ? 0 : 1;
+    if (xa !== ya) return xa - ya;
+    return (x.name||"").localeCompare(y.name||"");
+  });
+  const packagesHtml = sortedPackages.length ? `
+    <div class="drawer-section">
+      <div class="drawer-section-header"><div class="drawer-section-title">Packages</div><div class="drawer-section-meta">${a._activePackages.length} active${a._packages.length>a._activePackages.length?` · ${a._packages.length-a._activePackages.length} inactive`:""}</div></div>
+      ${sortedPackages.map((pk, idx) => {
+        const arts = a._articles.filter(x => x.package_id === pk.id).sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
+        const isActive = (pk.status||"Active") === "Active";
+        const displayName = pk.name || `Package ${idx + 1}`;
+        return `
+          <div class="pkg-detail ${isActive?"":"inactive"}">
+            <div class="pkg-detail-header">
+              <div>
+                <div class="pkg-detail-name">${esc(displayName)}</div>
+                ${!isActive ? `<span class="badge badge-inactive" style="margin-top:4px;display:inline-block;">Inactive</span>` : ""}
+              </div>
+              <div class="pkg-detail-price">${fmtMoney(pk.monthly_price)}/mo</div>
+            </div>
+            ${arts.length ? `<div class="pkg-detail-articles">${arts.map(art => `
+              <div class="pkg-detail-article"><span class="pkg-article-pos">#${esc(art.position||"?")}</span><a class="pkg-article-link" href="${esc(art.url||"#")}" target="_blank" rel="noopener">${esc(urlLabel(art.url))}</a></div>
+            `).join("")}</div>` : `<div style="font-size:12px;color:var(--ink-muted);font-style:italic;">No articles assigned.</div>`}
+          </div>`;
+      }).join("")}
+    </div>` : "";
+
+  // Standalone
+  const sortedStandalone = [...a._standaloneArticles].sort((x, y) => (parseInt(x.position)||99) - (parseInt(y.position)||99));
+  const standaloneHtml = sortedStandalone.length ? `
+    <div class="drawer-section">
+      <div class="drawer-section-header"><div class="drawer-section-title">Standalone Articles</div><div class="drawer-section-meta">${a._activeStandaloneArticles.length} active${a._standaloneArticles.length>a._activeStandaloneArticles.length?` · ${a._standaloneArticles.length-a._activeStandaloneArticles.length} inactive`:""}</div></div>
+      <table class="articles-table">
+        <thead><tr><th>Article</th><th>Position</th><th>Monthly</th><th>Status</th></tr></thead>
+        <tbody>
+          ${sortedStandalone.map(x => `
+            <tr class="${isTrue(x.active)?"":"article-inactive"}">
+              <td><a class="article-link" href="${esc(x.url||"#")}" target="_blank" rel="noopener">${esc(urlLabel(x.url))}</a></td>
+              <td>#${esc(x.position||"?")}</td>
+              <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${fmtMoney(x.monthly_price)}</td>
+              <td>${isTrue(x.active)?'<span class="badge badge-active">Active</span>':'<span class="badge badge-inactive">Inactive</span>'}</td>
+            </tr>`).join("")}
+          <tr class="articles-totals">
+            <td colspan="2" style="text-align:right;">Active monthly</td>
+            <td colspan="2" style="font-family:'JetBrains Mono',monospace;">${fmtMoney(a._standaloneRevenue)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>` : "";
+
+  const noItems = !sortedPackages.length && !sortedStandalone.length;
+  const itemsEmpty = noItems ? `<div class="drawer-section"><div class="drawer-section-header"><div class="drawer-section-title">Articles</div></div><div class="empty">No articles or packages yet — click Edit to add some.</div></div>` : "";
+
+  const servicesHtml = `
+    <div class="drawer-section">
+      <div class="drawer-section-header"><div class="drawer-section-title">Additional Services</div><div class="drawer-section-meta">${a._services.length}</div></div>
+      ${a._services.length ? a._services.map(s => `
+        <div class="service-card">
+          <div class="service-name">${esc(s.name||"")}</div>
+          ${s.details ? `<div class="service-details">${esc(s.details)}</div>` : ""}
+        </div>`).join("") : `<div class="empty">No additional services.</div>`}
+    </div>`;
+
+  const notesHtml = `
+    <div class="drawer-section">
+      <div class="drawer-section-header"><div class="drawer-section-title">Notes & Activity</div><div class="drawer-section-meta">${a._notes.length}</div></div>
+      <div class="note-add-box">
+        <textarea id="newNoteBody" placeholder="Add a note (e.g. 'Sent renewal proposal', 'Rahul pushed back on pricing')…"></textarea>
+        <div class="note-add-actions">
+          <button class="btn btn-primary btn-sm" onclick="addNote('${esc(a.id)}')">Add note</button>
+        </div>
+      </div>
+      ${a._notes.length ? a._notes.map(n => `
+        <div class="note-item">
+          <div class="note-meta">
+            <span class="note-time">${fmtTime(n.timestamp)}</span>
+            ${n.author ? `<span class="note-author">${esc(n.author)}</span>` : ""}
+          </div>
+          <div class="note-body">${esc(n.body||"")}</div>
+          <button class="note-delete" onclick="deleteNote('${esc(n.id)}')" title="Delete note">×</button>
+        </div>`).join("") : `<div class="empty">No notes yet — add one above.</div>`}
+    </div>`;
+
+  const proposalsHtml = `
+    <div class="drawer-section" id="drawerProposalsSection">
+      <div class="drawer-section-header"><div class="drawer-section-title">Proposals</div><div class="drawer-section-meta" id="drawerProposalsMeta">…</div></div>
+      <div id="drawerProposalsBody"><div class="empty">Loading proposals…</div></div>
+    </div>`;
+
+  document.getElementById("drawerBody").innerHTML = detailHtml + contactsHtml + packagesHtml + standaloneHtml + itemsEmpty + servicesHtml + proposalsHtml + notesHtml;
+
+  if (!refresh) {
+    document.getElementById("drawerOverlay").classList.add("active");
+    document.getElementById("drawer").classList.add("active");
+  }
+
+  refreshDrawerProposals(a.id);
+}
+
+function renewalChip(d){
+  const days = daysUntil(d);
+  if (days === null) return "";
+  if (days < 0) return ` <span class="badge badge-churned" style="margin-left:6px;">${Math.abs(days)}d overdue</span>`;
+  if (days <= 30) return ` <span class="badge badge-negotiation" style="margin-left:6px;">${days}d</span>`;
+  return "";
+}
+
+function closeDrawer(){
+  currentDrawerId = null;
+  document.getElementById("drawerOverlay").classList.remove("active");
+  document.getElementById("drawer").classList.remove("active");
+}
+
+async function quickDeleteAdvertiser(id){
+  const a = advertisers.find(x => x.id === id);
+  if (!a) return;
+  const childCount = (a._contacts.length||0) + (a._packages.length||0) + (a._articles.length||0) + (a._services.length||0) + (a._notes.length||0);
+  const msg = childCount ? `Delete "${a.name}" and ${childCount} associated record${childCount>1?"s":""}? This cannot be undone.` : `Delete "${a.name}"? This cannot be undone.`;
+  if (!confirm(msg)) return;
+  try {
+    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({action:"deleteAdvertiser", id:id}).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 700));
+    await reload();
+    closeDrawer();
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+// ── Notes ──
+async function addNote(advId){
+  const body = document.getElementById("newNoteBody").value.trim();
+  if (!body) return;
+  const author = (window.__session && window.__session.username) || "";
+  try {
+    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({
+      action: "addNote", advertiser_id: advId, body: body, author: author
+    }).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 700));
+    await reload();
+  } catch(e) {
+    alert("Error adding note: " + e.message);
+  }
+}
+
+async function deleteNote(noteId){
+  if (!confirm("Delete this note?")) return;
+  try {
+    await fetch(ACCOUNTS_SCRIPT_URL + "?" + new URLSearchParams({action:"deleteNote", id:noteId}).toString(), {mode:"no-cors"});
+    await new Promise(r => setTimeout(r, 700));
+    await reload();
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+reload();
+</script>
+</body>
+</html>

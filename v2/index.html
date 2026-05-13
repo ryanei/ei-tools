@@ -1,0 +1,2657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expert Insights — Sales Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Expert Insights — Sales Tool Hub
+   System: EI Blue #012747 anchor on neutral canvas. Restrained.
+   ============================================================ */
+
+:root {
+  /* Brand */
+  --ei-blue:        #012747;        /* exact brand */
+  --ei-blue-700:    #0a3a64;        /* hover / interactive */
+  --ei-blue-900:    #001a30;        /* deepest */
+  --ei-blue-50:     #eaf0f6;        /* tinted surface */
+  --ei-blue-100:    #d3def0;        /* tinted border / chip bg */
+
+  /* Neutrals — warm paper, not pure white */
+  --paper:          #faf9f6;        /* canvas */
+  --paper-2:        #f3f1ec;        /* sunken */
+  --surface:        #ffffff;        /* card */
+  --line:           #e6e3dc;        /* divider */
+  --line-2:         #efece6;        /* faint divider */
+
+  /* Ink */
+  --ink:            #131310;        /* near-black, warm */
+  --ink-2:          #2e2d28;
+  --soft:           #6a6760;
+  --mute:           #9b988f;
+
+  /* Accents — used SPARINGLY, only for state */
+  --green:          #2f7d4d;        /* live / positive */
+  --green-bg:       #e8f1ea;
+  --amber:          #a8741f;        /* attention / pending */
+  --amber-bg:       #f4ecd9;
+  --rust:           #9b3a1f;        /* down / error / Atelier red */
+  --rust-bg:        #f5e4dc;
+
+  /* System */
+  --radius:         8px;
+  --radius-sm:      4px;
+  --radius-lg:      14px;
+  --shadow-1:       0 1px 0 rgba(20,20,20,0.04), 0 1px 3px rgba(20,20,20,0.04);
+  --shadow-2:       0 1px 0 rgba(20,20,20,0.05), 0 12px 40px -12px rgba(20,20,20,0.10);
+
+  /* Type */
+  --sans:           'Inter Tight', -apple-system, system-ui, sans-serif;
+  --serif:          'Fraunces', 'Times New Roman', serif;
+  --mono:           'JetBrains Mono', ui-monospace, monospace;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+  font-family: var(--sans);
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.005em;
+  overflow-x: hidden;
+}
+button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
+a { color:inherit; text-decoration:none; }
+input, textarea, select { font-family:inherit; }
+img, svg { display:block; max-width:100%; }
+::selection { background: var(--ei-blue-100); color: var(--ei-blue-900); }
+
+.mono { font-family: var(--mono); font-feature-settings: "ss01" on, "tnum" on; }
+.serif { font-family: var(--serif); }
+
+/* ── Top bar ─────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  background: var(--ei-blue);
+  color: #fff;
+  border-bottom: 1px solid var(--ei-blue-900);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -16px rgba(1,39,71,0.5);
+}
+.topbar-brand { display: flex; align-items: center; gap: 14px; }
+.topbar-brand .ei-mark { width: 28px; height: 28px; display: block; }
+.topbar-brand .ei-mark.sm { width: 18px; height: 18px; opacity: 0.85; }
+.footer .ei-mark { width: 18px; height: 18px; opacity: 0.95; }
+/* Topbar mark on navy: invert to a simple white stroked glass */
+.topbar .ei-mark circle:first-child { fill: rgba(255,255,255,0.12); }
+.topbar .ei-mark circle:nth-child(2) { stroke: #fff; }
+.topbar .ei-mark line { stroke: #fff; }
+.topbar-title {
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.78);
+  display: flex; align-items: center; gap: 10px;
+  padding-left: 16px; margin-left: 4px;
+  border-left: 1px solid rgba(255,255,255,0.18);
+  height: 28px; line-height: 28px;
+}
+.topbar-title .crumb { color: rgba(255,255,255,0.6); }
+.topbar-title .crumb.active { color: #fff; }
+.topbar-title .sep { color: rgba(255,255,255,0.35); }
+
+.topbar-nav { display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center; }
+.topbar-nav button {
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65);
+  padding: 6px 12px; border-radius: 100px;
+  transition: color 180ms ease, background 180ms ease;
+}
+.topbar-nav button:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.topbar-nav button.active { color: var(--ei-blue); background: #fff; }
+
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-env {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: #d4f5e1; padding: 4px 10px;
+  background: rgba(255,255,255,0.08); border-radius: 100px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.topbar-env::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: #4ade80; box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.25);
+}
+.topbar-iconbtn {
+  width: 34px; height: 34px; border-radius: 100px;
+  display: grid; place-items: center; color: rgba(255,255,255,0.75);
+  transition: background 180ms ease, color 180ms ease;
+}
+.topbar-iconbtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.topbar-iconbtn svg { width: 18px; height: 18px; }
+.topbar-avatar {
+  width: 32px; height: 32px; border-radius: 100px;
+  background: #fff; color: var(--ei-blue);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+}
+
+/* ── Canvas ──────────────────────────────────────────── */
+.canvas { max-width: 1240px; margin: 0 auto; padding: 56px 32px 96px; }
+
+/* ── App shell: persistent sidebar + main column ────── */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 232px; flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+  padding: 18px 14px;
+}
+.sidebar-brand {
+  display: flex; align-items: center; gap: 11px;
+  padding: 4px 8px 18px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+.sidebar-brand .ei-mark { width: 30px; height: 30px; flex-shrink: 0; }
+.sidebar-brand-name {
+  font-family: var(--sans); font-weight: 600; font-size: 13px;
+  color: var(--ink); letter-spacing: -0.01em; line-height: 1.15;
+  white-space: nowrap;
+}
+.sidebar-brand-sub {
+  font-family: var(--mono); font-size: 9.5px; color: var(--mute);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  margin-top: 3px;
+}
+.sidebar-section {
+  font-family: var(--mono); font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--mute); padding: 10px 10px 6px; font-weight: 500;
+}
+.sidebar-nav { display: flex; flex-direction: column; gap: 1px; }
+.sidebar-nav-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 6px;
+  font-size: 13px; font-weight: 500; color: var(--ink-2);
+  background: transparent; border: none; cursor: pointer;
+  text-align: left; width: 100%;
+  transition: background 150ms ease, color 150ms ease;
+}
+.sidebar-nav-btn:hover { background: var(--paper-2); color: var(--ink); }
+.sidebar-nav-btn.active { background: var(--ei-blue-50); color: var(--ei-blue); }
+.sidebar-nav-btn svg { width: 16px; height: 16px; opacity: 0.85; flex-shrink: 0; }
+.sidebar-nav-btn .label { flex: 1; }
+.sidebar-nav-btn .badge-mini {
+  font-family: var(--mono); font-size: 9.5px; color: var(--mute);
+  background: var(--paper-2); padding: 1px 7px; border-radius: 100px;
+  letter-spacing: 0.02em; font-weight: 500;
+}
+.sidebar-nav-btn.active .badge-mini { background: rgba(255,255,255,0.7); color: var(--ei-blue); }
+
+.sidebar-bottom { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  transition: background 150ms ease;
+}
+.sidebar-user:hover { background: var(--paper-2); }
+.sidebar-user-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ei-blue); color: white;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; flex-shrink: 0;
+}
+.sidebar-user-name { font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.2; }
+.sidebar-user-role { font-family: var(--mono); font-size: 9.5px; color: var(--mute); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+
+.main-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* ── Slim top strip (Hub command center) ─────────────── */
+.topstrip {
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  position: sticky; top: 0; z-index: 40;
+}
+.topstrip-crumb {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--soft);
+}
+.topstrip-crumb .here { color: var(--ink); font-weight: 500; }
+.topstrip-crumb .sep { color: var(--mute); font-size: 11px; }
+.topstrip-right { display: flex; align-items: center; gap: 6px; }
+.topstrip-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px 5px 12px; border-radius: 6px;
+  background: var(--paper-2);
+  border: 1px solid transparent;
+  font-size: 12px; color: var(--soft);
+  min-width: 280px;
+}
+.topstrip-search:focus-within { background: var(--surface); border-color: var(--ei-blue-100); box-shadow: 0 0 0 3px rgba(1,39,71,0.06); }
+.topstrip-search svg { width: 13px; height: 13px; opacity: 0.6; }
+.topstrip-search input { flex: 1; background: none; border: none; outline: none; font-size: 12px; color: var(--ink); }
+.topstrip-search input::placeholder { color: var(--mute); }
+.topstrip-search .kbd {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+  padding: 1px 6px; border-radius: 3px;
+  background: var(--surface); color: var(--mute);
+  border: 1px solid var(--line); letter-spacing: 0.04em;
+}
+.topstrip-iconbtn {
+  position: relative;
+  width: 32px; height: 32px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--soft); border: none; background: none; cursor: pointer;
+}
+.topstrip-iconbtn:hover { background: var(--paper-2); color: var(--ink); }
+.topstrip-iconbtn svg { width: 16px; height: 16px; }
+.topstrip-iconbtn .dot-notify {
+  position: absolute; top: 7px; right: 7px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--ei-blue);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ── Hub command center ──────────────────────────────── */
+.cmd { padding: 24px 28px 48px; max-width: 1480px; }
+.cmd-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px; margin-bottom: 22px;
+}
+.cmd-greet h1 {
+  font-size: 28px; font-weight: 500; letter-spacing: -0.022em;
+  color: var(--ink); line-height: 1.05;
+}
+.cmd-greet h1 .accent { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--ei-blue); }
+.cmd-greet .sub {
+  font-family: var(--mono); font-size: 10.5px; color: var(--mute);
+  text-transform: uppercase; letter-spacing: 0.14em; margin-top: 8px;
+  display: flex; align-items: center; gap: 10px;
+}
+.cmd-greet .sub .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(47,125,77,0.18); }
+.cmd-period {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border-radius: 7px;
+  background: var(--paper-2); border: 1px solid var(--line);
+}
+.cmd-period button {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  color: var(--soft); background: none; border: none; padding: 5px 11px;
+  border-radius: 5px; cursor: pointer; text-transform: uppercase; font-weight: 500;
+  transition: background 150ms ease, color 150ms ease;
+}
+.cmd-period button:hover { color: var(--ink); }
+.cmd-period button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
+
+/* KPI strip — dense, 5 cells with internal dividers */
+.cmd-kpi {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+.cmd-kpi-cell {
+  padding: 16px 20px;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 8px;
+  min-height: 100px;
+}
+.cmd-kpi-cell:last-child { border-right: none; }
+.cmd-kpi-cell .lbl {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.14em; color: var(--mute);
+}
+.cmd-kpi-cell .val {
+  font-size: 26px; font-weight: 600; color: var(--ink);
+  letter-spacing: -0.026em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.cmd-kpi-cell .foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: var(--mono); font-size: 10px; color: var(--soft); margin-top: auto;
+}
+.cmd-kpi-cell .delta { color: var(--green); font-weight: 600; }
+.cmd-kpi-cell .delta.down { color: var(--rust); }
+.cmd-kpi-cell .spark { width: 56px; height: 18px; flex-shrink: 0; }
+
+/* Card layouts */
+.cmd-grid {
+  display: grid; grid-template-columns: 1.75fr 1fr;
+  gap: 14px; margin-bottom: 14px;
+}
+.cmd-grid.flip { grid-template-columns: 1fr 1.4fr; }
+.cmd-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.cmd-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.cmd-card-head h3 {
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  letter-spacing: -0.005em;
+}
+.cmd-card-head .sub {
+  font-family: var(--mono); font-size: 9.5px; color: var(--mute);
+  letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px;
+}
+.cmd-card-head-r { display: flex; align-items: center; gap: 4px; }
+.cmd-card-head-r .link {
+  font-size: 12px; color: var(--soft); padding: 4px 8px; border-radius: 4px;
+  cursor: pointer; background: none; border: none; font-family: inherit;
+}
+.cmd-card-head-r .link:hover { color: var(--ei-blue); background: var(--paper-2); }
+.cmd-card-body { padding: 14px 18px 16px; flex: 1; }
+
+/* Pipeline + forecast chart */
+.fc-chart { display: flex; align-items: flex-end; gap: 18px; height: 170px; padding-top: 6px; }
+.fc-bar-wrap {
+  flex: 1; display: flex; flex-direction: column; gap: 8px;
+  height: 100%; position: relative;
+}
+.fc-bar-val {
+  font-family: var(--mono); font-size: 11px; color: var(--ink); font-weight: 500;
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.fc-bar-stack {
+  flex: 1; width: 100%;
+  display: flex; flex-direction: column-reverse;
+  border-radius: 6px; overflow: hidden;
+  background: var(--paper-2);
+  position: relative;
+}
+.fc-bar-seg {
+  width: 100%; transition: opacity 150ms ease;
+  cursor: default;
+}
+.fc-bar-seg:hover { opacity: 0.85; }
+.fc-bar-seg.un { background: var(--ei-blue-100); }
+.fc-bar-seg.wt { background: var(--ei-blue); }
+.fc-bar-label {
+  font-family: var(--mono); font-size: 9.5px; color: var(--soft);
+  letter-spacing: 0.08em; text-transform: uppercase; text-align: center;
+}
+.fc-bar-count {
+  font-family: var(--mono); font-size: 9.5px; color: var(--mute);
+  letter-spacing: 0.04em; text-align: center; margin-top: 2px;
+}
+.fc-legend {
+  display: flex; gap: 18px; padding-top: 14px;
+  margin-top: 14px; border-top: 1px dashed var(--line);
+  align-items: center; justify-content: space-between;
+}
+.fc-legend-keys { display: flex; gap: 18px; }
+.fc-legend-item {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11.5px; color: var(--soft);
+}
+.fc-legend-item .sq { width: 9px; height: 9px; border-radius: 2px; }
+.fc-legend-totals {
+  display: flex; gap: 18px;
+  font-family: var(--mono); font-size: 10.5px; color: var(--mute);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.fc-legend-totals b { color: var(--ink); font-weight: 600; }
+
+/* Renewals list */
+.ren-list { display: flex; flex-direction: column; }
+.ren-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 12px; padding: 11px 0;
+  border-bottom: 1px solid var(--line-2);
+  align-items: center;
+}
+.ren-row:first-child { padding-top: 4px; }
+.ren-row:last-child { border-bottom: none; padding-bottom: 4px; }
+.ren-co { display: flex; flex-direction: column; gap: 2px; }
+.ren-co .nm { font-size: 13px; font-weight: 500; color: var(--ink); }
+.ren-co .meta { font-family: var(--mono); font-size: 9.5px; color: var(--mute); letter-spacing: 0.08em; text-transform: uppercase; }
+.ren-when {
+  font-family: var(--mono); font-size: 10.5px; color: var(--soft);
+  letter-spacing: 0.04em; font-weight: 500;
+  white-space: nowrap;
+}
+.ren-when.urgent { color: var(--amber); }
+.ren-when.crit { color: var(--rust); }
+.ren-val { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 500; }
+
+/* Proposals mini-list */
+.cmd-props { display: flex; flex-direction: column; }
+.cmd-prop-row {
+  display: grid; grid-template-columns: 26px 1fr auto auto 80px;
+  gap: 12px; padding: 10px 0;
+  border-bottom: 1px solid var(--line-2);
+  align-items: center; cursor: pointer;
+  transition: padding-left 150ms ease;
+}
+.cmd-prop-row:hover { padding-left: 4px; }
+.cmd-prop-row:last-child { border-bottom: none; }
+.cmd-prop-owner-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ei-blue-50); color: var(--ei-blue);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+}
+.cmd-prop-meta { min-width: 0; }
+.cmd-prop-meta .nm { font-size: 13px; color: var(--ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmd-prop-meta .sub { font-size: 11px; color: var(--mute); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmd-prop-val { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 500; text-align: right; }
+.cmd-prop-when { font-family: var(--mono); font-size: 10px; color: var(--mute); letter-spacing: 0.04em; text-align: right; }
+
+/* Changelog */
+.cl-list { display: flex; flex-direction: column; }
+.cl-item {
+  display: grid; grid-template-columns: 78px 1fr;
+  gap: 14px; padding: 12px 0;
+  border-bottom: 1px solid var(--line-2);
+}
+.cl-item:last-child { border-bottom: none; }
+.cl-meta { display: flex; flex-direction: column; gap: 3px; }
+.cl-ver {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink);
+  font-weight: 600; letter-spacing: 0.02em;
+}
+.cl-date {
+  font-family: var(--mono); font-size: 9.5px; color: var(--mute);
+  letter-spacing: 0.04em;
+}
+.cl-body { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.cl-body b { color: var(--ink); font-weight: 600; }
+.cl-tag {
+  display: inline-block; font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+  padding: 1px 7px; border-radius: 3px; letter-spacing: 0.06em;
+  background: var(--ei-blue-50); color: var(--ei-blue);
+  margin-right: 8px; vertical-align: 1px; text-transform: uppercase;
+}
+.cl-tag.fix { background: var(--green-bg); color: var(--green); }
+.cl-tag.note { background: var(--amber-bg); color: var(--amber); }
+
+@media (max-width: 1200px) {
+  .cmd-kpi { grid-template-columns: repeat(3, 1fr); }
+  .cmd-kpi-cell { border-bottom: 1px solid var(--line); }
+  .cmd-kpi-cell:nth-child(3n) { border-right: none; }
+  .cmd-kpi-cell:nth-last-child(-n+2) { border-bottom: none; }
+  .cmd-grid, .cmd-grid.flip { grid-template-columns: 1fr; }
+}
+@media (max-width: 800px) {
+  .sidebar { display: none; }
+}
+
+/* ── Hero ────────────────────────────────────────────── */
+.hero { margin-bottom: 56px; }
+.hero-eyebrow {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  color: var(--soft); margin-bottom: 20px;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  display: inline-flex; align-items: center; gap: 12px;
+}
+.hero-eyebrow::before {
+  content: ""; width: 24px; height: 1px; background: var(--ei-blue);
+}
+.hero-title {
+  font-size: clamp(44px, 5.5vw, 64px);
+  font-weight: 500; line-height: 0.98; letter-spacing: -0.025em;
+  color: var(--ink);
+  max-width: 880px;
+}
+.hero-title .accent {
+  font-family: var(--serif); font-style: italic; font-weight: 400;
+  color: var(--ei-blue);
+  letter-spacing: -0.02em;
+}
+.hero-sub {
+  margin-top: 22px;
+  font-size: 17px; color: var(--soft); line-height: 1.55;
+  max-width: 560px;
+}
+.hero-meta {
+  margin-top: 32px;
+  display: flex; gap: 32px; flex-wrap: wrap;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.hero-meta-item .lbl {
+  font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--mute); margin-bottom: 6px;
+}
+.hero-meta-item .val {
+  font-size: 14px; font-weight: 500; color: var(--ink);
+}
+.hero-meta-item .val .b { color: var(--ei-blue); font-weight: 600; }
+
+/* ── Section label ───────────────────────────────────── */
+.section-label {
+  font-family: var(--mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--soft); font-weight: 500;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px;
+}
+.section-label::after {
+  content: ""; flex: 1; height: 1px; background: var(--line);
+}
+.section-label .num {
+  font-family: var(--mono); font-size: 11px; color: var(--mute);
+  letter-spacing: 0.04em;
+}
+
+/* ── Announcement strip ──────────────────────────────── */
+.announcement {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-1);
+}
+.announcement-tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--ei-blue);
+  padding: 3px 9px; border-radius: var(--radius-sm);
+  background: var(--ei-blue-50);
+  flex-shrink: 0;
+}
+.announcement-text { font-size: 14px; color: var(--ink-2); flex: 1; line-height: 1.5; }
+.announcement-text b { font-weight: 600; color: var(--ink); }
+.announcement-time {
+  font-family: var(--mono); font-size: 11px; color: var(--mute); flex-shrink: 0;
+}
+.announcement-x {
+  width: 22px; height: 22px; border-radius: 100px;
+  display: grid; place-items: center;
+  color: var(--mute); transition: color 180ms ease, background 180ms ease;
+}
+.announcement-x:hover { color: var(--ink); background: var(--paper-2); }
+
+/* ── Tools grid ──────────────────────────────────────── */
+.tools-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+}
+.tool-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 26px 26px 22px;
+  display: flex; flex-direction: column; gap: 18px;
+  min-height: 220px;
+  text-align: left;
+  transition: border-color 200ms ease, transform 220ms ease, box-shadow 220ms ease;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+}
+.tool-card:hover {
+  border-color: var(--ei-blue-100);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+.tool-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+}
+.tool-card-icon {
+  width: 40px; height: 40px; border-radius: var(--radius);
+  display: grid; place-items: center;
+  background: var(--ei-blue-50); color: var(--ei-blue);
+}
+.tool-card-icon svg { width: 20px; height: 20px; }
+.tool-card-num {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.1em; color: var(--mute);
+}
+.tool-card-body { flex: 1; }
+.tool-card-title {
+  font-size: 20px; font-weight: 600; letter-spacing: -0.018em;
+  color: var(--ink); margin-bottom: 6px;
+  line-height: 1.2;
+}
+.tool-card-desc {
+  font-size: 14px; color: var(--soft); line-height: 1.5;
+}
+.tool-card-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 16px; border-top: 1px solid var(--line-2);
+}
+.tool-card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tool-card-tag {
+  font-size: 11px; font-weight: 500; color: var(--soft);
+  padding: 3px 8px; border-radius: var(--radius-sm);
+  background: var(--paper-2);
+}
+.tool-card-arrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500; color: var(--ei-blue);
+  transition: gap 200ms ease;
+}
+.tool-card-arrow svg { width: 14px; height: 14px; }
+.tool-card:hover .tool-card-arrow { gap: 10px; }
+.tool-card-status {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--green);
+}
+.tool-card-status::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 0 3px rgba(47, 125, 77, 0.18);
+}
+
+/* ── Activity card ───────────────────────────────────── */
+.activity {
+  margin-top: 56px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+.activity-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 26px;
+  border-bottom: 1px solid var(--line);
+}
+.activity-head h3 {
+  font-size: 16px; font-weight: 600; letter-spacing: -0.012em;
+}
+.activity-head-actions { display: flex; align-items: center; gap: 14px; }
+.activity-head-actions .link {
+  font-size: 13px; font-weight: 500; color: var(--ei-blue);
+}
+.activity-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+}
+.activity-stat {
+  padding: 22px 26px;
+  border-right: 1px solid var(--line);
+}
+.activity-stat:last-child { border-right: none; }
+.activity-stat-label {
+  font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--mute); margin-bottom: 8px;
+}
+.activity-stat-value {
+  font-size: 28px; font-weight: 500; letter-spacing: -0.025em; line-height: 1;
+  display: flex; align-items: baseline; gap: 8px;
+  color: var(--ink);
+}
+.activity-stat-delta {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--green);
+}
+.activity-stat-delta.down { color: var(--rust); }
+
+.activity-rows {
+  border-top: 1px solid var(--line);
+}
+.activity-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 1.2fr 110px 100px;
+  gap: 16px; padding: 12px 26px;
+  border-bottom: 1px solid var(--line-2);
+  align-items: center;
+  font-size: 13px;
+}
+.activity-row:last-child { border-bottom: none; }
+.activity-row .avatar {
+  width: 24px; height: 24px; border-radius: 100px;
+  background: var(--ei-blue-50); color: var(--ei-blue);
+  font-size: 10px; font-weight: 600;
+  display: grid; place-items: center;
+}
+.activity-row .who { font-weight: 500; }
+.activity-row .what { color: var(--soft); }
+.activity-row .what b { color: var(--ink); font-weight: 500; }
+.activity-row .tool {
+  font-family: var(--mono); font-size: 10px; color: var(--mute);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.activity-row .when {
+  font-family: var(--mono); font-size: 11px; color: var(--mute); text-align: right;
+}
+
+/* ── Footer ──────────────────────────────────────────── */
+.footer {
+  margin-top: 64px; padding-top: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--mute);
+}
+.footer .left { display: flex; align-items: center; gap: 14px; }
+
+/* ── Sub-screens ─────────────────────────────────────── */
+.screen-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding-bottom: 32px; margin-bottom: 32px;
+  border-bottom: 1px solid var(--line);
+}
+.screen-eyebrow {
+  font-family: var(--mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--soft); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 14px;
+}
+.screen-eyebrow .back {
+  display: inline-flex; align-items: center; gap: 6px;
+  cursor: pointer; color: var(--soft);
+  transition: color 180ms ease;
+}
+.screen-eyebrow .back:hover { color: var(--ei-blue); }
+.screen-eyebrow .back svg { width: 12px; height: 12px; }
+.screen-eyebrow .sep { color: var(--mute); }
+.screen-title {
+  font-size: 40px; font-weight: 500; letter-spacing: -0.028em; line-height: 1;
+  color: var(--ink);
+}
+.screen-sub { margin-top: 12px; color: var(--soft); font-size: 15px; max-width: 540px; line-height: 1.5; }
+
+.screen-actions { display: flex; align-items: center; gap: 10px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  transition: all 180ms ease;
+}
+.btn:hover { border-color: var(--ink); }
+.btn svg { width: 14px; height: 14px; }
+.btn.primary {
+  background: var(--ei-blue); color: white; border-color: var(--ei-blue);
+}
+.btn.primary:hover { background: var(--ei-blue-700); border-color: var(--ei-blue-700); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--soft); }
+.btn.ghost:hover { color: var(--ink); background: var(--paper-2); }
+
+/* KPIs */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow-1);
+}
+.kpi-label {
+  font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--mute); margin-bottom: 10px;
+}
+.kpi-value {
+  font-size: 30px; font-weight: 500; letter-spacing: -0.028em; line-height: 1;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.kpi-delta { font-family: var(--mono); font-size: 11px; color: var(--green); }
+.kpi-delta.down { color: var(--rust); }
+
+/* Data card / tables */
+.data-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+.data-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.data-head h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.012em; }
+.data-controls { display: flex; align-items: center; gap: 10px; }
+.data-search {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: var(--radius);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+}
+.data-search svg { width: 13px; height: 13px; opacity: 0.5; }
+.data-search input {
+  background: none; border: none; outline: none;
+  font-size: 12px; width: 180px; color: var(--ink);
+}
+.data-search input::placeholder { color: var(--mute); }
+
+.data-table { font-size: 13px; }
+.data-row {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 16px; padding: 12px 24px;
+  border-bottom: 1px solid var(--line-2);
+  align-items: center;
+}
+.data-row:last-child { border-bottom: none; }
+.data-row.head {
+  font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--mute); border-bottom: 1px solid var(--line);
+  padding: 12px 24px; font-weight: 500;
+}
+.data-row .pri { font-weight: 500; color: var(--ink); }
+.data-row .sec { color: var(--soft); }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
+  padding: 3px 9px; border-radius: var(--radius-sm);
+}
+.badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.badge.active   { color: var(--green); background: var(--green-bg); }
+.badge.pending  { color: var(--amber); background: var(--amber-bg); }
+.badge.renewal  { color: var(--ei-blue); background: var(--ei-blue-50); }
+.badge.sent     { color: var(--ei-blue); background: var(--ei-blue-50); }
+.badge.drafting { color: var(--amber); background: var(--amber-bg); }
+.badge.awaiting { color: var(--ei-blue); background: var(--ei-blue-50); }
+.badge.closed   { color: var(--soft); background: var(--paper-2); }
+
+/* ── Proposals screen ──────────────────────────────── */
+.kpi .kpi-foot {
+  font-family: var(--mono); font-size: 10px; color: var(--mute);
+  margin-top: 12px; letter-spacing: 0.04em;
+}
+.prop-kpi-grid { margin-bottom: 32px; }
+
+.section-eyebrow {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.16em; color: var(--mute); margin-bottom: 8px;
+}
+
+.prop-split {
+  display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px;
+  margin-bottom: 32px;
+}
+.prop-queue-card, .prop-tmpl-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); padding: 22px 24px 20px;
+  box-shadow: var(--shadow-1);
+}
+.prop-queue-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding-bottom: 16px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.prop-queue-title {
+  font-size: 17px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink);
+}
+.prop-queue-count {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  color: var(--ei-blue); background: var(--ei-blue-50);
+  padding: 4px 10px; border-radius: 100px; letter-spacing: 0.04em;
+}
+.prop-link {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+  color: var(--soft); text-decoration: none; padding-top: 6px;
+}
+.prop-link:hover { color: var(--ei-blue); }
+
+.prop-queue-list { list-style: none; margin: 0; padding: 0; }
+.prop-queue-item {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
+  padding: 14px 0; border-bottom: 1px solid var(--line);
+}
+.prop-queue-item:last-child { border-bottom: none; padding-bottom: 0; }
+.prop-queue-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper-2); color: var(--soft);
+  flex-shrink: 0;
+}
+.prop-queue-icon svg { width: 16px; height: 16px; }
+.prop-queue-item.kind-signature .prop-queue-icon { background: var(--ei-blue-50); color: var(--ei-blue); }
+.prop-queue-item.kind-expiring  .prop-queue-icon { background: var(--amber-bg); color: var(--amber); }
+.prop-queue-item.kind-draft     .prop-queue-icon { background: var(--paper-2); color: var(--soft); }
+.prop-queue-item.kind-approval  .prop-queue-icon { background: var(--green-bg); color: var(--green); }
+
+.prop-queue-row1 {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-bottom: 4px;
+}
+.prop-queue-name { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.prop-queue-val  { font-size: 12px; color: var(--soft); font-weight: 500; }
+.prop-queue-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--mute);
+}
+.prop-queue-meta .dot { color: var(--line); }
+.prop-kind-tag {
+  display: inline-flex; padding: 2px 7px; border-radius: 3px;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em;
+}
+.prop-kind-tag.kind-signature { color: var(--ei-blue); background: var(--ei-blue-50); }
+.prop-kind-tag.kind-expiring  { color: var(--amber);   background: var(--amber-bg);   }
+.prop-kind-tag.kind-draft     { color: var(--soft);    background: var(--paper-2);    }
+.prop-kind-tag.kind-approval  { color: var(--green);   background: var(--green-bg);   }
+.prop-queue-cta { font-size: 12px; padding: 6px 12px; }
+
+.prop-tmpl-list { list-style: none; margin: 0; padding: 0; }
+.prop-tmpl-item {
+  padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer;
+  transition: padding-left 180ms ease;
+}
+.prop-tmpl-item:last-child { border-bottom: none; padding-bottom: 0; }
+.prop-tmpl-item:hover { padding-left: 4px; }
+.prop-tmpl-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: 3px;
+}
+.prop-tmpl-name { font-size: 13.5px; font-weight: 500; color: var(--ink); }
+.prop-tmpl-uses { font-size: 11px; color: var(--mute); letter-spacing: 0.04em; }
+.prop-tmpl-desc { font-size: 12.5px; color: var(--soft); line-height: 1.45; }
+
+/* Proposals table */
+.prop-table-card .data-head {
+  flex-wrap: wrap; gap: 16px;
+}
+.prop-tabs { display: flex; align-items: center; gap: 2px; }
+.prop-tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  font-size: 12.5px; font-weight: 500;
+  background: transparent; border: none; color: var(--soft);
+  cursor: pointer; transition: all 150ms ease;
+}
+.prop-tab:hover { color: var(--ink); background: var(--paper-2); }
+.prop-tab.active { color: var(--ei-blue); background: var(--ei-blue-50); }
+.prop-tab-count {
+  font-family: var(--mono); font-size: 10px; color: var(--mute);
+  background: var(--paper-2); padding: 1px 6px; border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+.prop-tab.active .prop-tab-count { background: rgba(255,255,255,0.6); color: var(--ei-blue); }
+
+.prop-row {
+  grid-template-columns: 2.4fr 1.2fr 1fr 0.8fr 1fr 0.7fr 36px !important;
+  align-items: center;
+}
+.prop-row .num { text-align: right; }
+.prop-row.head .num { text-align: right; }
+.prop-cell-client { display: flex; align-items: center; gap: 12px; }
+.prop-mono-mark {
+  width: 30px; height: 30px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+  background: var(--paper-2); color: var(--soft);
+  letter-spacing: 0.04em; flex-shrink: 0;
+}
+.prop-campaign {
+  font-size: 11.5px; color: var(--mute); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.prop-stage { font-size: 12px; }
+.prop-owner { display: inline-flex; align-items: center; gap: 8px; }
+.prop-owner-init {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 9.5px; font-weight: 500;
+  background: var(--ei-blue-50); color: var(--ei-blue);
+  letter-spacing: 0.02em;
+}
+.prop-updated { font-size: 11px; }
+.prop-flag {
+  display: inline-block; margin-left: 6px; font-size: 9px;
+  vertical-align: middle;
+}
+.prop-flag.stalled  { color: var(--amber); }
+.prop-flag.expiring { color: #c2410c; }
+.prop-row-actions { display: flex; justify-content: flex-end; }
+.prop-row-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid transparent; background: transparent;
+  color: var(--mute); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 150ms ease;
+}
+.prop-row-btn:hover { color: var(--ei-blue); border-color: var(--line); background: var(--paper-2); }
+.prop-row-btn svg { width: 13px; height: 13px; }
+.prop-empty {
+  padding: 48px 0; text-align: center; color: var(--mute);
+  font-size: 13px;
+}
+
+@media (max-width: 960px) {
+  .prop-split { grid-template-columns: 1fr; }
+}
+
+/* Pipeline columns */
+.pipeline {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.pl-col {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  min-height: 480px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.pl-col-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 12px; border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+.pl-col-head .name {
+  font-family: var(--mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--ink); font-weight: 500;
+}
+.pl-col-head .count {
+  font-family: var(--mono); font-size: 11px; color: var(--mute);
+  background: var(--paper-2); padding: 2px 8px; border-radius: 100px;
+}
+.pl-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: grab;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.pl-card:hover {
+  border-color: var(--ei-blue-100);
+  box-shadow: var(--shadow-2); transform: translateY(-1px);
+}
+.pl-card .co {
+  font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px;
+}
+.pl-card .val {
+  font-family: var(--mono); font-size: 12px; color: var(--soft);
+}
+.pl-card .meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-2);
+  font-size: 11px; color: var(--soft);
+}
+.pl-card .prob { font-family: var(--mono); font-size: 10px; color: var(--mute); }
+
+/* Chart */
+.chart {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-1);
+}
+.chart-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 24px;
+}
+.chart-head .title { font-size: 15px; font-weight: 600; letter-spacing: -0.012em; }
+.chart-head .sub { font-size: 12px; color: var(--soft); margin-top: 4px; }
+.chart-legend { display: flex; gap: 18px; }
+.chart-legend-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--soft);
+}
+.chart-legend-item::before {
+  content: ""; width: 8px; height: 8px; border-radius: 2px;
+}
+.chart-legend-item.a::before { background: var(--ei-blue); }
+.chart-legend-item.b::before { background: var(--ei-blue-100); }
+
+/* Two-column screen layout (Dashboard) */
+.split-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+
+.list-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+.list-card-head {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+.list-card-head h3 { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.list-card-head p { font-size: 12px; color: var(--soft); margin-top: 4px; }
+.list-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 13px;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row .l { display: flex; align-items: center; gap: 10px; }
+.list-row .num {
+  font-family: var(--mono); font-size: 11px; color: var(--mute); width: 22px;
+}
+.list-row .nm { font-weight: 500; }
+.list-row .v {
+  font-family: var(--mono); font-size: 12px; color: var(--ink);
+}
+
+</style>
+
+<script type="application/json" id="speaker-notes">[]</script>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail" data-bg-color="#f5f1ea">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#f5f1ea"/>
+    <g transform="translate(420, 280)">
+      <rect x="0" y="0" width="360" height="240" rx="6" fill="#1230b8"/>
+      <text x="32" y="96" font-family="Georgia, serif" font-style="italic" font-size="76" font-weight="400" fill="#ffffff">EI</text>
+      <rect x="32" y="132" width="180" height="3" fill="#ffffff" opacity="0.6"/>
+      <text x="32" y="180" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="500" fill="#ffffff" letter-spacing="2">SALES TOOLS</text>
+    </g>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" data-presets="react">
+// Mock data for the prototype
+const TEAM = [
+  { name: "Ryan Elliott", username: "relliott", role: "admin", initials: "RE" },
+  { name: "Sarah Chen", username: "schen", role: "user", initials: "SC" },
+  { name: "Marcus Webb", username: "mwebb", role: "user", initials: "MW" },
+  { name: "Priya Patel", username: "ppatel", role: "user", initials: "PP" },
+];
+
+const TOOLS = [
+  {
+    id: "proposals",
+    title: "Proposal Manager",
+    titleEditorial: ["Proposal", "Manager"],
+    desc: "Build campaign proposals, generate insertion orders, and track active deals from a single dashboard.",
+    descShort: "Build proposals & insertion orders.",
+    tags: ["Proposals", "Insertion Orders", "PDF Export"],
+    tint: "blue",
+    status: "live",
+    iconKey: "doc",
+  },
+  {
+    id: "dashboard",
+    title: "Audience Dashboard",
+    titleEditorial: ["Audience", "Dashboard"],
+    desc: "Live campaign performance with Bombora visitor data, KPI breakdowns, weekly charts, and batch export.",
+    descShort: "Live campaign performance.",
+    tags: ["Bombora", "KPIs", "Charts", "Export"],
+    tint: "green",
+    status: "live",
+    iconKey: "chart",
+  },
+  {
+    id: "accounts",
+    title: "Accounts",
+    titleEditorial: ["The", "Accounts"],
+    desc: "Advertiser & campaign database. Track contracts, listicle and newsletter campaigns, account status — one place.",
+    descShort: "Advertiser & campaign database.",
+    tags: ["Advertisers", "Campaigns", "Contracts"],
+    tint: "cyan",
+    status: "live",
+    iconKey: "users",
+  },
+  {
+    id: "pipeline",
+    title: "Sales Pipeline",
+    titleEditorial: ["Sales", "Pipeline"],
+    desc: "Track deals across stages, forecast revenue, monitor win rates, and export reports for leadership.",
+    descShort: "Track deals & forecast revenue.",
+    tags: ["Deals", "Forecast", "Win Rates"],
+    tint: "violet",
+    status: "live",
+    iconKey: "kanban",
+  },
+];
+
+const ACTIVITY = [
+  { user: "Sarah Chen", initials: "SC", evt: "edit",   what: "edited proposal",  detail: "Q2 — Acme Corp Renewal", tool: "proposals", when: "2m ago" },
+  { user: "Marcus Webb", initials: "MW", evt: "export", what: "exported PDF",     detail: "Bombora · CrowdStrike",  tool: "dashboard", when: "14m ago" },
+  { user: "Ryan Elliott", initials: "RE", evt: "login", what: "signed in",        detail: "from Edinburgh, UK",     tool: "hub",       when: "21m ago" },
+  { user: "Priya Patel", initials: "PP", evt: "edit",   what: "moved deal stage", detail: "Datadog → Negotiation",  tool: "pipeline",  when: "38m ago" },
+  { user: "Sarah Chen", initials: "SC", evt: "edit",   what: "added contact",    detail: "Lacework · julia@",     tool: "accounts",  when: "1h ago" },
+  { user: "Marcus Webb", initials: "MW", evt: "export", what: "generated IO",     detail: "Snowflake · IO-2401",   tool: "proposals", when: "2h ago" },
+];
+
+const STATS = [
+  { label: "Active proposals",    value: 47,    delta: "+8",   dir: "up" },
+  { label: "Pipeline value",      value: "$2.4M", delta: "+12%", dir: "up" },
+  { label: "Win rate",            value: "34%", delta: "+3pp", dir: "up" },
+  { label: "Avg. cycle",          value: "21d", delta: "-2d",  dir: "up" },
+];
+
+const DEALS = [
+  { co: "CrowdStrike",   stage: "Negotiation", value: "$184K", owner: "Sarah",  prob: 75 },
+  { co: "Datadog",       stage: "Negotiation", value: "$112K", owner: "Priya",  prob: 65 },
+  { co: "Snowflake",     stage: "Proposal",    value: "$240K", owner: "Marcus", prob: 50 },
+  { co: "Lacework",      stage: "Discovery",   value: "$88K",  owner: "Sarah",  prob: 30 },
+  { co: "Wiz",           stage: "Discovery",   value: "$156K", owner: "Ryan",   prob: 25 },
+  { co: "Cloudflare",    stage: "Closed Won",  value: "$420K", owner: "Marcus", prob: 100 },
+  { co: "1Password",     stage: "Proposal",    value: "$72K",  owner: "Priya",  prob: 55 },
+  { co: "Tailscale",     stage: "Discovery",   value: "$48K",  owner: "Sarah",  prob: 20 },
+];
+
+const ACCOUNTS_DATA = [
+  { name: "CrowdStrike Holdings", industry: "Cybersecurity",     status: "Active", spend: "$840K", contact: "j.morris@",  campaigns: 4 },
+  { name: "Datadog Inc.",         industry: "Observability",     status: "Active", spend: "$620K", contact: "k.lee@",     campaigns: 3 },
+  { name: "Snowflake",            industry: "Data Platform",     status: "Active", spend: "$1.2M", contact: "a.singh@",   campaigns: 6 },
+  { name: "Lacework",             industry: "Cybersecurity",     status: "Pending", spend: "$140K", contact: "julia@",    campaigns: 2 },
+  { name: "Cloudflare",           industry: "Infra & Networking",status: "Active", spend: "$980K", contact: "t.zhao@",    campaigns: 5 },
+  { name: "Wiz",                  industry: "Cloud Security",    status: "Active", spend: "$420K", contact: "r.patel@",   campaigns: 3 },
+  { name: "1Password",            industry: "Identity",          status: "Renewal", spend: "$210K", contact: "s.kim@",    campaigns: 2 },
+];
+
+const PROPOSALS_DATA = [
+  { client: "CrowdStrike",   campaign: "Q2 Renewal — Endpoint",          status: "Awaiting sig", stage: "Negotiation", value: "$184K", owner: "Sarah",  ownerInit: "SC", updated: "2h ago",  created: "12 Apr", expires: "in 4d",  flag: "stalled" },
+  { client: "Datadog",       campaign: "Newsletter Bundle Q2",           status: "Sent",         stage: "Proposal",    value: "$112K", owner: "Priya",  ownerInit: "PP", updated: "5h ago",  created: "18 Apr", expires: "in 11d", flag: null },
+  { client: "Snowflake",     campaign: "Mid-market acquisition push",    status: "Drafting",     stage: "Proposal",    value: "$240K", owner: "Marcus", ownerInit: "MW", updated: "1d ago",  created: "22 Apr", expires: "—",     flag: null },
+  { client: "Wiz",           campaign: "Listicle sponsorship Q2",        status: "Drafting",     stage: "Discovery",   value: "$156K", owner: "Ryan",   ownerInit: "RE", updated: "1d ago",  created: "23 Apr", expires: "—",     flag: null },
+  { client: "Cloudflare",    campaign: "Renewal · multi-product",        status: "Closed",       stage: "Closed Won",  value: "$420K", owner: "Marcus", ownerInit: "MW", updated: "3d ago",  created: "02 Apr", expires: "signed", flag: null },
+  { client: "1Password",     campaign: "SMB awareness · Q2",             status: "Sent",         stage: "Proposal",    value: "$72K",  owner: "Priya",  ownerInit: "PP", updated: "6h ago",  created: "20 Apr", expires: "in 8d",  flag: null },
+  { client: "Lacework",      campaign: "Cloud security feature",         status: "Awaiting sig", stage: "Negotiation", value: "$88K",  owner: "Sarah",  ownerInit: "SC", updated: "8h ago",  created: "15 Apr", expires: "in 2d",  flag: "expiring" },
+  { client: "Tailscale",     campaign: "Discovery brief",                status: "Drafting",     stage: "Discovery",   value: "$48K",  owner: "Sarah",  ownerInit: "SC", updated: "2d ago",  created: "24 Apr", expires: "—",     flag: null },
+];
+
+const PROPOSAL_TEMPLATES = [
+  { name: "Newsletter sponsorship",   desc: "Standard 4-week newsletter bundle. Includes intent data add-on.", uses: 24 },
+  { name: "Listicle inclusion",       desc: "Single-listicle placement with audience report.",                 uses: 18 },
+  { name: "Multi-product renewal",    desc: "Renewal template for accounts running 2+ campaigns.",             uses: 11 },
+  { name: "Custom content + audience", desc: "Sponsored content bundle with paired Bombora audience.",         uses: 7  },
+];
+
+const PROPOSAL_QUEUE = [
+  { kind: "signature", title: "Lacework — sig stalled 8 days", value: "$88K",  owner: "Sarah",  cta: "Nudge" },
+  { kind: "expiring",  title: "Cloudflare add-on — expires Friday", value: "$24K", owner: "Marcus", cta: "Renew" },
+  { kind: "draft",     title: "Wiz — draft untouched 6 days", value: "$156K", owner: "Ryan",   cta: "Open" },
+  { kind: "approval",  title: "Snowflake — over discount cap, needs approval", value: "$240K", owner: "Marcus", cta: "Review" },
+];
+
+const STAGES = ["Discovery", "Proposal", "Negotiation", "Closed Won"];
+
+window.MOCK = { TEAM, TOOLS, ACTIVITY, STATS, DEALS, ACCOUNTS_DATA, PROPOSALS_DATA, PROPOSAL_TEMPLATES, PROPOSAL_QUEUE, STAGES };
+
+</script>
+
+<script type="text/babel" data-presets="react">
+// Icons (heroicons-style outline)
+const Icon = ({ d, size = 22, sw = 1.6 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={sw} stroke="currentColor" style={{ width: size, height: size }}>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
+
+const ICONS = {
+  doc:   <Icon d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />,
+  chart: <Icon d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />,
+  users: <Icon d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />,
+  kanban:<Icon d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />,
+  arrow: <Icon d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" sw={1.8} size={14} />,
+  search:<Icon d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />,
+  bell:  <Icon d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />,
+  bolt:  <Icon d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />,
+};
+
+window.ICONS = ICONS;
+window.Icon = Icon;
+
+</script>
+
+<script type="text/babel" data-presets="react">
+
+// tweaks-panel.jsx
+// Reusable Tweaks shell + form-control helpers.
+//
+// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
+// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
+// individual prototypes don't re-roll it. Ships a consistent set of controls so you
+// don't hand-draw <input type="range">, segmented radios, steppers, etc.
+//
+// Usage (in an HTML file that loads React + Babel):
+//
+//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+//     "primaryColor": "#D97757",
+//     "fontSize": 16,
+//     "density": "regular",
+//     "dark": false
+//   }/*EDITMODE-END*/;
+//
+//   function App() {
+//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+//     return (
+//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
+//         Hello
+//         <TweaksPanel>
+//           <TweakSection label="Typography" />
+//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
+//                        onChange={(v) => setTweak('fontSize', v)} />
+//           <TweakRadio  label="Density" value={t.density}
+//                        options={['compact', 'regular', 'comfy']}
+//                        onChange={(v) => setTweak('density', v)} />
+//           <TweakSection label="Theme" />
+//           <TweakColor  label="Primary" value={t.primaryColor}
+//                        onChange={(v) => setTweak('primaryColor', v)} />
+//           <TweakToggle label="Dark mode" value={t.dark}
+//                        onChange={(v) => setTweak('dark', v)} />
+//         </TweaksPanel>
+//       </div>
+//     );
+//   }
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+
+  .twk-field{appearance:none;width:100%;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+
+  .twk-num{display:flex;align-items:center;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+`;
+
+// ── useTweaks ───────────────────────────────────────────────────────────────
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
+
+// ── TweaksPanel ─────────────────────────────────────────────────────────────
+// Floating shell. Registers the protocol listener BEFORE announcing
+// availability — if the announce ran first, the host's activate could land
+// before our handler exists and the toolbar toggle would silently no-op.
+// The close button posts __edit_mode_dismissed so the host's toolbar toggle
+// flips off in lockstep; the host echoes __deactivate_edit_mode back which
+// is what actually hides the panel.
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel"
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  // The active value is read by pointer-move handlers attached for the lifetime
+  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+function TweakColor({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <input type="color" className="twk-swatch" value={value}
+             onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
+
+</script>
+
+<script type="text/babel" data-presets="react">
+// Expert Insights — Sales Tools
+// Single-direction restrained EI Blue prototype
+
+const { useState, useEffect } = React;
+const M = window.MOCK;
+
+/* ───────── Sidebar (persistent left nav) ───────── */
+function Sidebar({ screen, onNav }) {
+  const navItems = [
+    { id: "hub",        label: "Hub",                icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12 12 3l9 9"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg> },
+    { id: "proposals",  label: "Proposals",          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>,        badge: "47" },
+    { id: "dashboard",  label: "Audience",           icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12c0-5 4-9 9-9s9 4 9 9-4 9-9 9-9-4-9-9Z"/><path d="M3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18"/></svg> },
+    { id: "accounts",   label: "Accounts",           icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2 21c0-3.6 3-6 7-6s7 2.4 7 6"/><circle cx="17" cy="9" r="2.8"/><path d="M14.8 15.5c.7-.3 1.5-.5 2.2-.5 3 0 5 1.8 5 4.5"/></svg>,         badge: "124" },
+    { id: "pipeline",   label: "Pipeline",           icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="4" height="14" rx="1"/><rect x="10" y="9" width="4" height="10" rx="1"/><rect x="17" y="3" width="4" height="16" rx="1"/></svg>,          badge: "18" },
+  ];
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <svg className="ei-mark" viewBox="0 0 40 40" aria-label="Expert Insights">
+          <circle cx="20" cy="20" r="20" fill="#012747"/>
+          <circle cx="17" cy="17" r="8" fill="none" stroke="#fff" strokeWidth="2.4"/>
+          <line x1="23" y1="23" x2="30" y2="30" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+        </svg>
+        <div>
+          <div className="sidebar-brand-name">Expert Insights</div>
+          <div className="sidebar-brand-sub">Sales Tools</div>
+        </div>
+      </div>
+
+      <div className="sidebar-section">Workspace</div>
+      <nav className="sidebar-nav">
+        {navItems.map(it => (
+          <button key={it.id} className={"sidebar-nav-btn " + (screen === it.id ? "active" : "")} onClick={() => onNav(it.id)}>
+            {it.icon}
+            <span className="label">{it.label}</span>
+            {it.badge && <span className="badge-mini">{it.badge}</span>}
+          </button>
+        ))}
+      </nav>
+
+      <div className="sidebar-section">Account</div>
+      <nav className="sidebar-nav">
+        <button className="sidebar-nav-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4.6 2.5c-.9.5-1.6 1.2-1.6 2.5"/><path d="M12 17v.5"/></svg>
+          <span className="label">Help &amp; docs</span>
+        </button>
+        <button className="sidebar-nav-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.8 1.8 0 0 0-2-.4 1.8 1.8 0 0 0-1.1 1.6V21a2 2 0 1 1-4 0v-.1a1.8 1.8 0 0 0-1.2-1.6 1.8 1.8 0 0 0-2 .4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.8 1.8 0 0 0 .4-2 1.8 1.8 0 0 0-1.6-1.1H3a2 2 0 1 1 0-4h.1a1.8 1.8 0 0 0 1.6-1.2 1.8 1.8 0 0 0-.4-2l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.8 1.8 0 0 0 2 .4h.1a1.8 1.8 0 0 0 1.1-1.6V3a2 2 0 1 1 4 0v.1a1.8 1.8 0 0 0 1.1 1.6 1.8 1.8 0 0 0 2-.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.8 1.8 0 0 0-.4 2v.1a1.8 1.8 0 0 0 1.6 1.1H21a2 2 0 1 1 0 4h-.1a1.8 1.8 0 0 0-1.6 1.1Z"/></svg>
+          <span className="label">Settings</span>
+        </button>
+      </nav>
+
+      <div className="sidebar-bottom">
+        <div className="sidebar-user">
+          <div className="sidebar-user-avatar">RE</div>
+          <div>
+            <div className="sidebar-user-name">Ryan Elliott</div>
+            <div className="sidebar-user-role">Admin · Edinburgh</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/* ───────── Slim top strip (Hub) ───────── */
+function TopStrip({ screen, onNav }) {
+  const label = {
+    hub: "Hub",
+    proposals: "Proposal Manager",
+    dashboard: "Audience Dashboard",
+    accounts: "Accounts",
+    pipeline: "Sales Pipeline",
+  }[screen];
+  return (
+    <div className="topstrip">
+      <div className="topstrip-crumb">
+        <span>Workspace</span>
+        <span className="sep">/</span>
+        <span className="here">{label}</span>
+      </div>
+      <div className="topstrip-right">
+        <div className="topstrip-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search proposals, accounts, deals…"/>
+          <span className="kbd">⌘K</span>
+        </div>
+        <button className="topstrip-iconbtn" title="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+          <span className="dot-notify"/>
+        </button>
+        <button className="topstrip-iconbtn" title="Quick add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Hub ───────── */
+function Hub({ tweaks, onNav }) {
+  const [period, setPeriod] = useState("7d");
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const now = new Date();
+  const dateLine = now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }) +
+                   " · " + now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + " BST · Edinburgh";
+
+  /* mock surfaces */
+  const KPI = [
+    { lbl: "Pipeline value",    val: "$2.4M",  delta: "+12%", dir: "up",   spark: [22,24,21,26,28,30,29,33,38,40] },
+    { lbl: "Forecast · Q2",     val: "$1.34M", delta: "+8%",  dir: "up",   spark: [10,12,15,14,18,20,22,21,25,28] },
+    { lbl: "Win rate",          val: "34%",    delta: "+3pp", dir: "up",   spark: [28,29,31,30,30,32,33,33,34,34] },
+    { lbl: "Active proposals",  val: "47",     delta: "+8",   dir: "up",   spark: [38,40,42,41,43,44,45,46,47,47] },
+    { lbl: "Avg. cycle",        val: "21d",    delta: "−2d",  dir: "up",   spark: [26,25,24,24,23,22,22,21,21,21] },
+  ];
+
+  // Forecast: unweighted + weighted (probability) per stage
+  const FORECAST = [
+    { stage: "Discovery",   count: 8, un: 580, wt: 145 }, // 25%
+    { stage: "Proposal",    count: 6, un: 720, wt: 360 }, // 50%
+    { stage: "Negotiation", count: 4, un: 890, wt: 623 }, // 70%
+    { stage: "Closed Won",  count: 3, un: 210, wt: 210 }, // 100%
+  ];
+  const fcMax = Math.max(...FORECAST.map(f => f.un));
+  const fcTotalUn = FORECAST.reduce((s,f) => s + f.un, 0);
+  const fcTotalWt = FORECAST.reduce((s,f) => s + f.wt, 0);
+
+  const RENEWALS = [
+    { co: "Cloudflare",     industry: "Networking",     when: "in 14 days", urgency: "urgent", val: "$980K" },
+    { co: "1Password",      industry: "Identity",       when: "in 21 days", urgency: "",       val: "$210K" },
+    { co: "Lacework",       industry: "Cloud sec",      when: "in 28 days", urgency: "",       val: "$140K" },
+    { co: "Datadog Inc.",   industry: "Observability",  when: "in 35 days", urgency: "",       val: "$620K" },
+    { co: "Snowflake",      industry: "Data platform",  when: "in 42 days", urgency: "",       val: "$1.2M" },
+    { co: "Tailscale",      industry: "Networking",     when: "in 48 days", urgency: "",       val: "$180K" },
+  ];
+
+  const RECENT_PROPS = [
+    { client: "CrowdStrike", campaign: "Q2 Renewal — Endpoint",      val: "$184K", owner: "SC", when: "2h",  status: "awaiting" },
+    { client: "Datadog",     campaign: "Newsletter Bundle Q2",       val: "$112K", owner: "PP", when: "5h",  status: "sent"     },
+    { client: "Snowflake",   campaign: "Mid-market acquisition push",val: "$240K", owner: "MW", when: "1d",  status: "drafting" },
+    { client: "Wiz",         campaign: "Listicle sponsorship Q2",    val: "$156K", owner: "RE", when: "1d",  status: "drafting" },
+    { client: "Cloudflare",  campaign: "Renewal · multi-product",    val: "$420K", owner: "MW", when: "3d",  status: "closed"   },
+    { client: "1Password",   campaign: "SMB awareness · Q2",         val: "$72K",  owner: "PP", when: "6h",  status: "sent"     },
+  ];
+
+  const CHANGELOG = [
+    { ver: "v2.0.0", date: "Apr 29", tag: "update", body: <><b>Bombora data refreshed.</b> Q2 visitor counts now live in the Audience Dashboard. Re-export any PDFs sent before today.</> },
+    { ver: "v1.9.2", date: "Apr 24", tag: "fix",    body: <><b>Fixed</b> PDF export missing tagline on multi-product proposals. Reported by Sarah.</> },
+    { ver: "v1.9.0", date: "Apr 18", tag: "update", body: <><b>Insertion-order generation</b> added to Proposals — auto-pulls contract terms from the linked account.</> },
+    { ver: "v1.8.5", date: "Apr 11", tag: "note",   body: <><b>Pipeline forecast</b> now uses stage probabilities from <span className="mono">Sheet2</span>. Talk to Ryan to change them.</> },
+    { ver: "v1.8.0", date: "Apr 02", tag: "update", body: <><b>Accounts</b> can now be filtered by renewal window.</> },
+  ];
+
+  /* Sparkline renderer */
+  const Spark = ({ data, color = "var(--ei-blue)" }) => {
+    const w = 56, h = 18, p = 2;
+    const max = Math.max(...data), min = Math.min(...data);
+    const range = max - min || 1;
+    const stepX = (w - p*2) / (data.length - 1);
+    const points = data.map((v,i) => `${p + i*stepX},${h - p - ((v-min)/range)*(h - p*2)}`).join(" ");
+    return (
+      <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+        <polyline points={points} fill="none" stroke={color} strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round"/>
+      </svg>
+    );
+  };
+
+  return (
+    <div className="cmd">
+      {/* Greeting + period toggle */}
+      <div className="cmd-header">
+        <div className="cmd-greet">
+          <h1>{greet}, <span className="accent">Ryan.</span></h1>
+          <div className="sub">
+            <span className="dot"></span>
+            <span>{dateLine}</span>
+            <span>·</span>
+            <span>All systems operational</span>
+          </div>
+        </div>
+        <div className="cmd-period">
+          {[
+            { id: "1d", l: "Today" },
+            { id: "7d", l: "7 days" },
+            { id: "30d", l: "30 days" },
+            { id: "qtr", l: "Quarter" },
+          ].map(p => (
+            <button key={p.id} className={period === p.id ? "on" : ""} onClick={() => setPeriod(p.id)}>{p.l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI strip */}
+      <div className="cmd-kpi">
+        {KPI.map(k => (
+          <div key={k.lbl} className="cmd-kpi-cell">
+            <div className="lbl">{k.lbl}</div>
+            <div className="val">{k.val}</div>
+            <div className="foot">
+              <span className={"delta " + (k.dir === "down" ? "down" : "")}>{k.delta}</span>
+              <Spark data={k.spark} color={k.dir === "down" ? "var(--rust)" : "var(--ei-blue)"} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Row 1: pipeline + renewals */}
+      <div className="cmd-grid">
+        <div className="cmd-card">
+          <div className="cmd-card-head">
+            <div>
+              <h3>Pipeline by stage</h3>
+              <div className="sub">{period === "1d" ? "Today" : period === "7d" ? "Last 7 days" : period === "30d" ? "Last 30 days" : "Quarter to date"} · weighted by stage probability</div>
+            </div>
+            <div className="cmd-card-head-r">
+              <button className="link" onClick={() => onNav("pipeline")}>Open pipeline →</button>
+            </div>
+          </div>
+          <div className="cmd-card-body">
+            <div className="fc-chart">
+              {FORECAST.map(f => {
+                const unH = (f.un / fcMax) * 100;
+                const wtH = (f.wt / fcMax) * 100;
+                return (
+                  <div key={f.stage} className="fc-bar-wrap">
+                    <div className="fc-bar-val">${f.un}K</div>
+                    <div className="fc-bar-stack">
+                      <div className="fc-bar-seg un" style={{height: `${unH - wtH}%`}} title={`Unweighted: $${f.un}K`}/>
+                      <div className="fc-bar-seg wt" style={{height: `${wtH}%`}} title={`Weighted: $${f.wt}K`}/>
+                    </div>
+                    <div className="fc-bar-label">{f.stage}</div>
+                    <div className="fc-bar-count">{f.count} deals</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="fc-legend">
+              <div className="fc-legend-keys">
+                <span className="fc-legend-item"><span className="sq" style={{background: "var(--ei-blue)"}}></span>Weighted</span>
+                <span className="fc-legend-item"><span className="sq" style={{background: "var(--ei-blue-100)"}}></span>Unweighted</span>
+              </div>
+              <div className="fc-legend-totals">
+                <span>Unweighted <b>${(fcTotalUn/1000).toFixed(2).replace(/\.?0+$/, "")}M</b></span>
+                <span>Weighted <b>${(fcTotalWt/1000).toFixed(2).replace(/\.?0+$/, "")}M</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="cmd-card">
+          <div className="cmd-card-head">
+            <div>
+              <h3>Renewals due</h3>
+              <div className="sub">Next 60 days · sorted by close date</div>
+            </div>
+            <div className="cmd-card-head-r">
+              <button className="link" onClick={() => onNav("accounts")}>View all →</button>
+            </div>
+          </div>
+          <div className="cmd-card-body">
+            <div className="ren-list">
+              {RENEWALS.map((r, i) => (
+                <div key={i} className="ren-row">
+                  <div className="ren-co">
+                    <span className="nm">{r.co}</span>
+                    <span className="meta">{r.industry}</span>
+                  </div>
+                  <span className={"ren-when " + r.urgency}>{r.when}</span>
+                  <span className="ren-val">{r.val}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: proposals + changelog */}
+      <div className="cmd-grid flip">
+        <div className="cmd-card">
+          <div className="cmd-card-head">
+            <div>
+              <h3>Recent proposals</h3>
+              <div className="sub">Last touched</div>
+            </div>
+            <div className="cmd-card-head-r">
+              <button className="link" onClick={() => onNav("proposals")}>Open proposals →</button>
+            </div>
+          </div>
+          <div className="cmd-card-body">
+            <div className="cmd-props">
+              {RECENT_PROPS.map((p, i) => (
+                <div key={i} className="cmd-prop-row" onClick={() => onNav("proposals")}>
+                  <div className="cmd-prop-owner-avatar">{p.owner}</div>
+                  <div className="cmd-prop-meta">
+                    <div className="nm">{p.client}</div>
+                    <div className="sub">{p.campaign}</div>
+                  </div>
+                  <span className={"badge " + p.status}>{p.status === "awaiting" ? "Awaiting sig" : p.status === "sent" ? "Sent" : p.status === "drafting" ? "Drafting" : "Closed"}</span>
+                  <span className="cmd-prop-val">{p.val}</span>
+                  <span className="cmd-prop-when">{p.when} ago</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="cmd-card">
+          <div className="cmd-card-head">
+            <div>
+              <h3>What's new</h3>
+              <div className="sub">Changelog · last 30 days</div>
+            </div>
+            <div className="cmd-card-head-r">
+              <button className="link">All updates →</button>
+            </div>
+          </div>
+          <div className="cmd-card-body">
+            <div className="cl-list">
+              {CHANGELOG.map((c, i) => (
+                <div key={i} className="cl-item">
+                  <div className="cl-meta">
+                    <span className="cl-ver">{c.ver}</span>
+                    <span className="cl-date">{c.date}</span>
+                  </div>
+                  <div className="cl-body">
+                    <span className={"cl-tag " + c.tag}>{c.tag}</span>
+                    {c.body}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Footer ───────── */
+function Footer() {
+  return (
+    <div className="footer">
+      <div className="left">
+        <svg className="ei-mark sm" viewBox="0 0 40 40" aria-label="Expert Insights">
+          <circle cx="20" cy="20" r="20" fill="#0E2A47"/>
+          <circle cx="17" cy="17" r="8" fill="none" stroke="#fff" strokeWidth="2.4"/>
+          <line x1="23" y1="23" x2="30" y2="30" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+        </svg>
+        <span>Expert Insights · Internal Tools · v2.0</span>
+      </div>
+      <div className="mono">© 2026 Expert Insights · Edinburgh, UK</div>
+    </div>
+  );
+}
+
+/* ───────── Screen header (sub-screens) ───────── */
+function ScreenHeader({ title, sub, onNav, actions }) {
+  return (
+    <div className="screen-header">
+      <div>
+        <div className="screen-eyebrow">
+          <span className="back" onClick={() => onNav("hub")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to hub
+          </span>
+          <span className="sep">·</span>
+          <span>Tool</span>
+        </div>
+        <h1 className="screen-title">{title}</h1>
+        {sub && <p className="screen-sub">{sub}</p>}
+      </div>
+      <div className="screen-actions">{actions}</div>
+    </div>
+  );
+}
+
+/* ───────── Proposals ───────── */
+function Proposals({ onNav }) {
+  const [filter, setFilter] = React.useState("all");
+  const [search, setSearch] = React.useState("");
+
+  const filters = [
+    { id: "all",       label: "All",          count: M.PROPOSALS_DATA.length },
+    { id: "drafting",  label: "Drafting",     count: M.PROPOSALS_DATA.filter(p => p.status === "Drafting").length },
+    { id: "sent",      label: "Sent",         count: M.PROPOSALS_DATA.filter(p => p.status === "Sent").length },
+    { id: "awaiting",  label: "Awaiting sig", count: M.PROPOSALS_DATA.filter(p => p.status === "Awaiting sig").length },
+    { id: "closed",    label: "Closed",       count: M.PROPOSALS_DATA.filter(p => p.status === "Closed").length },
+  ];
+
+  const rows = M.PROPOSALS_DATA.filter(p => {
+    const statusMatch = filter === "all" ||
+      (filter === "drafting" && p.status === "Drafting") ||
+      (filter === "sent" && p.status === "Sent") ||
+      (filter === "awaiting" && p.status === "Awaiting sig") ||
+      (filter === "closed" && p.status === "Closed");
+    const q = search.trim().toLowerCase();
+    const searchMatch = !q || (p.client + " " + p.campaign).toLowerCase().includes(q);
+    return statusMatch && searchMatch;
+  });
+
+  const queueIcon = {
+    signature: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17c2-3 5-3 7 0s5 3 7 0 3-3 4-3"/></svg>,
+    expiring:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,
+    draft:     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4l6 6-10 10H4v-6z"/><path d="M13 5l6 6"/></svg>,
+    approval:  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l9 4v6c0 5-4 7-9 8-5-1-9-3-9-8V7z"/><path d="m9 12 2 2 4-4"/></svg>,
+  };
+
+  return (
+    <main className="canvas">
+      <ScreenHeader
+        title="Proposal Manager"
+        sub="Build campaign proposals, generate insertion orders, and track active deals."
+        onNav={onNav}
+        actions={
+          <>
+            <button className="btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              Templates
+            </button>
+            <button className="btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              New proposal
+            </button>
+          </>
+        }
+      />
+
+      {/* KPI strip — counts + values */}
+      <div className="kpi-grid prop-kpi-grid">
+        <div className="kpi">
+          <div className="kpi-label">In flight</div>
+          <div className="kpi-value">47<span className="kpi-delta">+8</span></div>
+          <div className="kpi-foot">$1.86M total value</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Awaiting signature</div>
+          <div className="kpi-value">12<span className="kpi-delta">+3</span></div>
+          <div className="kpi-foot">$612K · 3 stalled &gt;7 days</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Drafting</div>
+          <div className="kpi-value">8<span className="kpi-delta down">−1</span></div>
+          <div className="kpi-foot">$524K · avg age 4 days</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-label">Closed this week</div>
+          <div className="kpi-value">5<span className="kpi-delta">+2</span></div>
+          <div className="kpi-foot">$842K · 71% win rate</div>
+        </div>
+      </div>
+
+      {/* Two-column: action queue + templates */}
+      <div className="prop-split">
+        <div className="prop-queue-card">
+          <div className="prop-queue-head">
+            <div>
+              <div className="section-eyebrow">Needs your attention</div>
+              <h3 className="prop-queue-title">Action queue</h3>
+            </div>
+            <span className="prop-queue-count">{M.PROPOSAL_QUEUE.length}</span>
+          </div>
+          <ul className="prop-queue-list">
+            {M.PROPOSAL_QUEUE.map((q, i) => (
+              <li key={i} className={"prop-queue-item kind-" + q.kind}>
+                <div className="prop-queue-icon">{queueIcon[q.kind]}</div>
+                <div className="prop-queue-body">
+                  <div className="prop-queue-row1">
+                    <span className="prop-queue-name">{q.title}</span>
+                    <span className="prop-queue-val mono">{q.value}</span>
+                  </div>
+                  <div className="prop-queue-meta">
+                    <span className={"prop-kind-tag kind-" + q.kind}>{q.kind === "signature" ? "Signature" : q.kind === "expiring" ? "Expiring" : q.kind === "draft" ? "Stale draft" : "Approval"}</span>
+                    <span className="dot">·</span>
+                    <span>{q.owner}</span>
+                  </div>
+                </div>
+                <button className="btn prop-queue-cta">{q.cta}</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="prop-tmpl-card">
+          <div className="prop-queue-head">
+            <div>
+              <div className="section-eyebrow">Quick start</div>
+              <h3 className="prop-queue-title">Templates</h3>
+            </div>
+            <a className="prop-link" href="#" onClick={e => e.preventDefault()}>Manage →</a>
+          </div>
+          <ul className="prop-tmpl-list">
+            {M.PROPOSAL_TEMPLATES.map((t, i) => (
+              <li key={i} className="prop-tmpl-item">
+                <div className="prop-tmpl-row">
+                  <span className="prop-tmpl-name">{t.name}</span>
+                  <span className="prop-tmpl-uses mono">{t.uses}×</span>
+                </div>
+                <div className="prop-tmpl-desc">{t.desc}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Full proposals table */}
+      <div className="data-card prop-table-card">
+        <div className="data-head">
+          <div className="prop-tabs">
+            {filters.map(f => (
+              <button key={f.id}
+                      className={"prop-tab" + (filter === f.id ? " active" : "")}
+                      onClick={() => setFilter(f.id)}>
+                {f.label}
+                <span className="prop-tab-count">{f.count}</span>
+              </button>
+            ))}
+          </div>
+          <div className="data-controls">
+            <div className="data-search">
+              {window.ICONS.search}
+              <input placeholder="Search client or campaign…" value={search} onChange={e => setSearch(e.target.value)}/>
+            </div>
+            <button className="btn ghost">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+
+        <div className="data-table prop-table">
+          <div className="data-row prop-row head">
+            <div>Client / Campaign</div>
+            <div>Status</div>
+            <div>Stage</div>
+            <div className="num">Value</div>
+            <div>Owner</div>
+            <div>Updated</div>
+            <div></div>
+          </div>
+          {rows.map((p, i) => (
+            <div key={i} className="data-row prop-row">
+              <div className="prop-cell-client">
+                <span className="prop-mono-mark">{p.client.slice(0,2).toUpperCase()}</span>
+                <div>
+                  <div className="pri">{p.client}</div>
+                  <div className="prop-campaign">{p.campaign}</div>
+                </div>
+              </div>
+              <div>
+                <span className={"badge " + ({"Awaiting sig":"awaiting","Sent":"sent","Drafting":"drafting","Closed":"closed"}[p.status] || "")}>{p.status}</span>
+                {p.flag === "stalled" && <span className="prop-flag stalled" title="Stalled &gt;7 days">●</span>}
+                {p.flag === "expiring" && <span className="prop-flag expiring" title="Expiring soon">●</span>}
+              </div>
+              <div className="sec prop-stage">{p.stage}</div>
+              <div className="mono pri num">{p.value}</div>
+              <div>
+                <span className="prop-owner">
+                  <span className="prop-owner-init">{p.ownerInit}</span>
+                  <span className="sec">{p.owner}</span>
+                </span>
+              </div>
+              <div className="sec mono prop-updated">{p.updated}</div>
+              <div className="prop-row-actions">
+                <button className="prop-row-btn" title="Open">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+            </div>
+          ))}
+          {rows.length === 0 && (
+            <div className="prop-empty">
+              No proposals match the current filter.
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/* ───────── Dashboard ───────── */
+function Dashboard({ onNav }) {
+  return (
+    <main className="canvas">
+      <ScreenHeader
+        title="Audience Dashboard"
+        sub="Live campaign performance powered by Bombora intent data."
+        onNav={onNav}
+        actions={
+          <>
+            <button className="btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Export PDF
+            </button>
+            <button className="btn primary">Refresh data</button>
+          </>
+        }
+      />
+
+      <div className="kpi-grid">
+        <div className="kpi"><div className="kpi-label">Visitors (Q2)</div><div className="kpi-value">312K<span className="kpi-delta">+18%</span></div></div>
+        <div className="kpi"><div className="kpi-label">Surge accounts</div><div className="kpi-value">214<span className="kpi-delta">+24</span></div></div>
+        <div className="kpi"><div className="kpi-label">Avg. intent score</div><div className="kpi-value">68<span className="kpi-delta">+4</span></div></div>
+        <div className="kpi"><div className="kpi-label">Newsletters live</div><div className="kpi-value">11<span className="kpi-delta down">-2</span></div></div>
+      </div>
+
+      <div className="chart">
+        <div className="chart-head">
+          <div>
+            <div className="title">Weekly visitor trend</div>
+            <div className="sub">Last 12 weeks · all live campaigns</div>
+          </div>
+          <div className="chart-legend">
+            <span className="chart-legend-item a">Surge accounts</span>
+            <span className="chart-legend-item b">Page visitors</span>
+          </div>
+        </div>
+        <BarChart />
+      </div>
+
+      <div className="split-2">
+        <div className="list-card">
+          <div className="list-card-head">
+            <h3>Top accounts by intent</h3>
+            <p>Surging right now — last 7 days</p>
+          </div>
+          {[
+            { rank: 1, name: "CrowdStrike Holdings", v: "12,840" },
+            { rank: 2, name: "Snowflake", v: "9,210" },
+            { rank: 3, name: "Datadog Inc.", v: "7,980" },
+            { rank: 4, name: "Cloudflare", v: "6,420" },
+            { rank: 5, name: "Wiz", v: "5,810" },
+            { rank: 6, name: "1Password", v: "4,210" },
+          ].map((a) => (
+            <div key={a.rank} className="list-row">
+              <div className="l">
+                <span className="num">{String(a.rank).padStart(2, "0")}</span>
+                <span className="nm">{a.name}</span>
+              </div>
+              <span className="v">{a.v}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="list-card">
+          <div className="list-card-head">
+            <h3>Live campaigns</h3>
+            <p>Currently serving</p>
+          </div>
+          {[
+            { kind: "Listicle", title: "Top 10 EDR Tools", co: "CrowdStrike" },
+            { kind: "Newsletter", title: "Cloud Security Weekly", co: "Snowflake" },
+            { kind: "Listicle", title: "Best Observability 2026", co: "Datadog" },
+            { kind: "Newsletter", title: "Identity Brief", co: "1Password" },
+            { kind: "Listicle", title: "Top Cloud SIEM Tools", co: "Wiz" },
+          ].map((c, i) => (
+            <div key={i} className="list-row">
+              <div className="l">
+                <span className="num mono">{c.kind === "Listicle" ? "LST" : "NWL"}</span>
+                <div>
+                  <div className="nm">{c.title}</div>
+                  <div className="sec" style={{fontSize: 11}}>{c.co}</div>
+                </div>
+              </div>
+              <span className="badge active">Live</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function BarChart() {
+  // simple flex bar chart — synthetic data
+  const data = [
+    { w: "W1", a: 32, b: 64 }, { w: "W2", a: 38, b: 70 }, { w: "W3", a: 30, b: 58 },
+    { w: "W4", a: 45, b: 78 }, { w: "W5", a: 52, b: 84 }, { w: "W6", a: 48, b: 80 },
+    { w: "W7", a: 55, b: 92 }, { w: "W8", a: 62, b: 96 }, { w: "W9", a: 68, b: 102 },
+    { w: "W10", a: 64, b: 98 }, { w: "W11", a: 72, b: 110 }, { w: "W12", a: 78, b: 118 },
+  ];
+  const max = 130;
+  return (
+    <div style={{display: 'flex', alignItems: 'flex-end', gap: 14, height: 220, padding: '0 4px'}}>
+      {data.map((d, i) => (
+        <div key={i} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6}}>
+          <div style={{display:'flex', flexDirection:'column-reverse', justifyContent:'flex-start', alignItems:'center', height: 200, width: '100%', position:'relative'}}>
+            <div style={{
+              width: '100%',
+              height: `${(d.b/max)*100}%`,
+              background: 'var(--ei-blue-100)',
+              borderRadius: '3px 3px 0 0',
+              position: 'absolute', bottom: 0, left: 0,
+            }}/>
+            <div style={{
+              width: '60%',
+              height: `${(d.a/max)*100}%`,
+              background: 'var(--ei-blue)',
+              borderRadius: '3px 3px 0 0',
+              position: 'absolute', bottom: 0, left: '20%',
+            }}/>
+          </div>
+          <div className="mono" style={{fontSize: 10, color: 'var(--mute)', letterSpacing: '0.06em'}}>{d.w}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ───────── Accounts ───────── */
+function Accounts({ onNav }) {
+  return (
+    <main className="canvas">
+      <ScreenHeader
+        title="Accounts"
+        sub="Advertiser & campaign database. Track contracts, campaigns, and account health."
+        onNav={onNav}
+        actions={
+          <>
+            <button className="btn">Import CSV</button>
+            <button className="btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              New account
+            </button>
+          </>
+        }
+      />
+
+      <div className="kpi-grid">
+        <div className="kpi"><div className="kpi-label">Active accounts</div><div className="kpi-value">128<span className="kpi-delta">+6</span></div></div>
+        <div className="kpi"><div className="kpi-label">YTD spend</div><div className="kpi-value">$8.4M<span className="kpi-delta">+22%</span></div></div>
+        <div className="kpi"><div className="kpi-label">Up for renewal</div><div className="kpi-value">14<span className="kpi-delta">+2</span></div></div>
+        <div className="kpi"><div className="kpi-label">Avg. contract</div><div className="kpi-value">$420K<span className="kpi-delta">+8%</span></div></div>
+      </div>
+
+      <div className="data-card">
+        <div className="data-head">
+          <h3>All accounts</h3>
+          <div className="data-controls">
+            <div className="data-search">
+              {window.ICONS.search}
+              <input placeholder="Search accounts…"/>
+            </div>
+            <button className="btn ghost">Filter</button>
+            <button className="btn ghost">Group by industry</button>
+          </div>
+        </div>
+        <div className="data-table">
+          <div className="data-row head">
+            <div>Account</div>
+            <div>Industry</div>
+            <div>Status</div>
+            <div>YTD Spend</div>
+            <div>Campaigns</div>
+          </div>
+          {M.ACCOUNTS_DATA.map((a, i) => (
+            <div key={i} className="data-row">
+              <div className="pri">{a.name}</div>
+              <div className="sec">{a.industry}</div>
+              <div><span className={"badge " + a.status.toLowerCase()}>{a.status}</span></div>
+              <div className="mono pri">{a.spend}</div>
+              <div className="sec">{a.campaigns} live</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/* ───────── Pipeline ───────── */
+function Pipeline({ onNav }) {
+  const byStage = M.STAGES.map((stage) => ({
+    stage,
+    deals: M.DEALS.filter((d) => d.stage === stage),
+  }));
+  return (
+    <main className="canvas">
+      <ScreenHeader
+        title="Sales Pipeline"
+        sub="Track deals across stages, forecast revenue, monitor win rates."
+        onNav={onNav}
+        actions={
+          <>
+            <button className="btn">Forecast</button>
+            <button className="btn primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              New deal
+            </button>
+          </>
+        }
+      />
+
+      <div className="kpi-grid">
+        <div className="kpi"><div className="kpi-label">Pipeline value</div><div className="kpi-value">$2.4M<span className="kpi-delta">+12%</span></div></div>
+        <div className="kpi"><div className="kpi-label">Weighted forecast</div><div className="kpi-value">$1.1M<span className="kpi-delta">+8%</span></div></div>
+        <div className="kpi"><div className="kpi-label">Win rate</div><div className="kpi-value">34%<span className="kpi-delta">+3pp</span></div></div>
+        <div className="kpi"><div className="kpi-label">Avg. cycle</div><div className="kpi-value">21d<span className="kpi-delta">-2d</span></div></div>
+      </div>
+
+      <div className="pipeline">
+        {byStage.map((col) => (
+          <div key={col.stage} className="pl-col">
+            <div className="pl-col-head">
+              <span className="name">{col.stage}</span>
+              <span className="count mono">{col.deals.length}</span>
+            </div>
+            {col.deals.map((d, i) => (
+              <div key={i} className="pl-card">
+                <div className="co">{d.co}</div>
+                <div className="val mono">{d.value}</div>
+                <div className="meta">
+                  <span>{d.owner}</span>
+                  <span className="prob">{d.prob}% · likely</span>
+                </div>
+              </div>
+            ))}
+            {col.deals.length === 0 && (
+              <div style={{
+                padding: '20px 12px', textAlign: 'center',
+                color: 'var(--mute)', fontSize: 12,
+                border: '1px dashed var(--line)', borderRadius: 'var(--radius)'
+              }}>No deals yet</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+/* ───────── Tweaks ───────── */
+function TweaksUI({ tweaks, setTweak, screen, onNav }) {
+  return (
+    <window.TweaksPanel title="Tweaks">
+      <window.TweakSection title="Screen">
+        <window.TweakSelect
+          value={screen}
+          options={[
+            { value: "hub",        label: "Hub (primary)" },
+            { value: "proposals",  label: "Proposal Manager" },
+            { value: "dashboard",  label: "Audience Dashboard" },
+            { value: "accounts",   label: "Accounts" },
+            { value: "pipeline",   label: "Sales Pipeline" },
+          ]}
+          onChange={(v) => onNav(v)}
+        />
+      </window.TweakSection>
+      <window.TweakSection title="Hub options">
+        <window.TweakToggle
+          label="Show announcement"
+          value={tweaks.showAnnouncement}
+          onChange={(v) => setTweak({ showAnnouncement: v })}
+        />
+      </window.TweakSection>
+    </window.TweaksPanel>
+  );
+}
+
+/* ───────── App ───────── */
+function App() {
+  const defaults = /*EDITMODE-BEGIN*/{
+    "screen": "hub",
+    "showAnnouncement": true
+  }/*EDITMODE-END*/;
+  const [tweaks, setTweaks] = useTweaks(defaults);
+  const [screen, setScreen] = useState(defaults.screen || "hub");
+
+  const handleNav = (id) => {
+    setScreen(id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const screens = {
+    hub:        <Hub tweaks={tweaks} onNav={handleNav} />,
+    proposals:  <Proposals tweaks={tweaks} onNav={handleNav} />,
+    dashboard:  <Dashboard tweaks={tweaks} onNav={handleNav} />,
+    accounts:   <Accounts tweaks={tweaks} onNav={handleNav} />,
+    pipeline:   <Pipeline tweaks={tweaks} onNav={handleNav} />,
+  };
+
+  return (
+    <div className="app">
+      <Sidebar screen={screen} onNav={handleNav} />
+      <div className="main-col">
+        <TopStrip screen={screen} onNav={handleNav} />
+        {screens[screen]}
+      </div>
+      <TweaksUI tweaks={tweaks} setTweak={setTweaks} screen={screen} onNav={handleNav} />
+    </div>
+  );
+}
+
+setTimeout(() => {
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(<App />);
+}, 0);
+
+</script>
+</body>
+</html>
