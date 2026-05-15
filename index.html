@@ -343,7 +343,7 @@ function logActivity(page,type){var s=getSession();if(!s)return;fetch(ACTIVITY_E
 // The old login system used "relliott" as a hand-typed username; under
 // Supabase magic-link auth the username is the email prefix, so we list
 // both legacy and current shapes. Keep in sync with applyToolPerms below.
-var ADMIN_USERS = ["relliott", "ryan.elliott"];
+var ADMIN_USERS = ["relliott", "ryan.elliott", "jperry"];
 function _isAdminUsername(u) {
   return ADMIN_USERS.indexOf((u || "").toLowerCase()) >= 0;
 }
