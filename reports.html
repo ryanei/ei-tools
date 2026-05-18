@@ -1685,19 +1685,19 @@ async function generatePDFBlob() {
     captures.push({ imgData, imgH, gap: opts.gap !== undefined ? opts.gap : gap, fullWidth: opts.fullWidth || false });
   }
 
-  const header = document.querySelector(".header");
-  const banner = document.getElementById("advertiserBanner");
+  // The old `.header` element is display:none and the thin advertiserBanner
+  // is now superseded by the native hero band drawn below — both skipped.
   const mainEl = document.querySelector(".main");
   const footer = document.querySelector(".footer");
 
-  await captureSection(header, { bg: "#0A1628", gap: 0, fullWidth: true });
-  if (banner && banner.classList.contains("active")) {
-    await captureSection(banner, { bg: "#F4F8FC", gap: 2, fullWidth: true });
-  }
   await captureSection(mainEl, { bg: "#F7F8FA", gap: 0 });
   await captureSection(footer, { bg: "#F7F8FA", gap: 0, fullWidth: true });
 
-  let totalH = 0;
+  // Native hero band reserved at the top of page 1 — drawn after the
+  // captures are placed (so we can compute totalH first).
+  const heroH = 46; // mm
+
+  let totalH = heroH;
   captures.forEach(c => {
     totalH += (c.fullWidth ? (c.imgH / contentW) * pageW : c.imgH) + c.gap;
   });
@@ -1705,7 +1705,72 @@ async function generatePDFBlob() {
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [pageW, totalH] });
   pdf.setFillColor(244, 246, 248);
   pdf.rect(0, 0, pageW, totalH, "F");
-  let curY = 0;
+
+  // ─── Native hero band (sharp vector text, no rasterisation) ────────
+  (function drawHero() {
+    const navy = "#012747";
+    const blue = "#2563EB";
+    const white = "#FFFFFF";
+    const mute = "#8FA4B8";
+
+    // Navy background
+    pdf.setFillColor(navy);
+    pdf.rect(0, 0, pageW, heroH, "F");
+    // Bright-blue 1.5 mm accent at the very top
+    pdf.setFillColor(blue);
+    pdf.rect(0, 0, pageW, 1.2, "F");
+
+    const heroL = 14;
+    const heroR = pageW - 14;
+
+    // EI magnifying-glass mark (matches .ei-mark in topbar)
+    pdf.setDrawColor(white);
+    pdf.setLineWidth(0.7);
+    pdf.circle(heroL + 4.0, 12.5, 3.2, "S");
+    pdf.setLineWidth(0.9);
+    pdf.line(heroL + 6.4, 14.8, heroL + 9.5, 17.5);
+    pdf.setLineWidth(0.2);
+
+    // Wordmark
+    pdf.setFont("Helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.setTextColor(white);
+    pdf.text("Expert Insights", heroL + 13.5, 13.6);
+
+    // Top-right metadata
+    const today = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    pdf.setFont("Helvetica", "normal");
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(mute);
+    pdf.text("GENERATED", heroR, 9, { align: "right" });
+    pdf.setFont("Helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(white);
+    pdf.text(today, heroR, 14, { align: "right" });
+
+    // Eyebrow line above title
+    pdf.setFont("Helvetica", "normal");
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(mute);
+    pdf.text("AUDIENCE REPORT", heroL, 25);
+
+    // Title
+    pdf.setFont("Helvetica", "bold");
+    pdf.setFontSize(22);
+    pdf.setTextColor(white);
+    pdf.text(currentAdvertiser || "All advertisers", heroL, 35);
+
+    // Period subtitle
+    const dateLabel = getDateRangeLabel();
+    if (dateLabel) {
+      pdf.setFont("Helvetica", "normal");
+      pdf.setFontSize(11);
+      pdf.setTextColor("#DDE6F0");
+      pdf.text(dateLabel, heroL, 42);
+    }
+  })();
+
+  let curY = heroH;
 
   captures.forEach(c => {
     if (c.fullWidth) {
