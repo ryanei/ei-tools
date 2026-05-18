@@ -1671,11 +1671,11 @@ async function generatePDFBlob() {
   async function captureSection(el, opts = {}) {
     if (!el || el.offsetHeight === 0) return;
     const canvas = await html2canvas(el, {
-      scale: 2, useCORS: true, logging: false,
+      scale: 3, useCORS: true, logging: false,
       backgroundColor: opts.bg || null,
       width: captureW, windowWidth: captureW,
     });
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const imgData = canvas.toDataURL("image/jpeg", 1.0);
     const imgH = (canvas.height / canvas.width) * contentW;
     captures.push({ imgData, imgH, gap: opts.gap !== undefined ? opts.gap : gap, fullWidth: opts.fullWidth || false });
   }
