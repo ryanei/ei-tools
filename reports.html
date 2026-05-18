@@ -1635,6 +1635,11 @@ async function generatePDFBlob() {
       animation: none !important;
       transition: none !important;
       opacity: 1 !important;
+      /* html2canvas 1.4.1 mis-renders negative letter-spacing (overlapping
+         glyphs at scale 3). Force every element to use normal kerning
+         during capture — eyebrows lose their wide-tracked uppercase look
+         but body text and numbers render correctly. */
+      letter-spacing: normal !important;
     }
     .fade-in { opacity: 1 !important; }
     .kpi-row { grid-template-columns: repeat(auto-fit,minmax(0,1fr)) !important; }
