@@ -9,9 +9,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   :root {
     /* Bombora-report palette — bright blue, magenta, mustard. Cool neutrals (no warm paper). */
@@ -1608,607 +1610,115 @@ function updateDateRangeDisplay() {
   }
 }
 
-// ─── Native PDF generator ────────────────────────────────────────────────
-// Everything is drawn with jsPDF primitives (text, lines, rects, circles).
-// Nothing is rasterised — text stays selectable and crisp at any zoom, the
-// chart is real vector lines, the file is ~200 KB instead of ~1.1 MB.
-//
-// Layout: A4 portrait, 14 mm margins. Sections flow vertically with
-// `ensureSpace(needed)` triggering page breaks. Page footer ("Page X of Y")
-// is back-filled at the end via `setPage()`.
 async function generatePDFBlob() {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const W = 210, H = 297;
-  const mL = 14, mR = 14, mT = 14, mB = 14;
-  const cW = W - mL - mR; // 182 mm
+  const pageW = 210;
+  const margin = 6;
+  const contentW = pageW - margin * 2;
+  const captureW = 1200;
+  const gap = 4;
 
-  // Design tokens — mirror the on-screen dashboard
-  const navy   = "#012747";
-  const blue   = "#2563EB";
-  const pink   = "#BF0A61";
-  const gold   = "#E0B51A";
-  const ink    = "#0F1A2A";
-  const mute   = "#4F606E";
-  const soft   = "#8093A3";
-  const border = "#E5E7EB";
-  const altRow = "#F8F9FA";
-  const bannerBg = "#F4F8FC";
-  const cardBg = "#FFFFFF";
-  const palette = ["#012747","#2563EB","#1D4FD7","#BF0A61","#E0B51A","#4F606E","#8093A3","#001323"];
-
-  doc.setFont("Helvetica");
-
-  // ─── Data (matches renderDashboard) ─────────────────────────────────
-  const d = processSummary(getFilteredRows());
-  const showClicks = currentAdvertiser && isFullCalendarMonth();
-  const month = getSelectedMonth();
-  let totalClicks = 0;
-  if (showClicks) {
-    d.urlTable.forEach(r => {
-      r.clicks = getClicksForPath(currentAdvertiser, r.path, month);
-      totalClicks += r.clicks || 0;
-    });
-  }
-  const limitedDomains = document.getElementById("limitDomains").checked;
-  const hideWeekly = document.getElementById("hideWeekly").checked;
-  const domainRows = limitedDomains ? d.domainTable.slice(0, 3) : d.domainTable;
-  const dateRange = getDateRangeLabel();
-
-  // ─── State ──────────────────────────────────────────────────────────
-  let y = 0;
-  const footerPages = [];
-
-  function ensureSpace(needed) {
-    if (y + needed > H - mB - 6) newPage();
-  }
-  function newPage() {
-    footerPages.push(doc.internal.getNumberOfPages());
-    doc.addPage();
-    y = mT;
-  }
-
-  function fmtN(n) { return n == null ? "0" : Number(n).toLocaleString("en-US"); }
-  function pctI(p, t) { return t ? Math.round((p / t) * 100) : 0; }
-
-  // ─── Page 1 navy header bar ─────────────────────────────────────────
-  function drawHeaderBar() {
-    doc.setFillColor(navy);
-    doc.rect(0, 0, W, 32, "F");
-
-    // EI mark (white magnifying-glass, mirrors the .ei-mark svg in topbar)
-    doc.setDrawColor("#FFFFFF");
-    doc.setLineWidth(0.7);
-    doc.circle(mL + 4.5, 13.5, 3.2, "S");
-    doc.setLineWidth(0.9);
-    doc.line(mL + 6.8, 15.8, mL + 9.5, 18.5);
-    doc.setLineWidth(0.2);
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor("#FFFFFF");
-    doc.text("Expert Insights", mL + 14, 14);
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor("#8FA4B8");
-    doc.text("AUDIENCE REPORT", mL + 14, 19);
-
-    if (dateRange) {
-      doc.setFontSize(6.5);
-      doc.setTextColor("#8FA4B8");
-      doc.text("REPORTING PERIOD", W - mR, 10, { align: "right" });
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor("#FFFFFF");
-      doc.text(dateRange, W - mR, 15.5, { align: "right" });
-      doc.setFont("Helvetica", "normal");
+  const allEls = document.querySelectorAll("*");
+  const savedOpacity = [];
+  allEls.forEach(el => {
+    const cs = getComputedStyle(el);
+    if (cs.opacity !== "1") {
+      savedOpacity.push({ el, orig: el.style.opacity });
+      el.style.opacity = "1";
     }
-    y = 32;
+  });
+
+  const styleOverride = document.createElement("style");
+  styleOverride.id = "pdf-override";
+  styleOverride.textContent = `
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+    }
+    .fade-in { opacity: 1 !important; }
+    .kpi-row { grid-template-columns: repeat(auto-fit,minmax(0,1fr)) !important; }
+    .grid-2 { grid-template-columns: 1fr 1fr !important; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr !important; }
+    .region-cards { grid-template-columns: repeat(4,1fr) !important; }
+    .kpi-card .accent { height: 4px !important; }
+    #loadTime { display: none !important; }
+    .main { width: ${captureW}px !important; max-width: ${captureW}px !important; padding: 24px 32px !important; margin: 0 !important; }
+  `;
+  document.head.appendChild(styleOverride);
+
+  // Pre-render SVG logo to PNG for html2canvas compatibility
+  const logoImg = document.querySelector(".header-left img");
+  let origLogoSrc = null;
+  if (logoImg) {
+    origLogoSrc = logoImg.src;
+    try {
+      const cvs = document.createElement("canvas");
+      const scale = 4;
+      cvs.width = logoImg.naturalWidth * scale;
+      cvs.height = logoImg.naturalHeight * scale;
+      const ctx = cvs.getContext("2d");
+      ctx.drawImage(logoImg, 0, 0, cvs.width, cvs.height);
+      logoImg.src = cvs.toDataURL("image/png");
+    } catch(e) { console.warn("Logo pre-render failed:", e); }
   }
 
-  drawHeaderBar();
-  y += 6;
+  // Wait for styles to apply
+  await new Promise(r => setTimeout(r, 100));
 
-  // ─── Advertiser banner ──────────────────────────────────────────────
-  if (currentAdvertiser) {
-    const bH = 18;
-    doc.setFillColor(bannerBg);
-    doc.rect(mL, y, cW, bH, "F");
-    doc.setFillColor(blue);
-    doc.rect(mL, y, 1.5, bH, "F"); // left accent
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(soft);
-    doc.text("ADVERTISER REPORT", mL + 5, y + 6.5);
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(15);
-    doc.setTextColor(ink);
-    doc.text(currentAdvertiser, mL + 5, y + 14);
-    y += bH + 6;
+  const captures = [];
+
+  async function captureSection(el, opts = {}) {
+    if (!el || el.offsetHeight === 0) return;
+    const canvas = await html2canvas(el, {
+      scale: 2, useCORS: true, logging: false,
+      backgroundColor: opts.bg || null,
+      width: captureW, windowWidth: captureW,
+    });
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const imgH = (canvas.height / canvas.width) * contentW;
+    captures.push({ imgData, imgH, gap: opts.gap !== undefined ? opts.gap : gap, fullWidth: opts.fullWidth || false });
   }
 
-  // ─── KPI tiles ──────────────────────────────────────────────────────
-  const kpis = [
-    { label: "PAGE VIEWS",      value: d.pageViews,        color: blue },
-    { label: "UNIQUE VISITORS", value: d.uniqueVisitors,   color: navy },
-    ...(showClicks ? [{ label: "CTA CLICKS", value: totalClicks, color: pink }] : []),
-    { label: "BUSINESS DOMAINS", value: d.businessDomains, color: gold },
-  ];
-  const kGap = 4;
-  const kW = (cW - (kpis.length - 1) * kGap) / kpis.length;
-  const kH = 26;
-  for (let i = 0; i < kpis.length; i++) {
-    const kx = mL + i * (kW + kGap);
-    doc.setFillColor(cardBg);
-    doc.rect(kx, y, kW, kH, "F");
-    doc.setDrawColor(border);
-    doc.setLineWidth(0.2);
-    doc.rect(kx, y, kW, kH);
-    doc.setFillColor(kpis[i].color);
-    doc.rect(kx, y, kW, 1.2, "F");
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.setTextColor(mute);
-    doc.text(kpis[i].label, kx + 4, y + 7);
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(ink);
-    doc.text(fmtN(kpis[i].value), kx + 4, y + 20);
-  }
-  y += kH + 8;
+  const header = document.querySelector(".header");
+  const banner = document.getElementById("advertiserBanner");
+  const mainEl = document.querySelector(".main");
+  const footer = document.querySelector(".footer");
 
-  // ─── Section helpers ────────────────────────────────────────────────
-  function sectionHeader(title, subtitle) {
-    ensureSpace(14);
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(ink);
-    doc.text(title, mL, y + 4);
-    if (subtitle) {
-      doc.setFont("Helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(mute);
-      doc.text(subtitle, mL, y + 8.5);
-      y += 12;
+  await captureSection(header, { bg: "#0A1628", gap: 0, fullWidth: true });
+  if (banner && banner.classList.contains("active")) {
+    await captureSection(banner, { bg: "#F4F8FC", gap: 2, fullWidth: true });
+  }
+  await captureSection(mainEl, { bg: "#F7F8FA", gap: 0 });
+  await captureSection(footer, { bg: "#F7F8FA", gap: 0, fullWidth: true });
+
+  let totalH = 0;
+  captures.forEach(c => {
+    totalH += (c.fullWidth ? (c.imgH / contentW) * pageW : c.imgH) + c.gap;
+  });
+
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [pageW, totalH] });
+  pdf.setFillColor(244, 246, 248);
+  pdf.rect(0, 0, pageW, totalH, "F");
+  let curY = 0;
+
+  captures.forEach(c => {
+    if (c.fullWidth) {
+      const h = (c.imgH / contentW) * pageW;
+      pdf.addImage(c.imgData, "JPEG", 0, curY, pageW, h);
+      curY += h + c.gap;
     } else {
-      y += 7;
+      pdf.addImage(c.imgData, "JPEG", margin, curY, contentW, c.imgH);
+      curY += c.imgH + c.gap;
     }
-  }
+  });
 
-  // ─── Weekly chart (native vectors) ──────────────────────────────────
-  function drawWeeklyChart(weeks) {
-    if (!weeks.length) return;
-    sectionHeader("Weekly Visits", "Traffic trend by week");
+  // Cleanup
+  document.head.removeChild(styleOverride);
+  savedOpacity.forEach(({ el, orig }) => { el.style.opacity = orig; });
+  if (logoImg && origLogoSrc) logoImg.src = origLogoSrc;
 
-    const chartH = 56;
-    ensureSpace(chartH + 8);
-    const padL = 14, padR = 6, padT = 5, padB = 8;
-    const cxL = mL + padL;
-    const cxR = mL + cW - padR;
-    const cyT = y + padT;
-    const cyB = y + chartH - padB;
-    const innerW = cxR - cxL;
-
-    const n = weeks.length;
-    const allVals = weeks.flatMap(w => [w.pageViews, w.visitors, w.domains]);
-    const mx = Math.max(...allVals, 1);
-    const pow10 = Math.pow(10, Math.floor(Math.log10(mx)));
-    const niceMax = Math.ceil(mx * 1.15 / pow10) * pow10;
-
-    const xAt = i => cxL + (n > 1 ? (i / (n - 1)) * innerW : innerW / 2);
-    const yAt = v => cyB - (v / niceMax) * (cyB - cyT);
-    const fmtL = v => v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + "k" : String(v);
-
-    // Grid + y-axis labels
-    doc.setFontSize(6);
-    doc.setTextColor(soft);
-    doc.setFont("Helvetica", "normal");
-    doc.setDrawColor("#EEF1F4");
-    doc.setLineWidth(0.15);
-    const grid = 5;
-    for (let i = 0; i <= grid; i++) {
-      const val = Math.round((niceMax / grid) * i);
-      const py = yAt(val);
-      doc.line(cxL, py, cxR, py);
-      doc.text(fmtL(val), cxL - 1.5, py + 1.2, { align: "right" });
-    }
-
-    // X-axis labels
-    for (let i = 0; i < n; i++) {
-      doc.text(weeks[i].label, xAt(i), y + chartH - 1, { align: "center" });
-    }
-
-    // Polylines
-    function drawSeries(key, color) {
-      doc.setDrawColor(color);
-      doc.setLineWidth(0.5);
-      for (let i = 1; i < n; i++) {
-        doc.line(xAt(i - 1), yAt(weeks[i - 1][key]), xAt(i), yAt(weeks[i][key]));
-      }
-      doc.setFillColor(color);
-      for (let i = 0; i < n; i++) {
-        doc.circle(xAt(i), yAt(weeks[i][key]), 0.7, "F");
-      }
-    }
-    drawSeries("pageViews", blue);
-    drawSeries("visitors", navy);
-    drawSeries("domains", gold);
-
-    // Page-view labels above each dot
-    doc.setFontSize(6);
-    doc.setFont("Helvetica", "bold");
-    doc.setTextColor(blue);
-    for (let i = 0; i < n; i++) {
-      doc.text(fmtL(weeks[i].pageViews), xAt(i), yAt(weeks[i].pageViews) - 1.4, { align: "center" });
-    }
-    doc.setFont("Helvetica", "normal");
-
-    y += chartH;
-
-    // Legend
-    const items = [["Page Views", blue], ["Unique Visitors", navy], ["Business Domains", gold]];
-    let lx = mL + 2;
-    doc.setFontSize(7);
-    doc.setTextColor(mute);
-    for (const [lbl, col] of items) {
-      doc.setFillColor(col);
-      doc.circle(lx + 1.2, y + 1.5, 0.9, "F");
-      doc.text(lbl, lx + 3.5, y + 2.2);
-      lx += doc.getTextWidth(lbl) + 10;
-    }
-    y += 6;
-  }
-
-  if (!hideWeekly) drawWeeklyChart(d.weeks);
-  y += 2;
-
-  // ─── Generic table drawer (with pagination + text wrapping) ─────────
-  function drawTable(cols, rows) {
-    const headerH = 7;
-    const baseRowH = 6;
-    const pad = 2;
-
-    function drawHeader() {
-      doc.setFillColor(navy);
-      doc.rect(mL, y, cW, headerH, "F");
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(7.5);
-      doc.setTextColor("#FFFFFF");
-      let cx = mL;
-      for (const col of cols) {
-        const tx = col.align === "right" ? cx + col.w - pad : cx + pad;
-        doc.text(col.label, tx, y + 4.8, { align: col.align === "right" ? "right" : "left" });
-        cx += col.w;
-      }
-      y += headerH;
-    }
-
-    drawHeader();
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(ink);
-
-    for (let r = 0; r < rows.length; r++) {
-      const row = rows[r];
-
-      // Pre-measure row height (longest wrapped cell wins)
-      let rowH = baseRowH;
-      let cx = mL;
-      const wrapped = {};
-      for (const col of cols) {
-        const raw = row[col.key];
-        const txt = col.align === "right" ? fmtN(raw) : (raw == null ? "" : String(raw));
-        const maxW = col.w - 2 * pad;
-        const lines = doc.splitTextToSize(txt, maxW);
-        wrapped[col.key] = lines;
-        const cellH = pad + lines.length * 3.2 + pad;
-        if (cellH > rowH) rowH = cellH;
-        cx += col.w;
-      }
-
-      // Page break + re-draw header on new page
-      if (y + rowH > H - mB - 6) {
-        newPage();
-        drawHeader();
-        doc.setFont("Helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(ink);
-      }
-
-      // Zebra stripe
-      if (r % 2 === 1) {
-        doc.setFillColor(altRow);
-        doc.rect(mL, y, cW, rowH, "F");
-      }
-
-      // Cells
-      cx = mL;
-      for (const col of cols) {
-        const lines = wrapped[col.key];
-        const tx = col.align === "right" ? cx + col.w - pad : cx + pad;
-        const ty = y + pad + 3.2;
-        doc.text(lines, tx, ty, { align: col.align === "right" ? "right" : "left" });
-        cx += col.w;
-      }
-
-      // Row border
-      doc.setDrawColor(border);
-      doc.setLineWidth(0.15);
-      doc.line(mL, y + rowH, mL + cW, y + rowH);
-      y += rowH;
-    }
-    y += 2;
-  }
-
-  // ─── Top Pages ──────────────────────────────────────────────────────
-  if (d.urlTable.length) {
-    sectionHeader("Top Pages", "Pages ranked by unique visitors");
-    const pathW = showClicks ? cW - 88 : cW - 68;
-    const cols = showClicks
-      ? [
-          { key: "path",     label: "URL Path",   w: pathW },
-          { key: "pv",       label: "Page Views", w: 24, align: "right" },
-          { key: "visitors", label: "Visitors",   w: 20, align: "right" },
-          { key: "clicks",   label: "CTA Clicks", w: 24, align: "right" },
-          { key: "domains",  label: "Domains",    w: 20, align: "right" },
-        ]
-      : [
-          { key: "path",     label: "URL Path",   w: pathW },
-          { key: "pv",       label: "Page Views", w: 26, align: "right" },
-          { key: "visitors", label: "Visitors",   w: 22, align: "right" },
-          { key: "domains",  label: "Domains",    w: 20, align: "right" },
-        ];
-    drawTable(cols, d.urlTable);
-    y += 4;
-  }
-
-  // ─── 3-up: Company Size · Industry · Company Revenue ────────────────
-  function drawHBarPanel(x, py, panelW, panelH, title, data) {
-    // Card
-    doc.setFillColor(cardBg);
-    doc.rect(x, py, panelW, panelH, "F");
-    doc.setDrawColor(border);
-    doc.setLineWidth(0.2);
-    doc.rect(x, py, panelW, panelH);
-
-    // Title
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(ink);
-    doc.text(title, x + 4, py + 6);
-
-    // Bars
-    const t = data.reduce((s, [, v]) => s + v, 0);
-    const labelW = panelW * 0.38;
-    const barX = x + 4 + labelW;
-    const barWMax = panelW - labelW - 16;
-    const startY = py + 11;
-    const rowH = (panelH - 14) / Math.max(data.length, 1);
-    const maxPct = Math.max(...data.map(([, v]) => pctI(v, t)), 1);
-
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(7);
-    data.forEach(([label, value], i) => {
-      const ry = startY + i * rowH;
-      const p = pctI(value, t);
-      const barW = Math.max(0.5, (p / maxPct) * barWMax);
-      doc.setTextColor(ink);
-      // Truncate long labels
-      const maxLabelChars = Math.floor(labelW / 1.6);
-      const lbl = label.length > maxLabelChars ? label.slice(0, maxLabelChars - 1) + "…" : label;
-      doc.text(lbl, x + 4, ry + 2.2);
-      doc.setFillColor(palette[i % palette.length]);
-      doc.rect(barX, ry, barW, 2.5, "F");
-      doc.setTextColor(mute);
-      doc.text(p + "%", barX + barW + 1.5, ry + 2.2);
-    });
-  }
-
-  function drawIndustryPanel(x, py, panelW, panelH, title, data) {
-    // Card
-    doc.setFillColor(cardBg);
-    doc.rect(x, py, panelW, panelH, "F");
-    doc.setDrawColor(border);
-    doc.setLineWidth(0.2);
-    doc.rect(x, py, panelW, panelH);
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(ink);
-    doc.text(title, x + 4, py + 6);
-
-    // Stacked-percentage tiles, sorted desc, top 8
-    const t = data.reduce((s, [, v]) => s + v, 0);
-    const items = data.slice(0, 8);
-    const startY = py + 11;
-    const innerH = panelH - 14;
-    const minH = 5;
-    let used = 0;
-    const heights = items.map(([, v]) => Math.max(minH, (v / t) * innerH));
-    const totalH = heights.reduce((s, h) => s + h, 0);
-    // Scale to fit
-    const scale = totalH > innerH ? innerH / totalH : 1;
-    items.forEach(([label, v], i) => {
-      const h = heights[i] * scale;
-      const ty = startY + used;
-      doc.setFillColor(palette[i % palette.length]);
-      doc.rect(x + 4, ty, panelW - 8, h, "F");
-      // Label inside tile if tall enough
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(6.5);
-      doc.setTextColor("#FFFFFF");
-      const p = pctI(v, t);
-      const maxLblChars = Math.floor((panelW - 14) / 1.4);
-      const lbl = label.length > maxLblChars ? label.slice(0, maxLblChars - 1) + "…" : label;
-      if (h >= 6) {
-        doc.text(lbl, x + 6, ty + 3.3);
-        doc.text(p + "%", x + panelW - 6, ty + 3.3, { align: "right" });
-      }
-      used += h;
-    });
-  }
-
-  const triH = 64;
-  ensureSpace(triH + 4);
-  const triW = (cW - 8) / 3;
-  drawHBarPanel(mL,                     y, triW, triH, "Company Size",    d.companySize);
-  drawIndustryPanel(mL + triW + 4,      y, triW, triH, "Industry",        d.industry);
-  drawHBarPanel(mL + (triW + 4) * 2,    y, triW, triH, "Company Revenue", d.revenue);
-  y += triH + 6;
-
-  // ─── Visitor Profile (stacked seniority bar + 2 lists) ──────────────
-  function drawVisitorProfile(seniority, profGroup, funcArea) {
-    sectionHeader("Visitor Profile", "Professional composition of your audience");
-
-    const panelH = 36;
-    ensureSpace(panelH + 4);
-
-    // Stacked seniority bar
-    const senColors = { "Non-management": navy, "Management": blue, "C-Suite": pink };
-    const defaultSen = soft;
-    const senTotal = seniority.reduce((s, [, v]) => s + v, 0);
-
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(ink);
-    doc.text("Seniority", mL, y + 4);
-
-    const barY = y + 7;
-    const barH = 8;
-    let bx = mL;
-    seniority.forEach(([l, v]) => {
-      const w = senTotal ? (v / senTotal) * cW : 0;
-      const col = senColors[l] || defaultSen;
-      doc.setFillColor(col);
-      doc.rect(bx, barY, w, barH, "F");
-      // % label inside segment if wide enough
-      const p = pctI(v, senTotal);
-      if (w > 8) {
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor("#FFFFFF");
-        doc.text(p + "%", bx + w / 2, barY + 5.4, { align: "center" });
-      }
-      bx += w;
-    });
-
-    // Seniority legend
-    doc.setFontSize(7);
-    doc.setFont("Helvetica", "normal");
-    let lx = mL;
-    seniority.forEach(([l]) => {
-      const col = senColors[l] || defaultSen;
-      doc.setFillColor(col);
-      doc.circle(lx + 1.2, y + 19.5, 0.9, "F");
-      doc.setTextColor(mute);
-      doc.text(l, lx + 3.5, y + 20.2);
-      lx += doc.getTextWidth(l) + 10;
-    });
-
-    // Two compact lists below
-    const listY = y + 24;
-    const colW = (cW - 6) / 2;
-
-    function drawCompactList(x, title, data) {
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(7.5);
-      doc.setTextColor(ink);
-      doc.text(title, x, listY);
-      const t = data.reduce((s, [, v]) => s + v, 0);
-      doc.setFont("Helvetica", "normal");
-      doc.setFontSize(7.5);
-      data.forEach(([l, v], i) => {
-        const ry = listY + 4.5 + i * 4;
-        const maxChars = Math.floor((colW - 12) / 1.5);
-        const lbl = l.length > maxChars ? l.slice(0, maxChars - 1) + "…" : l;
-        doc.setTextColor(ink);
-        doc.text(lbl, x, ry);
-        doc.setTextColor(mute);
-        doc.text(pctI(v, t) + "%", x + colW - 4, ry, { align: "right" });
-      });
-    }
-    drawCompactList(mL,            "Professional Group", profGroup);
-    drawCompactList(mL + colW + 6, "Functional Area",    funcArea);
-
-    y += panelH + 4;
-  }
-  drawVisitorProfile(d.seniority, d.profGroup, d.funcArea);
-
-  // ─── Geographic Distribution (region cards) ─────────────────────────
-  if (d.regions && d.regions.length) {
-    sectionHeader("Geographic Distribution", "Visitors by region");
-    const order = ["North America", "EMEA", "APAC", "LATAM"];
-    const total = d.regions.reduce((s, [, v]) => s + v, 0);
-    const cards = order.map(r => [r, d.regions.find(([k]) => k === r)?.[1] || 0]).filter(([, v]) => v > 0);
-    if (cards.length) {
-      const cH = 22;
-      ensureSpace(cH + 2);
-      const gap = 4;
-      const colW = (cW - gap * (cards.length - 1)) / cards.length;
-      cards.forEach(([name, value], i) => {
-        const cx = mL + i * (colW + gap);
-        doc.setFillColor("#E5F0F9");
-        doc.rect(cx, y, colW, cH, "F");
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(7);
-        doc.setTextColor(mute);
-        doc.text(name.toUpperCase(), cx + 4, y + 6);
-        doc.setFont("Helvetica", "bold");
-        doc.setFontSize(16);
-        doc.setTextColor(navy);
-        doc.text(pctI(value, total) + "%", cx + 4, y + 17);
-      });
-      y += cH + 6;
-    }
-  }
-
-  // ─── Top Business Domains ───────────────────────────────────────────
-  if (domainRows.length) {
-    sectionHeader("Top Business Domains", "Identified companies by visitor count");
-    drawTable(
-      [
-        { key: "domain",   label: "Domain",     w: 56 },
-        { key: "pv",       label: "Page Views", w: 26, align: "right" },
-        { key: "visitors", label: "Visitors",   w: 22, align: "right" },
-        { key: "pages",    label: "Categories", w: cW - 104 },
-      ],
-      domainRows
-    );
-  }
-
-  if (limitedDomains) {
-    ensureSpace(20);
-    doc.setFillColor(navy);
-    doc.rect(mL, y, cW, 16, "F");
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor("#FFFFFF");
-    doc.text("Want to see the full picture?", mL + 5, y + 6.5);
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor("#DDE6F0");
-    const ctaTxt = doc.splitTextToSize(
-      "Unlock complete intent data for your campaign — including all identified business domains and detailed visitor insights. Contact your account manager.",
-      cW - 10
-    );
-    doc.text(ctaTxt, mL + 5, y + 11);
-    y += 18;
-  }
-
-  // ─── Footers on every page ──────────────────────────────────────────
-  footerPages.push(doc.internal.getNumberOfPages());
-  const totalPages = doc.internal.getNumberOfPages();
-  for (let p = 1; p <= totalPages; p++) {
-    doc.setPage(p);
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(soft);
-    const left = "Expert Insights · Audience Report" + (dateRange ? " · " + dateRange : "") + (currentAdvertiser ? " · " + currentAdvertiser : "");
-    doc.text(left, mL, H - 6);
-    doc.text("Page " + p + " of " + totalPages, W - mR, H - 6, { align: "right" });
-  }
-
-  return doc.output("blob");
+  return pdf.output("blob");
 }
 
 function getPDFFilename(advertiser) {
