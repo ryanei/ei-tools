@@ -1615,7 +1615,7 @@ async function generatePDFBlob() {
   const pageW = 210;
   const margin = 6;
   const contentW = pageW - margin * 2;
-  const captureW = 1200;
+  const captureW = 1400;
   const gap = 4;
 
   const allEls = document.querySelectorAll("*");
@@ -1671,11 +1671,11 @@ async function generatePDFBlob() {
   async function captureSection(el, opts = {}) {
     if (!el || el.offsetHeight === 0) return;
     const canvas = await html2canvas(el, {
-      scale: 2, useCORS: true, logging: false,
+      scale: 3, useCORS: true, logging: false,
       backgroundColor: opts.bg || null,
       width: captureW, windowWidth: captureW,
     });
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const imgData = canvas.toDataURL("image/png");
     const imgH = (canvas.height / canvas.width) * contentW;
     captures.push({ imgData, imgH, gap: opts.gap !== undefined ? opts.gap : gap, fullWidth: opts.fullWidth || false });
   }
@@ -1705,10 +1705,10 @@ async function generatePDFBlob() {
   captures.forEach(c => {
     if (c.fullWidth) {
       const h = (c.imgH / contentW) * pageW;
-      pdf.addImage(c.imgData, "JPEG", 0, curY, pageW, h);
+      pdf.addImage(c.imgData, "PNG", 0, curY, pageW, h);
       curY += h + c.gap;
     } else {
-      pdf.addImage(c.imgData, "JPEG", margin, curY, contentW, c.imgH);
+      pdf.addImage(c.imgData, "PNG", margin, curY, contentW, c.imgH);
       curY += c.imgH + c.gap;
     }
   });
